@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
+import "../css/ChapterList.css";  // Đừng quên import CSS
 
-const ChapterList = ({ chapters, apiKey }) => {
+const ChapterList = ({ chapters, apiKey, onTranslate }) => {
   const [results, setResults] = useState({});
 
   const translate = async (index) => {
     const chapter = chapters[index];
 
-    // 🚧 Giới hạn 2 chương miễn phí nếu không có API key
     if (!apiKey && index >= 2) {
       alert('🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục.');
       return;
@@ -19,21 +19,26 @@ const ChapterList = ({ chapters, apiKey }) => {
         key: apiKey || ''
       });
 
+      const translated = res.data.translated;
+
       setResults((prev) => ({
         ...prev,
-        [index]: res.data.translated
+        [index]: translated
       }));
+
+      // Gửi nội dung dịch lên component cha
+      onTranslate(index, translated);
     } catch (error) {
       alert('❌ Lỗi khi dịch chương: ' + chapter.title);
     }
   };
 
   return (
-    <div style={{ marginTop: 30 }}>
+    <div className="chapter-list">
       <h3>📚 Danh sách chương ({chapters.length})</h3>
       <ul>
         {chapters.map((ch, idx) => (
-          <li key={idx} style={{ marginBottom: 15 }}>
+          <li key={idx}>
             <strong>{ch.title}</strong>
             <button
               onClick={() => translate(idx)}
@@ -42,8 +47,8 @@ const ChapterList = ({ chapters, apiKey }) => {
               Dịch
             </button>
             {results[idx] && (
-              <div style={{ marginTop: 5, background: '#f5f5f5', padding: 10 }}>
-                <h5>🔁 Kết quả dịch:</h5>
+              <div>
+                <h5>🔁 Đã dịch:</h5>
                 <p>{results[idx]}</p>
               </div>
             )}

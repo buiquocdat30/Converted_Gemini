@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db');
+const connectDB = require('./config/prismaConfig');
 const uploadRoute = require('./routes/uploadRoute');
 const translateRoute = require('./routes/translateRoute');
 require('dotenv').config();

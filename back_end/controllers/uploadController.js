@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { readEpub } = require('../services/epubService');
 const {readTxt} =require ('../services/txtServices')
+const { prisma } = require('../config/prismaConfig'); //
 
 const handleUpload = async (req, res) => {
   const file = req.file;
