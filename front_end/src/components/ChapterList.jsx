@@ -14,7 +14,7 @@ const ChapterList = ({ chapters, apiKey, onTranslate }) => {
     }
 
     try {
-      const res = await axios.post('http://localhost:3000/api/translate', {
+      const res = await axios.post('http://localhost:8000/api/translate', {
         content: chapter.content,
         key: apiKey || ''
       });
