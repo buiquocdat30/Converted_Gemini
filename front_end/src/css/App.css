@@ -1,0 +1,120 @@
+/* Đặt màu nền tổng thể cho toàn trang */
+body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 1.2rem;
+    color: rgb(104, 146, 119);
+}
+
+/* Căn giữa wrapper cả theo chiều ngang và dọc */
+.wrapper {
+    max-width: 1024px;
+    width: 90%;
+    margin: 170px auto;
+    padding: 30px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+.wrapper h2{
+    margin-bottom: 20px;
+}
+
+/* Khu vực nhập API key */
+.converte-key {
+    width: 100%;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.converte-key input {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    border: 1px solid  rgb(104, 146, 119);
+    border-radius: 6px;
+    outline: none;
+    font-size: 16px;
+    padding-right: 40px;
+}
+
+/* Nút hướng dẫn API */
+.converte-key button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    cursor: pointer;
+    background-color: #d3e5db;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 1.3rem;
+    transition: background-color 0.3s ease;
+}
+
+.converte-key button:hover {
+    background-color: #c2d8cc;
+}
+/* Container cho input + icon */
+.api-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Icon mắt */
+.show-icon {
+    position: absolute;
+    right: 10px;
+    top: 62%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #444;
+}
+.converte-file
+{
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    border: 1px solid  rgb(104, 146, 119);
+    border-radius: 6px;
+    outline: none;
+    font-size: 16px;
+}
+/* Khu vực chứa nút Dịch */
+.converte {
+    display: flex;
+    justify-content: center;
+}
+
+.btn-submit {
+    width: 100%;    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #32744f;
+    color: #fff;
+    font-size: 1.3rem;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-submit:hover {
+    background-color: #163328;
+}
+
+/* Scrollbar tùy chỉnh nếu có danh sách dài */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+}
