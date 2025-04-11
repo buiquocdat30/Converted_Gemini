@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import ChapterList from './ChapterList';
-import TranslateViewer from './TranslateViewer';
+import React, { useState } from "react";
+import ChapterList from "./ChapterList";
+import TranslateViewer from "./TranslateViewer";
 
 const TranslatorApp = ({ chapters, apiKey }) => {
   const [translatedChapters, setTranslatedChapters] = useState([...chapters]);
@@ -12,7 +12,7 @@ const TranslatorApp = ({ chapters, apiKey }) => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 30 }}>
+    <div style={{ display: "flex", gap: 30 }}>
       <div style={{ flex: 1 }}>
         <ChapterList
           chapters={chapters}
@@ -21,7 +21,7 @@ const TranslatorApp = ({ chapters, apiKey }) => {
         />
       </div>
       <div style={{ flex: 2 }}>
-        <TranslationViewer chapters={translatedChapters} />
+        <TranslateViewer chapters={translatedChapters} />
       </div>
     </div>
   );

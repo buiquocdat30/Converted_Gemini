@@ -1,39 +1,49 @@
-const path = require('path');
-const fs = require('fs');
-const { readEpub } = require('../services/epubService');
-const { readTxt } = require('../services/txtServices');
-const { prisma } = require('../config/prismaConfig'); // giả sử bạn đang sử dụng Prisma để lưu dữ liệu
+const path = require("path");
+const fs = require("fs").promises;
+const { readEpub } = require("../services/epubService");
+const { readTxt } = require("../services/txtServices");
+const os = require("os");
+const crypto = require("crypto");
 
 const handleUpload = async (req, res) => {
-  const { fileName, fileContent } = req.body; // Lấy file content từ frontend gửi lên
+  const { fileName, fileContent } = req.body;
 
   if (!fileName || !fileContent) {
-    return res.status(400).json({ error: 'Không có dữ liệu file' });
+    return res.status(400).json({ error: "Không có dữ liệu file" });
   }
 
-  // Kiểm tra file type từ tên file
   const ext = path.extname(fileName).toLowerCase();
-
-  if (ext !== '.epub' && ext !== '.txt') {
-    return res.status(400).json({ error: 'Chỉ hỗ trợ file EPUB hoặc TXT' });
+  if (ext !== ".epub" && ext !== ".txt") {
+    return res.status(400).json({ error: "Chỉ hỗ trợ file EPUB hoặc TXT" });
   }
 
   try {
+    // Tạo file tạm với nội dung
+    const tempDir = os.tmpdir(); // thư mục tạm hệ thống
+    const tempFileName = crypto.randomUUID() + ext;
+    const tempFilePath = path.join(tempDir, tempFileName);
+
+    await fs.writeFile(
+      tempFilePath,
+      fileContent,
+      ext === ".epub" ? "base64" : "utf-8"
+    );
+
     let chapters = [];
 
-    if (ext === '.epub') {
-      // Xử lý file .epub
-      chapters = await readEpub(fileContent);
-    } else if (ext === '.txt') {
-      // Xử lý file .txt
-      chapters = await readTxt(fileContent);
+    if (ext === ".epub") {
+      chapters = await readEpub(tempFilePath);
+    } else {
+      chapters = await readTxt(tempFilePath);
     }
 
-    // Trả về kết quả
+    // Xóa file tạm sau khi xử lý xong
+    await fs.unlink(tempFilePath);
+
     res.json({ chapters });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Đã xảy ra lỗi khi xử lý file' });
+    console.error("❌ Lỗi xử lý:", err);
+    res.status(500).json({ error: "Đã xảy ra lỗi khi xử lý file" });
   }
 };
 

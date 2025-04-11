@@ -1,5 +1,5 @@
 import React from "react";
-import axios from "axios"; 
+import axios from "axios";
 
 import { useState } from "react";
 import TranslatorApp from "./components/TranslatorApp";
@@ -23,19 +23,27 @@ function App() {
   //UploadFile
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-  
+
     const allowedTypes = ["application/epub+zip", "text/plain"];
     if (!allowedTypes.includes(file.type)) {
       alert("Chỉ chấp nhận file .epub hoặc .txt");
       return;
     }
-  
+
     setSelectedFile(file);
-  
+
     const reader = new FileReader();
+
     reader.onload = async () => {
-      const fileContent = reader.result; // Đọc nội dung file
-  
+      let fileContent;
+
+      // Nếu là EPUB thì lấy phần base64 sau "data:application/epub+zip;base64,"
+      if (file.type === "application/epub+zip") {
+        fileContent = reader.result.split(",")[1]; // base64
+      } else {
+        fileContent = reader.result; // plain text
+      }
+
       try {
         const res = await fetch("http://localhost:8000/api/upload", {
           method: "POST",
@@ -44,36 +52,53 @@ function App() {
           },
           body: JSON.stringify({
             fileName: file.name,
-            fileContent: fileContent, // Gửi nội dung file ở đây
+            fileContent: fileContent,
           }),
         });
-        const textResponse = await res.text();  // Chờ server trả về dữ liệu thô
-        console.log(textResponse);  // In ra phản hồi từ server
-  
-        const data = await res.json();
-        setChapters(data.chapters);
+
+        const contentType = res.headers.get("content-type");
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText);
+        }
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          console.log("✅ Server response:", data);
+          if (Array.isArray(data.chapters)) {
+            console.log("✅ Số chương:", data.chapters.length);
+            setChapters(data.chapters);
+          } else {
+            console.warn("⚠️ Server không trả về chapters!");
+          }
+        }
       } catch (err) {
         console.error("❌ Lỗi khi upload file:", err);
       }
     };
-  
-    reader.readAsText(file); // đọc file dưới dạng text, nếu là epub binary sẽ cần xử lý thêm
+
+    if (file.type === "application/epub+zip") {
+      reader.readAsDataURL(file); // đọc dạng base64
+    } else {
+      reader.readAsText(file); // đọc dạng text
+    }
   };
-  
-  
 
   //converte
   const handleTranslate = async () => {
+    console.log("📘 Chapters hiện tại:", chapters);
+
     if (!chapters || chapters.length === 0) {
       alert("📂 Vui lòng upload file trước!");
       return;
     }
-  
+
     if (!apiKey && translatedFree) {
       alert("🚫 Chế độ miễn phí chỉ cho phép dịch 2 chương!");
       return;
     }
-  
+
     try {
       const res = await fetch("http://localhost:8000/api/translate", {
         method: "POST",
@@ -85,16 +110,23 @@ function App() {
           key: apiKey || null,
         }),
       });
-  
+
       const data = await res.json();
-      setTranslatedChapters(data.chapters);
-      if (!apiKey) setTranslatedFree(true);
-      setShowTranslator(true);
+      if (data && Array.isArray(data.chapters)) {
+        setTranslatedChapters(data.chapters);
+      } else {
+        console.error("❌ Server không trả về danh sách chương hợp lệ:", data);
+      }
+
+      if (!apiKey) {
+        setTranslatedFree(true);
+      } else {
+        setShowTranslator(true);
+      }
     } catch (err) {
       console.error("❌ Lỗi khi gửi file dịch:", err);
     }
   };
-  
 
   return (
     <div className="wrapper">
