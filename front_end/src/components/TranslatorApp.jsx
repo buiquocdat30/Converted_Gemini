@@ -2,14 +2,14 @@ import React, { useState } from "react";
 import ChapterList from "./ChapterList";
 import TranslateViewer from "./TranslateViewer";
 
-const TranslatorApp = ({ chapters, apiKey }) => {
+const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [translatedChapters, setTranslatedChapters] = useState([...chapters]);
 
-  const handleUpdateTranslation = (index, translatedContent) => {
-    const updated = [...translatedChapters];
-    updated[index].content = translatedContent;
-    setTranslatedChapters(updated);
-  };
+  // const handleUpdateTranslation = (index, translatedContent) => {
+  //   const updated = [...translatedChapters];
+  //   updated[index].content = translatedContent;
+  //   setTranslatedChapters(updated);
+  // };
 
   return (
     <div style={{ display: "flex", gap: 30 }}>
@@ -17,11 +17,14 @@ const TranslatorApp = ({ chapters, apiKey }) => {
         <ChapterList
           chapters={chapters}
           apiKey={apiKey}
-          onTranslate={handleUpdateTranslation}
+          onTranslate={onUpdateChapter}
         />
       </div>
       <div style={{ flex: 2 }}>
-        <TranslateViewer chapters={translatedChapters} onUpdateChapter={handleUpdateTranslation}/>
+        <TranslateViewer
+          chapters={translatedChapters}
+          onUpdateChapter={onUpdateChapter}
+        />
       </div>
     </div>
   );
