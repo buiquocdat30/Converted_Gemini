@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import "../css/ChapterList.css";  // Đừng quên import CSS
+import "../css/ChapterList.css";
 
 const ChapterList = ({ chapters, apiKey, onTranslate }) => {
   const [results, setResults] = useState({});
+  const [errorMessages, setErrorMessages] = useState({}); // Thêm trạng thái lỗi
 
   const translate = async (index) => {
     const chapter = chapters[index];
@@ -15,7 +16,7 @@ const ChapterList = ({ chapters, apiKey, onTranslate }) => {
 
     try {
       const res = await axios.post('http://localhost:8000/api/translate', {
-        content: chapter.content,
+        chapters: [chapter],
         key: apiKey || ''
       });
 
@@ -26,10 +27,19 @@ const ChapterList = ({ chapters, apiKey, onTranslate }) => {
         [index]: translated
       }));
 
-      // Gửi nội dung dịch lên component cha
       onTranslate(index, translated);
+      setErrorMessages((prev) => ({ ...prev, [index]: null })); // Xóa lỗi nếu có
     } catch (error) {
-      alert('❌ Lỗi khi dịch chương: ' + chapter.title);
+      console.error('Lỗi khi dịch chương:', error); // In lỗi chi tiết ra console
+
+      let errorMessage = '❌ Lỗi khi dịch chương: ' + chapter.title;
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage += ' - ' + error.response.data.message; // Thêm thông báo lỗi từ backend
+      }
+
+      setErrorMessages((prev) => ({ ...prev, [index]: errorMessage })); // Lưu lỗi
+
+      alert(errorMessage);
     }
   };
 
@@ -50,6 +60,11 @@ const ChapterList = ({ chapters, apiKey, onTranslate }) => {
               <div>
                 <h5>🔁 Đã dịch:</h5>
                 <p>{results[idx]}</p>
+              </div>
+            )}
+            {errorMessages[idx] && (
+              <div style={{ color: 'red' }}>
+                <p>{errorMessages[idx]}</p>
               </div>
             )}
           </li>

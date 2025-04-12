@@ -18,7 +18,7 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [translatedFree, setTranslatedFree] = useState(false);
   const [translatedChapters, setTranslatedChapters] = useState([]);
-  const [showTranslator, setShowTranslator] = useState(false);
+  const [showTranslator, setShowTranslator] = useState(true);
 
   //UploadFile
   const handleFileUpload = async (e) => {
@@ -159,6 +159,7 @@ function App() {
             : "🔓 Chế độ miễn phí - Chỉ dịch được 2 chương đầu tiên."}
         </small>
       </div>
+      {/* <TranslatorApp chapters={1} apiKey={1} /> */}
       {showTranslator && chapters.length > 0 ? (
         <TranslatorApp chapters={chapters} apiKey={apiKey} />
       ) : (

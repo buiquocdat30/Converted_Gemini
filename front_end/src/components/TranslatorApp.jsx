@@ -21,7 +21,7 @@ const TranslatorApp = ({ chapters, apiKey }) => {
         />
       </div>
       <div style={{ flex: 2 }}>
-        <TranslateViewer chapters={translatedChapters} />
+        <TranslateViewer chapters={translatedChapters} onUpdateChapter={handleUpdateTranslation}/>
       </div>
     </div>
   );

@@ -7,12 +7,26 @@
   
   .menu-bar {
     display: flex;
-    flex-wrap: wrap;
+  
     gap: 10px;
     margin-bottom: 15px;
   }
-  
-  .menu-bar button {
+  .menu-bar .row{
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 15px;
+  }
+
+  .menu-bar .row:first-child{
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 15px;
+  }
+  .menu-bar .row button {
     padding: 6px 10px;
     border-radius: 6px;
     border: none;
