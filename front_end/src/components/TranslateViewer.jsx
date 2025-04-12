@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { saveAs } from "file-saver";
 import "../css/TranslateViewer.css";
 
-const TranslationViewer = ({ chapters }) => {
+const TranslationViewer = ({ chapters, onUpdateChapter }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [history, setHistory] = useState([chapters[0].content || ""]);
@@ -12,6 +12,12 @@ const TranslationViewer = ({ chapters }) => {
 
   const handleEdit = () => {
     setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    onUpdateChapter(currentIndex, currentContent); // gọi hàm cha
+    setIsEditing(false);
+    alert("💾 Đã lưu nội dung chương!");
   };
 
   const handleChange = (e) => {
@@ -48,6 +54,10 @@ const TranslationViewer = ({ chapters }) => {
   const goToChapter = (offset) => {
     const newIndex = currentIndex + offset;
     if (newIndex >= 0 && newIndex < chapters.length) {
+      // nếu đang chỉnh sửa thì hỏi người dùng trước
+      if (isEditing && !window.confirm("❗Bạn chưa lưu thay đổi. Vẫn muốn chuyển chương?")) {
+        return;
+      }
       setCurrentIndex(newIndex);
       const newContent = chapters[newIndex].content || "";
       setHistory([newContent]);
@@ -59,37 +69,52 @@ const TranslationViewer = ({ chapters }) => {
   return (
     <div className="translation-viewer">
       <div className="menu-bar">
-        <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>
-          ◀ Back
-        </button>
-        <button onClick={() => goToChapter(1)} disabled={currentIndex === chapters.length - 1}>
-          Next ▶
-        </button>
-        <button onClick={handleEdit}>✏️ Sửa</button>
-        <button onClick={handleCopy}>📋 Copy</button>
-        <button onClick={handleUndo} disabled={historyIndex === 0}>
-          ↩ Undo
-        </button>
-        <button onClick={handleRedo} disabled={historyIndex === history.length - 1}>
-          ↪ Redo
-        </button>
-        <button onClick={() => handleExport("epub")}>📘 Xuất EPUB</button>
-        <button onClick={() => handleExport("txt")}>📄 Xuất Text</button>
+        <div className="row">
+          <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>
+            ◀ Back
+          </button>
+          <button
+            onClick={() => goToChapter(1)}
+            disabled={currentIndex === chapters.length - 1}
+          >
+            Next ▶
+          </button>
+        </div>
+        <div className="row">
+          {!isEditing ? (
+            <button onClick={handleEdit}>✏️ Sửa</button>
+          ) : (
+            <button onClick={handleSave}>✅ Hoàn tất</button>
+          )}
+          <button onClick={handleCopy}>📋 Copy</button>
+          <button onClick={handleUndo} disabled={historyIndex === 0}>
+            ↩ Undo
+          </button>
+          <button onClick={handleRedo} disabled={historyIndex === history.length - 1}>
+            ↪ Redo
+          </button>
+        </div>
+        <div className="row">
+          <button onClick={() => handleExport("epub")}>📘 Xuất EPUB</button>
+          <button onClick={() => handleExport("txt")}>📄 Xuất Text</button>
+        </div>
       </div>
 
-      <h3>
-        {chapters[currentIndex]?.title || `Chương ${currentIndex + 1}`}
-      </h3>
+      <div className="viewr-content">
+        <h3 className="viewr-content-title">
+          {chapters[currentIndex]?.title || `Chương ${currentIndex + 1}`}
+        </h3>
 
-      {isEditing ? (
-        <textarea
-          value={currentContent}
-          onChange={handleChange}
-          style={{ width: "100%", height: 300 }}
-        />
-      ) : (
-        <div className="translated-content">{currentContent}</div>
-      )}
+        {isEditing ? (
+          <textarea
+            value={currentContent}
+            onChange={handleChange}
+            style={{ width: "100%", height: 300 }}
+          />
+        ) : (
+          <div className="translated-content">{currentContent}</div>
+        )}
+      </div>
     </div>
   );
 };
