@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { saveAs } from "file-saver";
 import "../css/TranslateViewer.css";
 
-const TranslationViewer = ({ chapters, onUpdateChapter }) => {
+const TranslateViewer = ({ chapters, onUpdateChapter }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [history, setHistory] = useState([chapters[0].content || ""]);
@@ -42,9 +42,7 @@ const TranslationViewer = ({ chapters, onUpdateChapter }) => {
 
   const handleExport = (type) => {
     const fullText = chapters
-      .map((ch, i) =>
-        i === currentIndex ? currentContent : ch.content || ""
-      )
+      .map((ch, i) => (i === currentIndex ? currentContent : ch.content || ""))
       .join("\n\n");
 
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
@@ -55,7 +53,10 @@ const TranslationViewer = ({ chapters, onUpdateChapter }) => {
     const newIndex = currentIndex + offset;
     if (newIndex >= 0 && newIndex < chapters.length) {
       // nếu đang chỉnh sửa thì hỏi người dùng trước
-      if (isEditing && !window.confirm("❗Bạn chưa lưu thay đổi. Vẫn muốn chuyển chương?")) {
+      if (
+        isEditing &&
+        !window.confirm("❗Bạn chưa lưu thay đổi. Vẫn muốn chuyển chương?")
+      ) {
         return;
       }
       setCurrentIndex(newIndex);
@@ -69,6 +70,9 @@ const TranslationViewer = ({ chapters, onUpdateChapter }) => {
   return (
     <div className="translation-viewer">
       <div className="menu-bar">
+        <div className="chapter-index">
+          Chương {currentIndex + 1} / {chapters.length}
+        </div>
         <div className="row">
           <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>
             ◀ Back
@@ -90,7 +94,10 @@ const TranslationViewer = ({ chapters, onUpdateChapter }) => {
           <button onClick={handleUndo} disabled={historyIndex === 0}>
             ↩ Undo
           </button>
-          <button onClick={handleRedo} disabled={historyIndex === history.length - 1}>
+          <button
+            onClick={handleRedo}
+            disabled={historyIndex === history.length - 1}
+          >
             ↪ Redo
           </button>
         </div>
@@ -119,4 +126,4 @@ const TranslationViewer = ({ chapters, onUpdateChapter }) => {
   );
 };
 
-export default TranslationViewer;
+export default TranslateViewer;
