@@ -21,12 +21,15 @@ const translateText = async (text, key) => {
   const prompt = `Dịch nội dung sau sang tiếng Việt một cách tự nhiên, các đại từ nhân xưng phù hợp ngữ cảnh, giữ nguyên ý nghĩa, không thêm gì cả:\n\n"${text}"`;
 
   const result = await model.generateContent(prompt);
-  console.log("📌 KQ dich:", result ? ("OK",result) : "MISSING");
+  console.log("📌 KQ dịch:", result || "MISSING");
+
   const response = await result.response;
-  console.log("📌 KQ res:", response ?  ("OK",response): "MISSING");
-  const translated = response.text();
-  console.log("📌 KQ translate:", translated ?  ("OK",translated): "MISSING");
-  return translated;
+  console.log("📌 KQ res:", response || "MISSING");
+
+  const translated = await response.text();
+  console.log("📌 KQ translate:", translated || "MISSING");
+
+  return  translated;
 };
 
 module.exports = { translateText };

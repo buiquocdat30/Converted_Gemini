@@ -1,21 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
 import "../css/TranslateViewer.css";
 
-const TranslateViewer = ({ chapters, onUpdateChapter }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex }) => {
+  const [localIndex, setLocalIndex] = useState(currentIndex); // Đổi tên state thành localIndex
   const [isEditing, setIsEditing] = useState(false);
-  const [history, setHistory] = useState([chapters[0].content || ""]);
+  const [history, setHistory] = useState([
+    chapters[0]?.translated || chapters[0]?.content || ""
+  ]);
+  
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const currentContent = history[historyIndex];
+
+   // Sử dụng useEffect để đồng bộ với props currentIndex
+   useEffect(() => {
+    setLocalIndex(currentIndex); // Cập nhật localIndex khi props currentIndex thay đổi
+    const newContent =
+      chapters[currentIndex]?.translated ||
+      chapters[currentIndex]?.content ||
+      "";
+    setHistory([newContent]);
+    setHistoryIndex(0);
+    setIsEditing(false);
+  }, [chapters, currentIndex]);
 
   const handleEdit = () => {
     setIsEditing(true);
   };
 
   const handleSave = () => {
-    onUpdateChapter(currentIndex, currentContent); // gọi hàm cha
+    onUpdateChapter(localIndex, currentContent); // gọi hàm cha
     setIsEditing(false);
     alert("💾 Đã lưu nội dung chương!");
   };
@@ -42,7 +57,7 @@ const TranslateViewer = ({ chapters, onUpdateChapter }) => {
 
   const handleExport = (type) => {
     const fullText = chapters
-      .map((ch, i) => (i === currentIndex ? currentContent : ch.content || ""))
+      .map((ch, i) => (i === localIndex  ? currentContent : ch.content || ""))
       .join("\n\n");
 
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
@@ -50,7 +65,7 @@ const TranslateViewer = ({ chapters, onUpdateChapter }) => {
   };
 
   const goToChapter = (offset) => {
-    const newIndex = currentIndex + offset;
+    const newIndex = localIndex  + offset;
     if (newIndex >= 0 && newIndex < chapters.length) {
       // nếu đang chỉnh sửa thì hỏi người dùng trước
       if (
@@ -59,11 +74,12 @@ const TranslateViewer = ({ chapters, onUpdateChapter }) => {
       ) {
         return;
       }
-      setCurrentIndex(newIndex);
+      setLocalIndex(newIndex);
       const newContent = chapters[newIndex].content || "";
       setHistory([newContent]);
       setHistoryIndex(0);
       setIsEditing(false);
+      onChangeIndex?.(newIndex); // 👈 sử dụng prop
     }
   };
 
@@ -74,12 +90,12 @@ const TranslateViewer = ({ chapters, onUpdateChapter }) => {
           Chương {currentIndex + 1} / {chapters.length}
         </div>
         <div className="row">
-          <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>
+          <button onClick={() => goToChapter(-1)} disabled={localIndex  === 0}>
             ◀ Back
           </button>
           <button
             onClick={() => goToChapter(1)}
-            disabled={currentIndex === chapters.length - 1}
+            disabled={localIndex  === chapters.length - 1}
           >
             Next ▶
           </button>
@@ -109,7 +125,7 @@ const TranslateViewer = ({ chapters, onUpdateChapter }) => {
 
       <div className="viewr-content">
         <h3 className="viewr-content-title">
-          {chapters[currentIndex]?.title || `Chương ${currentIndex + 1}`}
+          {chapters[localIndex]?.title || `Chương ${localIndex  + 1}`}
         </h3>
 
         {isEditing ? (

@@ -1,4 +1,4 @@
-const { translateText } = require("../services/translateService");
+const { translateText: performTranslation } = require("../services/translateService");
 
 exports.translateText = async (req, res) => {
   const { chapters, key } = req.body;
@@ -20,7 +20,7 @@ exports.translateText = async (req, res) => {
       chapters.map(async (ch) => {
         console.log("📌 Đang dịch chương:", ch.title || "Không có tiêu đề");
 
-        const translated = await translateText(ch.content, key);
+        const translated = await performTranslation(ch.content, key);
         console.log("📌 Dịch xong chương:", ch.title || "Không có tiêu đề");
 
         return {
