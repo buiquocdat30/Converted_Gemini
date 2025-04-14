@@ -7,10 +7,13 @@ const App = () => {
   const [chapters, setChapters] = useState([]);
   const [apiKey, setApiKey] = useState("");
 
-  const handleParsedChapters = (parsedChapters) => {
+  const handleParsedChapters = (parsedChapters, key) => {
     setChapters(parsedChapters);
+    setApiKey(key)
   };
 
+  console.log('nó nà:',apiKey)
+  
   const handleUpdateChapterContent = (index, newContent) => {
     setChapters((prev) =>
       prev.map((ch, i) => (i === index ? { ...ch, content: newContent } : ch))

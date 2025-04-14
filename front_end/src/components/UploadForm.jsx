@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../css/App.css";
+import ConverteKeyInput from "./ConverteKeyInput";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
@@ -9,6 +10,8 @@ const UploadForm = ({ onFileParsed }) => {
   const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [chapters, setChapters] = useState([]);
+  const [loading, setLoading] = useState(false); // Thêm trạng thái loading
+  const [error, setError] = useState(""); // Thêm trạng thái error
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -20,6 +23,8 @@ const UploadForm = ({ onFileParsed }) => {
     }
 
     setSelectedFile(file);
+    setLoading(true); // Bắt đầu loading khi upload tệp
+    setError(""); // Reset lỗi trước khi xử lý
 
     const reader = new FileReader();
 
@@ -64,6 +69,9 @@ const UploadForm = ({ onFileParsed }) => {
         }
       } catch (err) {
         console.error("❌ Lỗi khi upload file:", err);
+        setError("❌ Đã xảy ra lỗi khi tải tệp lên. Vui lòng thử lại.");
+      } finally {
+        setLoading(false); // Kết thúc loading khi xử lý xong
       }
     };
 
@@ -91,26 +99,7 @@ const UploadForm = ({ onFileParsed }) => {
   return (
     <div className="wrapper">
       <h2>📘 Gemini Converte</h2>
-
-      <div className="converte-key">
-        <label>🔑 Nhập Google Gemini API Key </label>
-        <div className="api-input-wrapper">
-          <input
-            type={showKey ? "text" : "password"}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="API Key..."
-          />
-          <FontAwesomeIcon
-            icon={showKey ? faEyeSlash : faEye}
-            className="show-icon"
-            onClick={() => setShowKey((prev) => !prev)}
-          />
-        </div>
-        <button onClick={() => setShowGuide(true)}>
-          ❓ Hướng dẫn lấy API key
-        </button>
-      </div>
+      <ConverteKeyInput apiKey={apiKey} setApiKey={setApiKey} />
 
       <div style={{ marginBottom: 20 }}>
         <small>
@@ -119,20 +108,21 @@ const UploadForm = ({ onFileParsed }) => {
             : "🔓 Chế độ miễn phí - Chỉ dịch được 2 chương đầu tiên."}
         </small>
       </div>
-
       <input
         className="converte-file"
         type="file"
         accept=".epub, .txt"
         onChange={handleFileUpload}
       />
-
+      {loading && <p>⏳ Đang xử lý tệp...</p>}{" "}
+      {/* Hiển thị thông báo khi đang tải lên */}
+      {error && <p style={{ color: "red" }}>{error}</p>}{" "}
+      {/* Hiển thị thông báo lỗi nếu có */}
       <div className="converte">
         <button className="btn-submit" onClick={handleSubmit}>
           Hoàn tất
         </button>
       </div>
-
       {showGuide && (
         <div className="modal">
           <div className="modal-content">
