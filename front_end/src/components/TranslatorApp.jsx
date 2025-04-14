@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import ChapterList from "./ChapterList";
 import TranslateViewer from "./TranslateViewer";
+import ConverteKeyInput from "./ConverteKeyInput";
+import "../css/TranslatorApp.css";
 
 const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
+  const [currentApiKey, setCurrentApiKey] = useState(apiKey || "");
   const [translatedChapters, setTranslatedChapters] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
 
@@ -38,9 +41,22 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
 
   return (
     <div className="wrapper">
-      <h2>📘 Gemini Converte</h2>
-      <div style={{ display: "flex", gap: 30 }}>
-        <div style={{ flex: 1 }}>
+      <div className="top-menu">
+        <h2>📘 Gemini Converte</h2>
+        <div className="top-menu-body">
+          <button onClick={() => (window.location.href = "/")}>
+            🏠 Trang chủ
+          </button>
+          <ConverteKeyInput
+            apiKey={currentApiKey}
+            setApiKey={setCurrentApiKey}
+          />
+        </div>
+      </div>
+
+      {/* Main layout */}
+      <div className="content">
+        <div className="chapter-list-container">
           <ChapterList
             chapters={mergedChapters}
             apiKey={apiKey}
@@ -48,7 +64,7 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
             onSelectChapter={(idx) => setCurrentIndex(idx)} // 👈 truyền hàm chọn chương
           />
         </div>
-        <div style={{ flex: 2 }}>
+        <div className="translate-viewer-container">
           <TranslateViewer
             chapters={translatedChapters}
             onUpdateChapter={handleEditChapter}

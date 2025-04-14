@@ -1,0 +1,67 @@
+.translator-app {
+    display: flex;
+    flex-direction: column;
+}
+
+.top-menu {
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    padding: 10px 20px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.top-menu h2 {
+    margin: 0;
+}
+
+.top-menu-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    /* khoảng cách giữa 2 phần */
+    padding: 10px 20px;
+    width: 100%;
+}
+
+.top-menu-body>button {
+    flex: 0 0 25%;
+    /* cố định 25% */
+    max-width: 25%;
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.top-menu-body>.converte-key {
+    flex: 1;
+    /* chiếm phần còn lại (75%) */
+}
+
+
+
+.content {
+    display: flex;
+    padding: 20px;
+    gap: 30px;
+}
+
+.chapter-list-container {
+    flex: 1;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    position: sticky;
+    top: 80px;
+}
+
+.translate-viewer-container {
+    flex: 2;
+}
