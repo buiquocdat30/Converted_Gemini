@@ -35,6 +35,8 @@ const ChapterList = ({
   // Hàm dịch tất cả các chương
   const translateAll = async () => {
     setIsTranslateAllDisabled(true); // ✅ Disable ngay khi bắt đầu
+    console.time("⏱️ Thời gian dịch toàn bộ");
+
     setIsTranslatingAll(true); // ✅ Bắt đầu loading
     const maxChapters = apiKey ? chapters.length : 2;
 
@@ -60,17 +62,6 @@ const ChapterList = ({
       return;
     }
 
-    let fakeTotalProgress = 0;
-    const totalInterval = setInterval(() => {
-      fakeTotalProgress += 5; // Mỗi lần tăng 5%
-      if (fakeTotalProgress < 95) {
-        setTotalProgress(fakeTotalProgress); // Cập nhật tiến độ tổng
-      } else {
-        clearInterval(totalInterval); // Dừng khi gần hoàn thành
-        setTotalProgress(100);
-      }
-    }, 200); // Mỗi 200ms tăng 5%
-
     try {
       const res = await axios.post("http://localhost:8000/api/translate", {
         chapters: chaptersToTranslate,
@@ -93,22 +84,13 @@ const ChapterList = ({
           onTranslationResult(realIndex, chapter.translated);
           count++;
 
-          // Giả lập tiến độ cho mỗi chương
-          let fakeProgress = 0;
-          const chapterInterval = setInterval(() => {
-            fakeProgress += 5;
-            if (fakeProgress < 95) {
-              setProgress((prev) => ({ ...prev, [realIndex]: fakeProgress })); // Cập nhật tiến độ cho chương
-            } else {
-              clearInterval(chapterInterval); // Dừng khi gần hoàn thành
-              setProgress((prev) => ({ ...prev, [realIndex]: 100 })); // ✅ Hoàn thành chương
-            }
-          }, 200); // Mỗi 200ms tăng 5%
           // Cập nhật tiến độ tổng sau khi mỗi chương được dịch
-          const percent = Math.floor(
-            ((translatedCount + idx + 1) / chapters.length) * 100
-          );
-          setTotalProgress(percent);
+          setTranslatedCount((prevCount) => {
+            const newCount = prevCount + 1;
+            const percent = Math.floor((newCount / chapters.length) * 100);
+            setTotalProgress(percent);
+            return newCount;
+          });
         });
 
         setResults((prev) => ({ ...prev, ...newResults }));
@@ -129,6 +111,7 @@ const ChapterList = ({
       // ✅ Mở lại nếu bị lỗi
       setIsTranslateAllDisabled(false);
     } finally {
+      console.timeEnd("⏱️ Thời gian dịch toàn bộ");
       setIsTranslatingAll(false); // ✅ Dừng loading
     }
   };
@@ -245,7 +228,7 @@ const ChapterList = ({
                   </div>
                 )}
 
-                {progress[idx] !== undefined && (
+                {progress[idx] !== undefined && !isTranslatingAll && (
                   <div className="chapter-progress-bar-container">
                     <div
                       className="chapter-progress-bar"
@@ -258,29 +241,32 @@ const ChapterList = ({
           );
         })}
       </ul>
-       
-      <button
-        className="translate-all-button"
-        onClick={translateAll}
-        disabled={isTranslateAllDisabled || isTranslatingAll}
-      >
-        {isTranslatingAll ? (
-          <span>
-            <FontAwesomeIcon icon={faSpinner} /> Đang dịch...
-          </span>
-        ) : (
-          "Dịch toàn bộ chương"
-        )}
-      </button>
 
-      {totalProgress !== 0 && (
-        <div className="progress-bar-container">
-          <div
-            className="progress-bar"
-            style={{ width: `${totalProgress}%` }}
-          ></div>
-        </div>
-      )}
+      <div className="translate-all-container">
+        <button
+          className="translate-all-button"
+          onClick={translateAll}
+          disabled={isTranslateAllDisabled || isTranslatingAll}
+        >
+          {isTranslatingAll ? (
+            <span>
+              <FontAwesomeIcon icon={faSpinner} spin /> Đang dịch...
+            </span>
+          ) : (
+            "Dịch toàn bộ chương"
+          )}
+        </button>
+
+        {totalProgress !== 0 && (
+          <div className="progress-bar-container">
+            <div
+              className="progress-bar"
+              style={{ width: `${totalProgress}%` }}
+            ></div>
+          </div>
+        )}
+      </div>
+
       {errorMessages.general && (
         <div className="general-error">
           <p>{errorMessages.general}</p>

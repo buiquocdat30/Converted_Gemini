@@ -134,7 +134,7 @@ body {
     box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 10px;
 }
 
-.modal-content button{
+.modal-content button {
     margin-top: 10px;
     padding: 6px 12px;
     background-color: rgb(0, 123, 255);
@@ -144,6 +144,7 @@ body {
     cursor: pointer;
 
 }
+
 /* Scrollbar tùy chỉnh nếu có danh sách dài */
 ::-webkit-scrollbar {
     width: 8px;

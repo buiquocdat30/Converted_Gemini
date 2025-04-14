@@ -125,3 +125,49 @@
   background: linear-gradient(90deg, #4caf50, #81c784);
   transition: width 0.2s ease-in-out;
 }
+
+.translate-all-container {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f3f3f3;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.translate-all-button {
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.translate-all-button:hover:enabled {
+  background-color: #45a049;
+}
+
+.translate-all-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 10px;
+  background-color: #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #4caf50;
+  transition: width 0.3s ease;
+}
