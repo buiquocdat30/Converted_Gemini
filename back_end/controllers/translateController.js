@@ -1,11 +1,14 @@
-const { translateText: performTranslation } = require("../services/translateService");
+const {
+  translateText: performTranslation,
+} = require("../services/translateService");
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 exports.translateText = async (req, res) => {
   const { chapters, key } = req.body;
 
-    // Log giá trị truyền vào để kiểm tra
-    console.log("📌 Yêu cầu dịch nhận được từ client:", req.body);
-    
+  // Log giá trị truyền vào để kiểm tra
+  console.log("📌 Yêu cầu dịch nhận được từ client:", req.body);
+
   if (!chapters || !Array.isArray(chapters)) {
     console.log("❌ Thiếu danh sách chương hoặc không phải mảng!");
     return res.status(400).json({ error: "Thiếu danh sách chương cần dịch." });
@@ -15,20 +18,17 @@ exports.translateText = async (req, res) => {
     // Đảm bảo key được truyền vào
     console.log("📌 API Key:", key);
 
+    const translatedChapters = [];
     // Tiến hành dịch các chương
-    const translatedChapters = await Promise.all(
-      chapters.map(async (ch) => {
-        console.log("📌 Đang dịch chương:", ch.title || "Không có tiêu đề");
+    for (let i = 0; i < chapters.length; i++) {
+      const ch = chapters[i];
+      const translated = await performTranslation(ch.content, key);
 
-        const translated = await performTranslation(ch.content, key);
-        console.log("📌 Dịch xong chương:", ch.title || "Không có tiêu đề");
-
-        return {
-          ...ch,
-          translated: translated, // Gán kết quả dịch vào chương
-        };
-      })
-    );
+      translatedChapters.push({
+        ...ch,
+        translated,
+      });
+    }
 
     console.log("📌 Dịch hoàn tất:", translatedChapters);
 

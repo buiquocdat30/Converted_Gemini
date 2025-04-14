@@ -6,7 +6,6 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [translatedChapters, setTranslatedChapters] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
 
-
   // Khi nhận kết quả dịch từ ChapterList
   const handleTranslationResult = (index, translated) => {
     setTranslatedChapters((prev) => {
@@ -19,7 +18,6 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
     });
     setCurrentIndex(index); // 👈 chuyển sang chương vừa dịch
   };
-  
 
   // Khi người dùng sửa lại nội dung trong TranslateViewer
   const handleEditChapter = (index, newContent) => {
@@ -27,36 +25,37 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
       const updated = [...prev];
       updated[index] = {
         ...(chapters[index] || {}),
-        translated:newContent,
+        translated: newContent,
       };
       return updated;
     });
-    
   };
 
   const mergedChapters = chapters.map((ch, i) => ({
     ...ch,
     ...translatedChapters[i],
   }));
-  
+
   return (
-    <div style={{ display: "flex", gap: 30 }}>
-      <div style={{ flex: 1 }}>
-        <ChapterList
-          chapters={mergedChapters}
-          apiKey={apiKey}
-          onTranslationResult={handleTranslationResult}
-          onSelectChapter={(idx) => setCurrentIndex(idx)} // 👈 truyền hàm chọn chương
-     
-        />
-      </div>
-      <div style={{ flex: 2 }}>
-        <TranslateViewer
-          chapters={translatedChapters}
-          onUpdateChapter={handleEditChapter}
-          currentIndex={currentIndex} // 👈 truyền index xuống
-        onChangeIndex={(idx) => setCurrentIndex(idx)} // 👈 để TranslateViewer chuyển chương
-        />
+    <div className="wrapper">
+      <h2>📘 Gemini Converte</h2>
+      <div style={{ display: "flex", gap: 30 }}>
+        <div style={{ flex: 1 }}>
+          <ChapterList
+            chapters={mergedChapters}
+            apiKey={apiKey}
+            onTranslationResult={handleTranslationResult}
+            onSelectChapter={(idx) => setCurrentIndex(idx)} // 👈 truyền hàm chọn chương
+          />
+        </div>
+        <div style={{ flex: 2 }}>
+          <TranslateViewer
+            chapters={translatedChapters}
+            onUpdateChapter={handleEditChapter}
+            currentIndex={currentIndex} // 👈 truyền index xuống
+            onChangeIndex={(idx) => setCurrentIndex(idx)} // 👈 để TranslateViewer chuyển chương
+          />
+        </div>
       </div>
     </div>
   );
