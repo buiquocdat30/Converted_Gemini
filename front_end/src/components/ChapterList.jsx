@@ -2,13 +2,20 @@ import React, { useState } from "react";
 import axios from "axios";
 import "../css/ChapterList.css";
 
-const ChapterList = ({ chapters, apiKey, onTranslate }) => {
+const ChapterList = ({
+  chapters,
+  apiKey,
+  onTranslationResult,
+  onSelectChapter 
+}) => {
   const [results, setResults] = useState({});
   const [errorMessages, setErrorMessages] = useState({}); // Thêm trạng thái lỗi
 
   const translate = async (index) => {
     const chapter = chapters[index];
-
+    onSelectChapter?.(index); // 👈 gọi để hiển thị chương trước khi dịch
+ 
+    console.log("📌 chương hiện tại:", chapter ? ("OK", chapter) : "MISSING");
     if (!apiKey && index >= 2) {
       alert(
         "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
@@ -22,14 +29,28 @@ const ChapterList = ({ chapters, apiKey, onTranslate }) => {
         key: apiKey || "",
       });
 
-      const translated = res.data.translated;
+      // ✅ Bảo vệ an toàn trước khi truy cập
+      const translated =
+        res?.data?.chapters &&
+        Array.isArray(res.data.chapters) &&
+        res.data.chapters[0]
+          ? res.data.chapters[0].translated
+          : null;
+      console.log("📌 dịch hiện tại data:", res.data.chapters[0].translated);
+      console.log("📌 dịch hiện tại:", translated || "MISSING");
 
-      onTranslate(index, translated);
-      
+      onTranslationResult(index, translated);
+      console.log(
+        "📌 Dịch hiện tại:",
+        onTranslationResult ? "OK ✅" : "MISSING ❌"
+      );
+
       setResults((prev) => ({
         ...prev,
         [index]: translated,
       }));
+      console.log("kết quả dịch ok cuối", results);
+
       setErrorMessages((prev) => ({ ...prev, [index]: null })); // Xóa lỗi nếu có
     } catch (error) {
       console.error("Lỗi khi dịch chương:", error); // In lỗi chi tiết ra console
@@ -59,12 +80,7 @@ const ChapterList = ({ chapters, apiKey, onTranslate }) => {
             <button onClick={() => translate(idx)} style={{ marginLeft: 10 }}>
               Dịch
             </button>
-            {results[idx] && (
-              <div>
-                <h5>🔁 Đã dịch:</h5>
-                <p>{results[idx]}</p>
-              </div>
-            )}
+            {/* {onTranslatedChapters[idx]?.translated && <span>✅ Đã dịch</span>} */}
             {errorMessages[idx] && (
               <div style={{ color: "red" }}>
                 <p>{errorMessages[idx]}</p>
