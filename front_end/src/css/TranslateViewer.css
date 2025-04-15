@@ -7,9 +7,14 @@
 
 .menu-bar {
   display: flex;
-
+  flex: 1;
+  position: sticky;
+  top:232px;
+    padding-top: 10px;
   gap: 10px;
   margin-bottom: 15px;
+  background-color: #2a2a2a;
+  box-sizing: border-box;
 }
 
 .menu-bar .row {
@@ -20,17 +25,11 @@
   margin-bottom: 15px;
 }
 
-.menu-bar .row:first-child {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 15px;
-}
 
 .menu-bar .row button {
   padding: 6px 10px;
   border-radius: 6px;
+  width: 107px;
   border: none;
   background-color: #28a745;
   color: white;

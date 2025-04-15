@@ -33,18 +33,40 @@
 }
 
 .top-menu-body>button {
-    flex: 0 0 25%;
+    flex: 0 0 20%;
     /* cố định 25% */
-    max-width: 25%;
-    padding: 10px 15px;
+    max-width: 20%;
+    height: auto;
+    margin-top: 37px;
+    padding: 10px 12px;
+    color: white;
+    background-color: #4CAF50;
     font-size: 16px;
     cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
-
+.top-menu-body>button:hover{
+    background-color: #45a049;
+}
 .top-menu-body>.converte-key {
     flex: 1;
     /* chiếm phần còn lại (75%) */
 }
+  
+  
+  /* Khi bị disable */
+  .confirm-key-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .confirm-key-btn:disabled:hover {
+    background-color: #6c757d;
+  }
+  
 
 
 
@@ -52,14 +74,18 @@
     display: flex;
     padding: 20px;
     gap: 30px;
+    align-items: flex-start; /* canh từ trên xuống, tránh kéo giãn */
 }
 
 .chapter-list-container {
     flex: 1;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
     position: sticky;
-    top: 80px;
+    top: 245px; /* để tránh đè lên top-menu */
+    height: calc(100vh - 200px); /* đảm bảo nó không vượt khỏi màn hình */
+    overflow-y: auto;
+    background-color: #f9f9f9; /* thêm màu nền nếu muốn nổi bật */
+    border-right: 1px solid #ccc;
+    padding-right: 10px;
 }
 
 .translate-viewer-container {

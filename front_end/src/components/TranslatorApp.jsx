@@ -8,6 +8,7 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || "");
   const [translatedChapters, setTranslatedChapters] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
+  const [tempKey, setTempKey] = useState(apiKey || "");
 
   // Khi nhận kết quả dịch từ ChapterList
   const handleTranslationResult = (index, translated) => {
@@ -34,6 +35,10 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
     });
   };
 
+  const handleCurrentKey = () => {
+    setCurrentApiKey(tempKey);
+  };
+
   const mergedChapters = chapters.map((ch, i) => ({
     ...ch,
     ...translatedChapters[i],
@@ -48,9 +53,14 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
             🏠 Trang chủ
           </button>
           <ConverteKeyInput
-            apiKey={currentApiKey}
-            setApiKey={setCurrentApiKey}
+            apiKey={tempKey}
+            setApiKey={setTempKey}
           />
+          <button  className="confirm-key-btn" onClick={handleCurrentKey}
+          disabled={!tempKey || currentApiKey === tempKey}>
+          🔑 Nhập key
+          </button>
+          
         </div>
       </div>
 
@@ -59,14 +69,15 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
         <div className="chapter-list-container">
           <ChapterList
             chapters={mergedChapters}
-            apiKey={apiKey}
+            apiKey={currentApiKey}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={(idx) => setCurrentIndex(idx)} // 👈 truyền hàm chọn chương
           />
         </div>
         <div className="translate-viewer-container">
           <TranslateViewer
-            chapters={translatedChapters}
+            // chapters={translatedChapters}
+            chapters={mergedChapters} 
             onUpdateChapter={handleEditChapter}
             currentIndex={currentIndex} // 👈 truyền index xuống
             onChangeIndex={(idx) => setCurrentIndex(idx)} // 👈 để TranslateViewer chuyển chương

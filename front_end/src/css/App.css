@@ -12,7 +12,7 @@ body {
 .wrapper {
     max-width: 1024px;
     width: 90%;
-    margin: 170px auto;
+    margin: 25px auto;
     padding: 30px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 16px;
@@ -27,7 +27,6 @@ body {
 /* Khu vực nhập API key */
 .converte-key {
     width: 100%;
-    margin-bottom: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
