@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { translateChapters } from "../services/translateChapters";
-import { translateSingleChapter } from "../services/translateSingleChapter";
+import {
+  translateChapters,
+  translateSingleChapter,
+} from "../services/translateServices";
+
 import "../css/ChapterList.css";
 
 const ChapterList = ({
@@ -117,8 +120,6 @@ const ChapterList = ({
       <ul>
         {chapters.map((ch, idx) => {
           const isTranslated = !!results[idx];
-          const disableTranslate =
-            isTranslated || (!apiKey && translatedCount >= 2);
 
           return (
             <li key={idx}>
