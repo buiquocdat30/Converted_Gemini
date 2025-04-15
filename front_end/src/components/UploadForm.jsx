@@ -7,7 +7,6 @@ import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 const UploadForm = ({ onFileParsed }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(false); // Thêm trạng thái loading

@@ -11,8 +11,6 @@ const App = () => {
     setChapters(parsedChapters);
     setApiKey(key)
   };
-
-  console.log('nó nà:',apiKey)
   
   const handleUpdateChapterContent = (index, newContent) => {
     setChapters((prev) =>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { translateChapters } from "../services/translateChapters";
+import { translateSingleChapter } from "../services/translateSingleChapter";
 import "../css/ChapterList.css";
 
 const ChapterList = ({
@@ -17,6 +19,7 @@ const ChapterList = ({
   const [totalProgress, setTotalProgress] = useState(0); // Lưu tiến độ tổng
   const [isTranslateAllDisabled, setIsTranslateAllDisabled] = useState(false); //Disable nút dịch tổng
   const [isTranslatingAll, setIsTranslatingAll] = useState(false); //Nút quay quay loading
+  const [hasTranslatedAll, setHasTranslatedAll] = useState(false); //đã dịch xong
 
   //đếm chương
   const canTranslate = (index) => {
@@ -26,11 +29,12 @@ const ChapterList = ({
   };
 
   useEffect(() => {
-    const maxChapters = apiKey ? chapters.length : 2;
-    if (translatedCount >= maxChapters) {
-      setIsTranslateAllDisabled(true); // ✅ Disable nút nếu đã dịch đủ
+    if (apiKey) {
+      setIsTranslateAllDisabled(false); // ✅ Đã có key thì luôn bật nút
+    } else {
+      setIsTranslateAllDisabled(translatedCount >= 2); // ✅ Chưa có key thì giới hạn 2 chương
     }
-  }, [translatedCount, chapters, apiKey]);
+  }, [translatedCount, chapters.length, apiKey]);
 
   // Hàm dịch tất cả các chương
   const translateAll = async () => {
@@ -40,13 +44,16 @@ const ChapterList = ({
     setIsTranslatingAll(true); // ✅ Bắt đầu loading
     const maxChapters = apiKey ? chapters.length : 2;
 
-    if (!apiKey && chapters.length > 2) {
-      alert(
-        "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
-      );
-      setIsTranslateAllDisabled(false); // ✅ Mở lại nếu chưa được dịch
-      setIsTranslatingAll(false); // ❌ Dừng loading nếu không dịch
-      return;
+    if (!apiKey) {
+      const remainingFree = 2 - translatedCount;
+      if (remainingFree <= 0) {
+        alert(
+          "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
+        );
+        setIsTranslateAllDisabled(true);
+        setIsTranslatingAll(false);
+        return;
+      }
     }
 
     const chaptersToTranslate = chapters
@@ -63,133 +70,45 @@ const ChapterList = ({
     }
 
     try {
-      const res = await axios.post("http://localhost:8000/api/translate", {
-        chapters: chaptersToTranslate,
-        key: apiKey || "",
+      await translateChapters({
+        chaptersToTranslate,
+        chapters,
+        apiKey,
+        setResults,
+        setTranslatedCount,
+        setTotalProgress,
+        setErrorMessages,
+        onTranslationResult,
       });
-
-      // ✅ Bảo vệ an toàn trước khi truy cập
-      const translatedChapters = res?.data?.chapters;
-      if (Array.isArray(translatedChapters)) {
-        // Lưu kết quả dịch cho tất cả các chương
-        const newResults = {};
-        const newErrors = {};
-        let count = 0;
-
-        // Gửi kết quả dịch về cho component cha
-        translatedChapters.forEach((chapter, idx) => {
-          const realIndex = chaptersToTranslate[idx].originalIndex;
-          newResults[realIndex] = chapter.translated || "";
-          newErrors[realIndex] = null;
-          onTranslationResult(realIndex, chapter.translated);
-          count++;
-
-          // Cập nhật tiến độ tổng sau khi mỗi chương được dịch
-          setTranslatedCount((prevCount) => {
-            const newCount = prevCount + 1;
-            const percent = Math.floor((newCount / chapters.length) * 100);
-            setTotalProgress(percent);
-            return newCount;
-          });
-        });
-
-        setResults((prev) => ({ ...prev, ...newResults }));
-        setTranslatedCount((prev) => prev + count);
-        setErrorMessages((prev) => ({
-          ...prev,
-          ...newErrors,
-          general: null, // ✅ Xóa lỗi tổng thể nếu có
-        }));
-      }
     } catch (error) {
-      console.error("Lỗi khi dịch chương:", error); // In lỗi chi tiết ra console
+      console.error("Lỗi khi dịch chương:", error);
       setErrorMessages((prev) => ({
         ...prev,
         general: "❌ Lỗi khi dịch tất cả các chương.",
       }));
-      alert("Lỗi khi dịch tất cả các chương.");
-      // ✅ Mở lại nếu bị lỗi
+      alert("❌ Lỗi khi dịch tất cả các chương.");
       setIsTranslateAllDisabled(false);
     } finally {
       console.timeEnd("⏱️ Thời gian dịch toàn bộ");
-      setIsTranslatingAll(false); // ✅ Dừng loading
+      setIsTranslatingAll(false);
+      setHasTranslatedAll(true);
     }
   };
 
   // Hàm dịch từng chương
-  const translate = async (index) => {
-    const chapter = chapters[index];
-    onSelectChapter?.(index); // 👈 gọi để hiển thị chương trước khi dịch
-
-    console.log("📌 chương hiện tại:", chapter ? ("OK", chapter) : "MISSING");
-    if (!apiKey && index >= 2) {
-      alert(
-        "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
-      );
-      return;
-    }
-    // Bắt đầu tiến độ giả lập
-    let fakeProgress = 0;
-    const interval = setInterval(() => {
-      fakeProgress += 5;
-      if (fakeProgress < 95) {
-        setProgress((prev) => ({ ...prev, [index]: fakeProgress }));
-      } else {
-        clearInterval(interval);
-      }
-    }, 200); // mỗi 200ms tăng 5%
-
-    try {
-      const res = await axios.post("http://localhost:8000/api/translate", {
-        chapters: [chapter],
-        key: apiKey || "",
-      });
-
-      const translated = res?.data?.chapters?.[0]?.translated || "";
-      console.log("📌 dịch hiện tại:", translated || "MISSING");
-
-      // Cập nhật kết quả dịch
-      setResults((prev) => ({
-        ...prev,
-        [index]: translated,
-      }));
-      onTranslationResult(index, translated);
-      console.log(
-        "📌 Dịch hiện tại:",
-        onTranslationResult ? "OK ✅" : "MISSING ❌"
-      );
-
-      // Khi dịch xong: full 100%
-      setProgress((prev) => ({ ...prev, [index]: 100 }));
-      setTranslatedCount((prev) => prev + 1);
-
-      setErrorMessages((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[index];
-        return newErrors;
-      });
-
-      // Cập nhật tiến độ tổng
-      const percent = Math.floor(((index + 1) / chapters.length) * 100);
-      setTotalProgress(percent);
-    } catch (error) {
-      console.error("Lỗi khi dịch chương:", error); // In lỗi chi tiết ra console
-
-      let errorMessage = "❌ Lỗi khi dịch chương: " + chapter.title;
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        errorMessage += " - " + error.response.data.message; // Thêm thông báo lỗi từ backend
-      }
-
-      setErrorMessages((prev) => ({ ...prev, [index]: errorMessage })); // Lưu lỗi
-
-      alert(errorMessage);
-    } finally {
-      clearInterval(interval);
-    }
+  const translate = (index) => {
+    translateSingleChapter({
+      index,
+      chapters,
+      apiKey,
+      setProgress,
+      setResults,
+      setErrorMessages,
+      setTranslatedCount,
+      setTotalProgress,
+      onTranslationResult,
+      onSelectChapter,
+    });
   };
 
   return (
@@ -245,13 +164,26 @@ const ChapterList = ({
       <div className="translate-all-container">
         <button
           className="translate-all-button"
-          onClick={translateAll}
+          onClick={() => {
+            if (hasTranslatedAll) {
+              const confirmRetry = window.confirm(
+                "Bạn có muốn dịch lại toàn bộ chương lần nữa không?"
+              );
+              if (confirmRetry) {
+                translateAll();
+              }
+            } else {
+              translateAll();
+            }
+          }}
           disabled={isTranslateAllDisabled || isTranslatingAll}
         >
           {isTranslatingAll ? (
             <span>
               <FontAwesomeIcon icon={faSpinner} spin /> Đang dịch...
             </span>
+          ) : hasTranslatedAll ? (
+            "Dịch lại toàn bộ chương"
           ) : (
             "Dịch toàn bộ chương"
           )}
