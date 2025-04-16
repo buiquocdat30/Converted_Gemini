@@ -63,7 +63,7 @@ const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
     saveAs(blob, type === "epub" ? "translated.epub" : "translated.txt");
   };
-
+  console.log('toàn bộ các chương',currentContent)
   const goToChapter = (offset) => {
     const newIndex = localIndex  + offset;
     if (newIndex >= 0 && newIndex < chapters.length) {
