@@ -26,11 +26,13 @@ export const translateChapters = async ({
       translatedChapters.forEach((chapter, idx) => {
         const realIndex = chaptersToTranslate[idx].originalIndex;
         const translated = chapter.translated || "";
+        const translatedTitle = chapter.translatedTitle || "";
 
-        newResults[realIndex] = translated;
+        newResults[realIndex] = {translated,translatedTitle};
         newErrors[realIndex] = null;
 
-        onTranslationResult(realIndex, translated);
+        console.log('kết quả dịch toàn bộ chương á',newResults)
+        onTranslationResult(realIndex, translated,translatedTitle);
 
         setTranslatedCount((prevCount) => {
           const newCount = prevCount + 1;

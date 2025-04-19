@@ -43,6 +43,7 @@
 .chapter-list button:disabled {
   background-color: #6c757d;
 }
+
 .chapter-list button:disabled:hover {
   background-color: #6c757d;
 }
@@ -113,6 +114,10 @@
 .translate-button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
+}
+
+.hidden {
+  display: none;
 }
 
 .chapter-progress-bar-container {
