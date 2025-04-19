@@ -12,12 +12,13 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [tempKey, setTempKey] = useState(apiKey || "");
 
   // Khi nhận kết quả dịch từ ChapterList
-  const handleTranslationResult = (index, translated) => {
+  const handleTranslationResult = (index, translated,translatedTitle) => {
     setTranslatedChapters((prev) => {
       const updated = [...prev];
       updated[index] = {
         ...(chapters[index] || {}), // lấy từ chương gốc nếu chưa có
         translated, // thêm bản dịch mới
+        translatedTitle
       };
       return updated;
     });

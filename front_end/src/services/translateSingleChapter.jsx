@@ -19,7 +19,9 @@ export const translateSingleChapter = async ({
   console.log("📌 chương hiện tại:", chapter ? ("OK", chapter) : "MISSING");
 
   if (!apiKey && index >= 2) {
-    alert("🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục.");
+    alert(
+      "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
+    );
     return;
   }
 
@@ -40,16 +42,20 @@ export const translateSingleChapter = async ({
       key: apiKey || "",
     });
 
+    console.log("in tạm chapers:", res.data.chapters);
+
     const translated = res?.data?.chapters?.[0]?.translated || "";
     console.log("📌 dịch hiện tại:", translated || "MISSING");
 
+    const translatedTitle = res?.data?.chapters?.[0]?.translatedTitle || "";
+    console.log("📌 title hiện tại:", translatedTitle || "MISSING");
     setResults((prev) => ({
       ...prev,
-      [index]: translated,
+      [index]: { translated, translatedTitle },
     }));
 
-    onTranslationResult(index, translated);
-    console.log("📌 Dịch hiện tại:", onTranslationResult ? "OK ✅" : "MISSING ❌");
+    onTranslationResult(index, translated, translatedTitle);
+    console.log("📌 Dịch hiện tại:", onTranslationResult);
 
     setProgress((prev) => ({ ...prev, [index]: 100 }));
     setTranslatedCount((prev) => prev + 1);
