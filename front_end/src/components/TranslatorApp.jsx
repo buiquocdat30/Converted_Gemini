@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ChapterList from "./ChapterList";
 import TranslateViewer from "./TranslateViewer";
 import ConverteKeyInput from "./ConverteKeyInput";
+import { translateSingleChapter } from "../services/translateSingleChapter";
 import "../css/TranslatorApp.css";
 
 const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
@@ -11,12 +12,13 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [tempKey, setTempKey] = useState(apiKey || "");
 
   // Khi nhận kết quả dịch từ ChapterList
-  const handleTranslationResult = (index, translated) => {
+  const handleTranslationResult = (index, translated,translatedTitle) => {
     setTranslatedChapters((prev) => {
       const updated = [...prev];
       updated[index] = {
         ...(chapters[index] || {}), // lấy từ chương gốc nếu chưa có
         translated, // thêm bản dịch mới
+        translatedTitle
       };
       return updated;
     });
@@ -44,6 +46,41 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
     ...translatedChapters[i],
   }));
 
+  //hàm check key
+  const handleCheckKey = async () => {
+    if (!tempKey) return;
+  
+    try {
+      const fakeChapter = {
+        title: "Key Check",
+        content: "This is a test. Please check if the key is valid.",
+      };
+  
+      await translateSingleChapter({
+        index: 0,
+        chapters: [fakeChapter],
+        apiKey: tempKey,
+        onTranslationResult: (_, translated) => {
+          if (translated.toLowerCase().includes("kiểm tra") || translated.toLowerCase().includes("dịch")) {
+            alert("✅ Key hợp lệ và có thể sử dụng.");
+          } else {
+            alert("⚠️ Key không trả kết quả dịch rõ ràng.");
+          }
+        },
+        onSelectChapter: () => {}, // tránh lỗi
+        setProgress: () => {},
+        setResults: () => {},
+        setErrorMessages: () => {},
+        setTranslatedCount: () => {},
+        setTotalProgress: () => {},
+      });
+    } catch (err) {
+      console.error("Lỗi khi kiểm tra key:", err);
+      alert("❌ Key không hợp lệ hoặc đã vượt hạn mức.");
+    }
+  };
+  
+  
   return (
     <div className="wrapper">
       <div className="top-menu">
@@ -56,11 +93,15 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
             apiKey={tempKey}
             setApiKey={setTempKey}
           />
+          <div className="converter-key-container">
           <button  className="confirm-key-btn" onClick={handleCurrentKey}
           disabled={!tempKey || currentApiKey === tempKey}>
           🔑 Nhập key
           </button>
-          
+          <button  className="check-key-btn" onClick={handleCheckKey}>
+          🔑 Kiểm tra key
+          </button>
+          </div>
         </div>
       </div>
 
