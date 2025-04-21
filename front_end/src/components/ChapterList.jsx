@@ -117,7 +117,6 @@ const ChapterList = ({
       <ul>
         {chapters.map((ch, idx) => {
           const isTranslated = !!results[idx];
-          console.log("Tiêu đề", ch.translatedTitle);
           return (
             <li key={idx}>
               <div className="chapter-item">
@@ -135,7 +134,9 @@ const ChapterList = ({
                       (!apiKey && translatedCount >= 2) ||
                       isTranslatingAll
                     }
-                    className={`translate-button ${isTranslated ? "hidden" : ""}`}
+                    className={`translate-button ${
+                      isTranslated ? "hidden" : ""
+                    }`}
                   >
                     Dịch
                   </button>

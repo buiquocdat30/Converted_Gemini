@@ -20,15 +20,18 @@ const TranslateViewer = ({
     const chapter = chapters[currentIndex];
     const newContent = chapter?.translated || chapter?.content || "";
     console.log(`📌 Nội dung chương: ${newContent}`);
-    const title = chapter?.translatedTitle || chapter?.title || `Chương ${currentIndex + 1}`;
-  
+    const title =
+      chapter?.translatedTitle ||
+      chapter?.title ||
+      `Chương ${currentIndex + 1}`;
+
     console.log(`📌 Nội dung tiêu đề chương: ${currentIndex + 1}: ${title}`);
-  
+
     setHistory([newContent]);
     setHistoryIndex(0);
     setIsEditing(false);
   }, [chapters, currentIndex]);
-  
+
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -60,11 +63,21 @@ const TranslateViewer = ({
   };
 
   const handleExport = (type) => {
-    const fullText = chapters
-      .map((ch, i) =>
-        i === currentIndex ? currentContent : ch.translated || ch.content || ""
-      )
-      .join("\n\n");
+    const chapter = chapters[currentIndex];
+    const title =
+      chapter?.translatedTitle ||
+      chapter?.title ||
+      `Chương ${currentIndex + 1}`;
+    console.log(title);
+    const fullText =
+      `${title}\n\n` +
+      chapters
+        .map((ch, i) =>
+          i === currentIndex
+            ? currentContent
+            : ch.translated || ch.content || ""
+        )
+        .join("\n\n");
 
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
     saveAs(blob, type === "epub" ? "translated.epub" : "translated.txt");

@@ -12,6 +12,17 @@ const UploadForm = ({ onFileParsed }) => {
 
   const fileInputRef = useRef(null);
 
+  function arrayBufferToBase64(buffer) {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+
+    return window.btoa(binary);
+  }
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     const allowedTypes = ["application/epub+zip", "text/plain"];
@@ -22,60 +33,64 @@ const UploadForm = ({ onFileParsed }) => {
     }
 
     setSelectedFile(file);
-    setLoading(true); // Bắt đầu loading khi upload tệp
-    setError(""); // Reset lỗi trước khi xử lý
+    setLoading(true);
+    setError("");
+    setChapters([]); // Reset chapters khi chọn file mới
 
     const reader = new FileReader();
 
     reader.onload = async () => {
-      let fileContent;
-
-      if (file.type === "application/epub+zip") {
-        fileContent = reader.result.split(",")[1]; // base64
-      } else {
-        fileContent = reader.result;
-      }
-
       try {
-        const res = await fetch("http://localhost:8000/api/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileContent: fileContent,
-          }),
-        });
+        if (file.type === "application/epub+zip") {
+          // Sử dụng epubjs để đọc file epub
+          const book = epubjs.read(reader.result);
+          const spine = await book.loaded.spine;
+          const epubChapters = spine.get();
+          const extractedChapters = [];
 
-        const contentType = res.headers.get("content-type");
+          for (const item of epubChapters) {
+            const doc = await book.load(item.href);
+            const title =
+              item.title || `Chapter ${extractedChapters.length + 1}`;
+            const content = doc.body.textContent || ""; // Lấy toàn bộ text content
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(errorText);
-        }
-
-        if (contentType && contentType.includes("application/json")) {
-          const data = await res.json();
-          console.log("✅ Server response:", data);
-
-          if (Array.isArray(data.chapters)) {
-            console.log("✅ Số chương:", data.chapters.length);
-            setChapters(data.chapters);
+            extractedChapters.push({ title, content });
+          }
+          setChapters(extractedChapters);
+          console.log(
+            "✅ Đã đọc và tách chương từ file EPUB:",
+            extractedChapters
+          );
+        } else {
+          // Xử lý file .txt như trước
+          const text = reader.result;
+          const result = checkFileFormatFromText(text);
+          if (result.valid) {
+            setChapters(result.chapters);
+            console.log(
+              "✅ Đã đọc và tách chương từ file TXT:",
+              result.chapters
+            );
           } else {
-            console.warn("⚠️ Server không trả về chapters!");
+            setError("❌ File .txt không đúng định dạng chương.");
+            setSelectedFile(null);
+            setChapters([]);
+            fileInputRef.current.value = "";
           }
         }
       } catch (err) {
-        console.error("❌ Lỗi khi upload file:", err);
-        setError("❌ Đã xảy ra lỗi khi tải tệp lên. Vui lòng thử lại.");
+        console.error("❌ Lỗi khi xử lý file:", err);
+        setError(`❌ Đã xảy ra lỗi khi xử lý file: ${err.message}`);
+        setSelectedFile(null);
+        setChapters([]);
+        fileInputRef.current.value = "";
       } finally {
-        setLoading(false); // Kết thúc loading khi xử lý xong
+        setLoading(false);
       }
     };
 
     if (file.type === "application/epub+zip") {
-      reader.readAsDataURL(file);
+      reader.readAsArrayBuffer(file);
     } else {
       reader.readAsText(file);
     }
@@ -96,7 +111,8 @@ const UploadForm = ({ onFileParsed }) => {
   };
 
   const checkFileFormatFromText = (text) => {
-    const chapterRegex = /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim; // có thể đổi sang /^(chapter|chương)\s+\d+/i nếu cần hỗ trợ tiếng Việt
+    const chapterRegex =
+      /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim; // có thể đổi sang /^(chapter|chương)\s+\d+/i nếu cần hỗ trợ tiếng Việt
     const lines = text.split(/\r?\n/);
     const chapters = [];
     let currentChapter = null;
@@ -178,14 +194,31 @@ const UploadForm = ({ onFileParsed }) => {
         </div>
         <div className="chapter-guide-content">
           <ul>
-            <li><strong>Chương N</strong> - Ví dụ: "Chương 1: Khởi đầu"</li>
-            <li><strong>chương N</strong> - Ví dụ: "chương 1: Hành trình mới"</li>
-            <li><strong>Chapter N</strong> - Ví dụ: "Chapter 2 - The Journey"</li>
-            <li><strong>chapter N</strong> - Ví dụ: "chapter 3: A New Beginning"</li>
-            <li><strong>第X章 (Hán tự)</strong> - Ví dụ:"第十章 - 新的开始"</li>
-            <li><strong>第N章 (Số) </strong> - Ví dụ: "第99章 - 终极对决"</li>
-            <li><strong>Số + Tiêu đề (Hán tự)+ Trang</strong> - Ví dụ: "19 啃老（第1页）"</li>
-            <li><strong>Giữa các chương:</strong> Là nội dung các chương</li>
+            <li>
+              <strong>Chương N</strong> - Ví dụ: "Chương 1: Khởi đầu"
+            </li>
+            <li>
+              <strong>chương N</strong> - Ví dụ: "chương 1: Hành trình mới"
+            </li>
+            <li>
+              <strong>Chapter N</strong> - Ví dụ: "Chapter 2 - The Journey"
+            </li>
+            <li>
+              <strong>chapter N</strong> - Ví dụ: "chapter 3: A New Beginning"
+            </li>
+            <li>
+              <strong>第X章 (Hán tự)</strong> - Ví dụ:"第十章 - 新的开始"
+            </li>
+            <li>
+              <strong>第N章 (Số) </strong> - Ví dụ: "第99章 - 终极对决"
+            </li>
+            <li>
+              <strong>Số + Tiêu đề (Hán tự)+ Trang</strong> - Ví dụ: "19
+              啃老（第1页）"
+            </li>
+            <li>
+              <strong>Giữa các chương:</strong> Là nội dung các chương
+            </li>
           </ul>
         </div>
       </div>
