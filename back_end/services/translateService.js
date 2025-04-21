@@ -16,7 +16,7 @@ const translateText = async (text, key) => {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 🔄 Đổi sang flash
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // 🔄 Đổi sang flash
 
   const prompt = `Dịch nội dung sau sang tiếng Việt một cách tự nhiên, các đại từ nhân xưng phù hợp ngữ cảnh, giữ nguyên ý nghĩa, không thêm gì cả:\n\n"${text}"`;
 

@@ -2,35 +2,39 @@ import React, { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
 import "../css/TranslateViewer.css";
 
-const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex }) => {
-  const [localIndex, setLocalIndex] = useState(currentIndex); // Đổi tên state thành localIndex
+const TranslateViewer = ({
+  chapters,
+  onUpdateChapter,
+  currentIndex,
+  onChangeIndex,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [history, setHistory] = useState([
-    chapters[0]?.translated || chapters[0]?.content || ""
+    chapters[currentIndex]?.translated || chapters[currentIndex]?.content || "",
   ]);
-  
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const currentContent = history[historyIndex];
 
-   // Sử dụng useEffect để đồng bộ với props currentIndex
-   useEffect(() => {
-    setLocalIndex(currentIndex); // Cập nhật localIndex khi props currentIndex thay đổi
-    const newContent =
-      chapters[currentIndex]?.translated ||
-      chapters[currentIndex]?.content ||
-      "";
+  useEffect(() => {
+    const chapter = chapters[currentIndex];
+    const newContent = chapter?.translated || chapter?.content || "";
+    console.log(`📌 Nội dung chương: ${newContent}`);
+    const title = chapter?.translatedTitle || chapter?.title || `Chương ${currentIndex + 1}`;
+  
+    console.log(`📌 Nội dung tiêu đề chương: ${currentIndex + 1}: ${title}`);
+  
     setHistory([newContent]);
     setHistoryIndex(0);
     setIsEditing(false);
   }, [chapters, currentIndex]);
-
+  
   const handleEdit = () => {
     setIsEditing(true);
   };
 
   const handleSave = () => {
-    onUpdateChapter(localIndex, currentContent); // gọi hàm cha
+    onUpdateChapter(currentIndex, currentContent);
     setIsEditing(false);
     alert("💾 Đã lưu nội dung chương!");
   };
@@ -57,7 +61,9 @@ const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex
 
   const handleExport = (type) => {
     const fullText = chapters
-      .map((ch, i) => (i === localIndex  ? currentContent : ch.content || ""))
+      .map((ch, i) =>
+        i === currentIndex ? currentContent : ch.translated || ch.content || ""
+      )
       .join("\n\n");
 
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
@@ -65,21 +71,15 @@ const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex
   };
 
   const goToChapter = (offset) => {
-    const newIndex = localIndex  + offset;
+    const newIndex = currentIndex + offset;
     if (newIndex >= 0 && newIndex < chapters.length) {
-      // nếu đang chỉnh sửa thì hỏi người dùng trước
       if (
         isEditing &&
         !window.confirm("❗Bạn chưa lưu thay đổi. Vẫn muốn chuyển chương?")
       ) {
         return;
       }
-      setLocalIndex(newIndex);
-      const newContent = chapters[newIndex].content || "";
-      setHistory([newContent]);
-      setHistoryIndex(0);
-      setIsEditing(false);
-      onChangeIndex?.(newIndex); // 👈 sử dụng prop
+      onChangeIndex?.(newIndex);
     }
   };
 
@@ -90,12 +90,12 @@ const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex
           Chương {currentIndex + 1} / {chapters.length}
         </div>
         <div className="row">
-          <button onClick={() => goToChapter(-1)} disabled={localIndex  === 0}>
+          <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>
             ◀ Back
           </button>
           <button
             onClick={() => goToChapter(1)}
-            disabled={localIndex  === chapters.length - 1}
+            disabled={currentIndex === chapters.length - 1}
           >
             Next ▶
           </button>
@@ -125,7 +125,15 @@ const TranslateViewer = ({ chapters, onUpdateChapter,currentIndex, onChangeIndex
 
       <div className="viewr-content">
         <h3 className="viewr-content-title">
-          {chapters[localIndex]?.title || `Chương ${localIndex  + 1}`}
+          {(() => {
+            const chapter = chapters[currentIndex];
+            const displayTitle =
+              chapter?.translatedTitle ||
+              chapter?.title ||
+              `Chương ${currentIndex + 1}`;
+            console.log("📌 Tiêu đề chương đang hiển thị:", displayTitle);
+            return displayTitle;
+          })()}
         </h3>
 
         {isEditing ? (

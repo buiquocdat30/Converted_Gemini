@@ -24,6 +24,11 @@ body {
     margin-bottom: 20px;
 }
 
+/* thông báo về key */
+.notify {
+    margin-bottom: 20px;
+}
+
 /* Khu vực nhập API key */
 .converte-key {
     width: 100%;
@@ -88,13 +93,26 @@ body {
     font-size: 16px;
 }
 
-/* Khu vực chứa nút Dịch */
+/* Khu vực hướng dẫn */
+.chapter-guide{
+    padding: 20px;
+    color: #444;
+}
+.chapter-guide-title{
+    margin-bottom: 10px;
+}
+.chapter-guide-content{
+text-align: left;
+line-height: 1.1;
+}
+/* Khu vực chứa nút Hoàn tất */
 .converte {
     display: flex;
     justify-content: center;
+    gap: 10px;
 }
 
-.btn-submit {
+.converte>button {
     width: 100%;
     padding: 10px 20px;
     font-size: 16px;
@@ -108,7 +126,7 @@ body {
     transition: background-color 0.3s ease;
 }
 
-.btn-submit:hover {
+.converte>button:hover {
     background-color: #163328;
 }
 
