@@ -23,6 +23,10 @@ const handleUpload = async (req, res) => {
     const tempFileName = crypto.randomUUID() + ext;
     const tempFilePath = path.join(tempDir, tempFileName);
 
+    if (!fileContent) {
+      console.log("⚠️ fileContent is empty for", fileName);
+    }
+
     await fs.writeFile(
       tempFilePath,
       fileContent,
