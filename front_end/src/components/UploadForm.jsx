@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import "../css/App.css";
 import ConverteKeyInput from "./ConverteKeyInput";
+import ePub from "epubjs";
 
 const UploadForm = ({ onFileParsed }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -9,6 +10,7 @@ const UploadForm = ({ onFileParsed }) => {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(false); // Thêm trạng thái loading
   const [error, setError] = useState(""); // Thêm trạng thái error
+  const [sucess, setSucess] = useState("");
 
   const fileInputRef = useRef(null);
 
@@ -23,6 +25,104 @@ const UploadForm = ({ onFileParsed }) => {
 
     return window.btoa(binary);
   }
+  //hàm xử lý fie epub
+  // const handleEpubFile = async (
+  //   readerResult,
+  //   setChapters,
+  //   setError,
+  //   setSucess
+  // ) => {
+  //   try {
+  //     const book = ePub(readerResult);
+  //     const spine = await book.loaded.spine;
+  //     const epubChapters = spine.items; // ✅ FIX: dùng `spine.items` thay vì `spine.get()`
+  //     const extractedChapters = [];
+
+  //     for (const item of epubChapters) {
+  //       const doc = await book.load(item.href);
+  //       const title = item.title || `Chapter ${extractedChapters.length + 1}`;
+  //       const content = doc.body?.textContent || "";
+  //       extractedChapters.push({ title, content });
+  //     }
+
+  //     setChapters(extractedChapters);
+  //     setSucess("✅ File có thể sử dụng.");
+  //     console.log("✅ EPUB đã xử lý:", extractedChapters);
+  //   } catch (err) {
+  //     console.error("❌ EPUB xử lý lỗi:", err);
+  //     setError("❌ Lỗi khi đọc file EPUB.");
+  //     setSucess("");
+  //     setChapters([]);
+  //   }
+  // };
+
+  const handleEpubFile = async (
+    readerResult,
+    setChapters,
+    setError,
+    setSucess
+  ) => {
+    try {
+      const book = ePub(readerResult);
+      await book.ready; // đảm bảo book đã load xong
+      console.log("Book:", book);
+      const spine = await book.loaded.spine;
+
+      console.log("spine", spine);
+      const epubChapters = spine.items;
+      console.log("epubChapters", epubChapters);
+      const extractedChapters = [];
+
+      for (const item of epubChapters) {
+        // ✅ Sử dụng book.load thay vì .spine.get().render()
+        const contents = await book.load(item.href);
+        console.log("contents", contents);
+        const tempDiv = document.createElement("div");
+        console.log("tempDiv", tempDiv);
+        tempDiv.innerHTML = contents;
+        const content = tempDiv.textContent || "";
+        console.log("content", content);
+        const title = item.title || `Chapter ${extractedChapters.length + 1}`;
+        console.log("title", title);
+
+        extractedChapters.push({ title, content });
+      }
+
+      setChapters(extractedChapters);
+      setSucess("✅ File EPUB đã được xử lý.");
+      console.log("✅ EPUB đã xử lý:", extractedChapters);
+    } catch (err) {
+      console.error("❌ EPUB xử lý lỗi:", err);
+      setError("❌ Lỗi khi đọc file EPUB.");
+      setSucess("");
+      setChapters([]);
+    }
+  };
+
+  //hàm xử lý file txt
+  const handleTxtFile = (
+    readerResult,
+    setChapters,
+    setError,
+    setSucess,
+    fileInputRef,
+    setSelectedFile,
+    file
+  ) => {
+    const result = checkFileFormatFromText(readerResult);
+    if (result.valid) {
+      setChapters(result.chapters);
+      setSucess("✅ File có thể sử dụng.");
+      console.log("✅ TXT đã xử lý:", result.chapters);
+    } else {
+      setError(`❌ File ${file.name} không đúng định dạng chương.`);
+      setSelectedFile(null);
+      setChapters([]);
+      setSucess("");
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     const allowedTypes = ["application/epub+zip", "text/plain"];
@@ -35,58 +135,28 @@ const UploadForm = ({ onFileParsed }) => {
     setSelectedFile(file);
     setLoading(true);
     setError("");
-    setChapters([]); // Reset chapters khi chọn file mới
+    setChapters([]);
 
     const reader = new FileReader();
 
     reader.onload = async () => {
-      try {
-        if (file.type === "application/epub+zip") {
-          // Sử dụng epubjs để đọc file epub
-          const book = epubjs.read(reader.result);
-          const spine = await book.loaded.spine;
-          const epubChapters = spine.get();
-          const extractedChapters = [];
+      const result = reader.result;
 
-          for (const item of epubChapters) {
-            const doc = await book.load(item.href);
-            const title =
-              item.title || `Chapter ${extractedChapters.length + 1}`;
-            const content = doc.body.textContent || ""; // Lấy toàn bộ text content
-
-            extractedChapters.push({ title, content });
-          }
-          setChapters(extractedChapters);
-          console.log(
-            "✅ Đã đọc và tách chương từ file EPUB:",
-            extractedChapters
-          );
-        } else {
-          // Xử lý file .txt như trước
-          const text = reader.result;
-          const result = checkFileFormatFromText(text);
-          if (result.valid) {
-            setChapters(result.chapters);
-            console.log(
-              "✅ Đã đọc và tách chương từ file TXT:",
-              result.chapters
-            );
-          } else {
-            setError("❌ File .txt không đúng định dạng chương.");
-            setSelectedFile(null);
-            setChapters([]);
-            fileInputRef.current.value = "";
-          }
-        }
-      } catch (err) {
-        console.error("❌ Lỗi khi xử lý file:", err);
-        setError(`❌ Đã xảy ra lỗi khi xử lý file: ${err.message}`);
-        setSelectedFile(null);
-        setChapters([]);
-        fileInputRef.current.value = "";
-      } finally {
-        setLoading(false);
+      if (file.type === "application/epub+zip") {
+        await handleEpubFile(result, setChapters, setError, setSucess);
+      } else {
+        handleTxtFile(
+          result,
+          setChapters,
+          setError,
+          setSucess,
+          fileInputRef,
+          setSelectedFile,
+          file
+        );
       }
+
+      setLoading(false);
     };
 
     if (file.type === "application/epub+zip") {
@@ -188,6 +258,8 @@ const UploadForm = ({ onFileParsed }) => {
       {/* Hiển thị thông báo khi đang tải lên */}
       {error && <p style={{ color: "red" }}>{error}</p>}{" "}
       {/* Hiển thị thông báo lỗi nếu có */}
+      {sucess && <p style={{ color: "red" }}>{sucess}</p>}{" "}
+      {/* Hiển thị thông báo khi file dùng được */}
       <div className="chapter-guide">
         <div className="chapter-guide-title">
           <h4>📌 Các định dạng chương được hỗ trợ:</h4>
