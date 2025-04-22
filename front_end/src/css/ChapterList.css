@@ -84,16 +84,23 @@
 .chapter-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .chapter-header strong {
   font-size: 18px;
   margin-right: 10px;
+  width: 75%;
+}
+
+.chapter-header .translate-button {
+  width: 25%;
 }
 
 .translated-label {
   color: green;
   margin-left: 10px;
+  width: 25%;
 }
 
 .translate-button {
