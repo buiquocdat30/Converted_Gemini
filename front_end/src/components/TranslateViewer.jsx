@@ -62,25 +62,61 @@ const TranslateViewer = ({
     alert("📋 Đã sao chép nội dung chương!");
   };
 
-  const handleExport = (type) => {
-    const chapter = chapters[currentIndex];
-    const title =
-      chapter?.translatedTitle ||
-      chapter?.title ||
-      `Chương ${currentIndex + 1}`;
-    console.log(title);
-    const fullText =
-      `${title}\n\n` +
-      chapters
-        .map((ch, i) =>
-          i === currentIndex
-            ? currentContent
-            : ch.translated || ch.content || ""
-        )
-        .join("\n\n");
+  // const handleExport = (type) => {
+  //   const chapter = chapters[currentIndex];
+  //   const title =
+  //     chapter?.translatedTitle ||
+  //     chapter?.title ||
+  //     `Chương ${currentIndex + 1}`;
+  //   console.log(title);
+  //   const fullText =
+  //     `${title}\n\n` +
+  //     chapters
+  //       .map((ch, i) =>
+  //         i === currentIndex
+  //           ? currentContent
+  //           : ch.translated || ch.content || ""
+  //       )
+  //       .join("\n\n");
 
+  //   const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+  //   saveAs(blob, type === "epub" ? "translated.epub" : "translated.txt");
+  // };
+
+  const handleExport = (type) => {
+    // Lọc ra các chương đã dịch
+    const translatedChapters = chapters
+      .map((ch, i) => ({
+        title: ch.translatedTitle || ch.title || `Chương ${i + 1}`,
+        content: ch.translated?.trim(),
+      }))
+      .filter((ch) => ch.content); // Chỉ lấy chương có nội dung dịch
+
+    if (translatedChapters.length === 0) {
+      alert("Không có chương nào đã được dịch để xuất.");
+      return;
+    }
+
+    // Tạo nội dung file
+    const fullText = translatedChapters
+      .map((ch) => `${ch.title}\n\n${ch.content}`)
+      .join("\n\n");
+
+    // Tạo tên file
+    let fileName = "translated";
+    if (translatedChapters.length === 1) {
+      fileName = translatedChapters[0].title;
+    } else {
+      const [first, second] = translatedChapters;
+      fileName = `${first.title} - ${second.title}`;
+    }
+
+    // Thêm đuôi file
+    fileName += type === "epub" ? ".epub" : ".txt";
+
+    // Tạo và lưu file
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
-    saveAs(blob, type === "epub" ? "translated.epub" : "translated.txt");
+    saveAs(blob, fileName);
   };
 
   const goToChapter = (offset) => {
