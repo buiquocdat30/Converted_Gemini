@@ -35,7 +35,7 @@
 const fs = require("fs");
 
 const chapterRegex =
-  /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/im;
+  /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)/im;
 
 const readTxt = (filePath) => {
   return new Promise((resolve, reject) => {
