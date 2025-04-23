@@ -30,54 +30,71 @@ const UploadForm = ({ onFileParsed }) => {
   //   readerResult,
   //   setChapters,
   //   setError,
-  //   setSucess
+  //   setSuccess
   // ) => {
   //   try {
   //     const book = ePub(readerResult);
-  //     await book.ready; // đảm bảo book đã load xong
-  //     console.log("Book:", book);
-  //     const spine = await book.loaded.spine;
+  //     await book.ready;
 
-  //     console.log("spine", spine);
-  //     const epubChapters = spine.items;
-  //     console.log("epubChapters", epubChapters);
+  //     const spineItems = book.spine.spineItems;
   //     const extractedChapters = [];
 
-  //     for (const item of epubChapters) {
-  //       // ✅ Sử dụng book.load thay vì .spine.get().render()
-  //       const contents = await book.load(item.href);
-  //       console.log("contents", contents);
-        
-  //       const rawText = contents.body.innerText;
-  //       console.log("Text only:", rawText);
+  //     const chapterRegex =
+  //       /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/im;
 
-        
-  //       const tempDiv = document.createElement("div");
+  //     const allTexts = [];
 
-  //       console.log("tempDiv", tempDiv);
-  //       tempDiv.innerHTML = contents;
+  //     for (let i = 0; i < spineItems.length; i++) {
+  //       const item = spineItems[i];
+  //       const section = await item.load(book.load.bind(book));
+  //       const html = await item.render(); // Lấy HTML string
 
-  //       const content = tempDiv.textContent || "";
+  //       const parser = new DOMParser();
+  //       const doc = parser.parseFromString(html, "text/html"); // Parse HTML string thành DOM
 
-  //       console.log("content", content);
+  //       const paragraphs = Array.from(doc.querySelectorAll("p"));
+  //       for (const p of paragraphs) {
+  //         const text = p.textContent?.trim();
+  //         if (text) allTexts.push(text);
+  //       }
 
-  //       const title = item.title || `Chapter ${extractedChapters.length + 1}`;
-
-  //       console.log("title", title);
-
-  //       extractedChapters.push({ title, content });
+  //       await item.unload();
   //     }
 
-  //     setChapters(extractedChapters);
-  //     setSucess("✅ File EPUB đã được xử lý.");
-  //     console.log("✅ EPUB đã xử lý:", extractedChapters);
+  //     // Gom nhóm các đoạn văn thành các chương dựa vào regex
+  //     const chapters = [];
+  //     let currentChapter = null;
+
+  //     for (const line of allTexts) {
+  //       if (chapterRegex.test(line)) {
+  //         if (currentChapter) {
+  //           chapters.push(currentChapter);
+  //         }
+  //         currentChapter = {
+  //           title: line.trim(),
+  //           content: "",
+  //         };
+  //       } else if (currentChapter) {
+  //         currentChapter.content += line + "\n\n";
+  //       }
+  //     }
+  //     if (currentChapter) {
+  //       chapters.push(currentChapter);
+  //     }
+
+  //     setChapters(chapters);
+  //     setSuccess("✅ File EPUB đã được xử lý.");
+  //     console.log("✅ EPUB đã chia chương:", chapters);
   //   } catch (err) {
   //     console.error("❌ EPUB xử lý lỗi:", err);
   //     setError("❌ Lỗi khi đọc file EPUB.");
-  //     setSucess("");
+  //     setSuccess("");
   //     setChapters([]);
   //   }
   // };
+
+  //hàm xử lý file txt
+
   const handleEpubFile = async (
     readerResult,
     setChapters,
@@ -87,41 +104,56 @@ const UploadForm = ({ onFileParsed }) => {
     try {
       const book = ePub(readerResult);
       await book.ready;
-  
+
       const spineItems = book.spine.spineItems;
-      const extractedChapters = [];
-  
-      const chapterRegex = /(第[\d一二三四五六七八九十百千]+[章回节])|(Chương\s*\d+)/i;
-  
+      const allTexts = [];
+
+      const chapterRegex =
+        /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)/im;
+
       for (let i = 0; i < spineItems.length; i++) {
         const item = spineItems[i];
         const section = await item.load(book.load.bind(book));
-        const doc = section.document;
-  
+        const html = await item.render();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
         const paragraphs = Array.from(doc.querySelectorAll("p"));
-        const paragraphTexts = paragraphs
-          .map((p) => p.textContent?.trim())
-          .filter(Boolean);
-  
-        // Dò xem đoạn nào có tên chương
-        let title = `Chương ${i + 1}`;
-        for (const line of paragraphTexts) {
-          const match = line.match(chapterRegex);
-          if (match) {
-            title = match[0];
-            break;
-          }
+        for (const p of paragraphs) {
+          const text = p.textContent?.trim();
+          if (text) allTexts.push(text);
         }
-  
-        const content = paragraphTexts.join("\n\n");
-  
-        extractedChapters.push({ title, content });
-        await item.unload(); // giải phóng bộ nhớ
+
+        await item.unload();
       }
-  
-      setChapters(extractedChapters);
+
+      // Gom nhóm các đoạn văn thành các chương dựa vào regex
+      const chapters = [];
+      let currentChapter = null;
+
+      for (const line of allTexts) {
+        const match = line.match(chapterRegex);
+        if (match) {
+          if (currentChapter) {
+            chapters.push(currentChapter);
+          }
+          currentChapter = {
+            title: match[1] || match[0],
+            content: "",
+          };
+        } else if (currentChapter) {
+          currentChapter.content += line + "\n\n";
+        }
+      }
+
+      if (currentChapter) {
+        chapters.push(currentChapter);
+      }
+
+      setChapters(chapters);
       setSuccess("✅ File EPUB đã được xử lý.");
-      console.log("✅ EPUB đã chia chương:", extractedChapters);
+      console.log("✅ EPUB đã chia chương:", chapters);
     } catch (err) {
       console.error("❌ EPUB xử lý lỗi:", err);
       setError("❌ Lỗi khi đọc file EPUB.");
@@ -129,8 +161,6 @@ const UploadForm = ({ onFileParsed }) => {
       setChapters([]);
     }
   };
-
-  //hàm xử lý file txt
 
   const handleTxtFile = (
     readerResult,
@@ -210,6 +240,7 @@ const UploadForm = ({ onFileParsed }) => {
     }
 
     onFileParsed(chapters, apiKey);
+    console.log("onFileParsed/ chapters:", chapters);
   };
 
   const checkFileFormatFromText = (text) => {
