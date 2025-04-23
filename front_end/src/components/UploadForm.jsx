@@ -25,36 +25,6 @@ const UploadForm = ({ onFileParsed }) => {
 
     return window.btoa(binary);
   }
-  //hàm xử lý fie epub
-  // const handleEpubFile = async (
-  //   readerResult,
-  //   setChapters,
-  //   setError,
-  //   setSucess
-  // ) => {
-  //   try {
-  //     const book = ePub(readerResult);
-  //     const spine = await book.loaded.spine;
-  //     const epubChapters = spine.items; // ✅ FIX: dùng `spine.items` thay vì `spine.get()`
-  //     const extractedChapters = [];
-
-  //     for (const item of epubChapters) {
-  //       const doc = await book.load(item.href);
-  //       const title = item.title || `Chapter ${extractedChapters.length + 1}`;
-  //       const content = doc.body?.textContent || "";
-  //       extractedChapters.push({ title, content });
-  //     }
-
-  //     setChapters(extractedChapters);
-  //     setSucess("✅ File có thể sử dụng.");
-  //     console.log("✅ EPUB đã xử lý:", extractedChapters);
-  //   } catch (err) {
-  //     console.error("❌ EPUB xử lý lỗi:", err);
-  //     setError("❌ Lỗi khi đọc file EPUB.");
-  //     setSucess("");
-  //     setChapters([]);
-  //   }
-  // };
 
   const handleEpubFile = async (
     readerResult,
@@ -76,13 +46,22 @@ const UploadForm = ({ onFileParsed }) => {
       for (const item of epubChapters) {
         // ✅ Sử dụng book.load thay vì .spine.get().render()
         const contents = await book.load(item.href);
+
+        const rawText = contents.body.innerText;
+        console.log("Text only:", rawText);
+
         console.log("contents", contents);
         const tempDiv = document.createElement("div");
+
         console.log("tempDiv", tempDiv);
         tempDiv.innerHTML = contents;
+
         const content = tempDiv.textContent || "";
+
         console.log("content", content);
+
         const title = item.title || `Chapter ${extractedChapters.length + 1}`;
+
         console.log("title", title);
 
         extractedChapters.push({ title, content });
@@ -100,6 +79,7 @@ const UploadForm = ({ onFileParsed }) => {
   };
 
   //hàm xử lý file txt
+
   const handleTxtFile = (
     readerResult,
     setChapters,
