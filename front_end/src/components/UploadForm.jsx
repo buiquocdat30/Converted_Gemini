@@ -26,54 +26,106 @@ const UploadForm = ({ onFileParsed }) => {
     return window.btoa(binary);
   }
 
+  // const handleEpubFile = async (
+  //   readerResult,
+  //   setChapters,
+  //   setError,
+  //   setSucess
+  // ) => {
+  //   try {
+  //     const book = ePub(readerResult);
+  //     await book.ready; // đảm bảo book đã load xong
+  //     console.log("Book:", book);
+  //     const spine = await book.loaded.spine;
+
+  //     console.log("spine", spine);
+  //     const epubChapters = spine.items;
+  //     console.log("epubChapters", epubChapters);
+  //     const extractedChapters = [];
+
+  //     for (const item of epubChapters) {
+  //       // ✅ Sử dụng book.load thay vì .spine.get().render()
+  //       const contents = await book.load(item.href);
+  //       console.log("contents", contents);
+        
+  //       const rawText = contents.body.innerText;
+  //       console.log("Text only:", rawText);
+
+        
+  //       const tempDiv = document.createElement("div");
+
+  //       console.log("tempDiv", tempDiv);
+  //       tempDiv.innerHTML = contents;
+
+  //       const content = tempDiv.textContent || "";
+
+  //       console.log("content", content);
+
+  //       const title = item.title || `Chapter ${extractedChapters.length + 1}`;
+
+  //       console.log("title", title);
+
+  //       extractedChapters.push({ title, content });
+  //     }
+
+  //     setChapters(extractedChapters);
+  //     setSucess("✅ File EPUB đã được xử lý.");
+  //     console.log("✅ EPUB đã xử lý:", extractedChapters);
+  //   } catch (err) {
+  //     console.error("❌ EPUB xử lý lỗi:", err);
+  //     setError("❌ Lỗi khi đọc file EPUB.");
+  //     setSucess("");
+  //     setChapters([]);
+  //   }
+  // };
   const handleEpubFile = async (
     readerResult,
     setChapters,
     setError,
-    setSucess
+    setSuccess
   ) => {
     try {
       const book = ePub(readerResult);
-      await book.ready; // đảm bảo book đã load xong
-      console.log("Book:", book);
-      const spine = await book.loaded.spine;
-
-      console.log("spine", spine);
-      const epubChapters = spine.items;
-      console.log("epubChapters", epubChapters);
+      await book.ready;
+  
+      const spineItems = book.spine.spineItems;
       const extractedChapters = [];
-
-      for (const item of epubChapters) {
-        // ✅ Sử dụng book.load thay vì .spine.get().render()
-        const contents = await book.load(item.href);
-
-        const rawText = contents.body.innerText;
-        console.log("Text only:", rawText);
-
-        console.log("contents", contents);
-        const tempDiv = document.createElement("div");
-
-        console.log("tempDiv", tempDiv);
-        tempDiv.innerHTML = contents;
-
-        const content = tempDiv.textContent || "";
-
-        console.log("content", content);
-
-        const title = item.title || `Chapter ${extractedChapters.length + 1}`;
-
-        console.log("title", title);
-
+  
+      const chapterRegex = /(第[\d一二三四五六七八九十百千]+[章回节])|(Chương\s*\d+)/i;
+  
+      for (let i = 0; i < spineItems.length; i++) {
+        const item = spineItems[i];
+        const section = await item.load(book.load.bind(book));
+        const doc = section.document;
+  
+        const paragraphs = Array.from(doc.querySelectorAll("p"));
+        const paragraphTexts = paragraphs
+          .map((p) => p.textContent?.trim())
+          .filter(Boolean);
+  
+        // Dò xem đoạn nào có tên chương
+        let title = `Chương ${i + 1}`;
+        for (const line of paragraphTexts) {
+          const match = line.match(chapterRegex);
+          if (match) {
+            title = match[0];
+            break;
+          }
+        }
+  
+        const content = paragraphTexts.join("\n\n");
+  
         extractedChapters.push({ title, content });
+        await item.unload(); // giải phóng bộ nhớ
       }
-
+  
       setChapters(extractedChapters);
-      setSucess("✅ File EPUB đã được xử lý.");
-      console.log("✅ EPUB đã xử lý:", extractedChapters);
+      setSuccess("✅ File EPUB đã được xử lý.");
+      console.log("✅ EPUB đã chia chương:", extractedChapters);
     } catch (err) {
       console.error("❌ EPUB xử lý lỗi:", err);
       setError("❌ Lỗi khi đọc file EPUB.");
-      setSucess("");
+      setSuccess("");
       setChapters([]);
     }
   };
