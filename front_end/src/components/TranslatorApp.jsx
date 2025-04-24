@@ -11,6 +11,8 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
   const [tempKey, setTempKey] = useState(apiKey || "");
 
+  
+
   // Khi nhận kết quả dịch từ ChapterList
   const handleTranslationResult = (index, translated,translatedTitle) => {
     setTranslatedChapters((prev) => {
