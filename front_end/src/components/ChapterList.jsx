@@ -21,6 +21,16 @@ const ChapterList = ({
   const [isTranslatingAll, setIsTranslatingAll] = useState(false); //Nút quay quay loading
   const [hasTranslatedAll, setHasTranslatedAll] = useState(false); //đã dịch xong
 
+  //khu vực phân Trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const chaptersPerPage = 10;
+
+  const totalPages = Math.ceil(chapters.length / chaptersPerPage);
+
+  const startIdx = (currentPage - 1) * chaptersPerPage;
+  const endIdx = startIdx + chaptersPerPage;
+  const currentChapters = chapters.slice(startIdx, endIdx);
+
   //đếm chương
   const canTranslate = (index) => {
     if (results[index]) return false; // đã dịch rồi
@@ -115,7 +125,8 @@ const ChapterList = ({
     <div className="chapter-list">
       <h3>📚 Danh sách chương ({chapters.length})</h3>
       <ul>
-        {chapters.map((ch, idx) => {
+        {currentChapters.map((ch, idxOnPage) => {
+          const idx = startIdx + idxOnPage;
           const isTranslated = !!results[idx];
           return (
             <li key={idx}>
@@ -161,6 +172,39 @@ const ChapterList = ({
           );
         })}
       </ul>
+      <div className="pagination">
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i}
+            className={currentPage === i + 1 ? "active" : ""}
+            onClick={() => setCurrentPage(i + 1)}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+      <div className="jump-to-chapter">
+        <label>🔍 Nhảy tới chương:</label>
+        <input
+          type="number"
+          min={1}
+          max={chapters.length}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const chapNum = parseInt(e.target.value);
+              if (
+                !isNaN(chapNum) &&
+                chapNum >= 1 &&
+                chapNum <= chapters.length
+              ) {
+                const newPage = Math.ceil(chapNum / chaptersPerPage);
+                setCurrentPage(newPage);
+              }
+            }
+          }}
+          placeholder="Nhập số chương..."
+        />
+      </div>
 
       <div className="translate-all-container">
         <button

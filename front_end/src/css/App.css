@@ -10,10 +10,10 @@ body {
 
 /* Căn giữa wrapper cả theo chiều ngang và dọc */
 .wrapper {
-    max-width: 1024px;
-    width: 90%;
-    margin: 25px auto;
-    padding: 30px;
+    max-width: 1240px;
+    width: 100%;
+    margin: 10px auto;
+    padding: 25px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
@@ -59,7 +59,7 @@ body {
     border: none;
     border-radius: 6px;
     font-weight: bold;
-    font-size: 1.3rem;
+    font-size: 1rem;
     transition: background-color 0.3s ease;
 }
 
