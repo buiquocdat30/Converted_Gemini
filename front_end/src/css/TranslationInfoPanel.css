@@ -6,32 +6,5 @@
     background-color: #f9fafb;
   }
   
-  .tip-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
   
-  .tip-model-select {
-    margin-top: 1rem;
-  }
-  
-  .tip-label {
-    display: block;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-  }
-  
-  .tip-select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-  }
-  
-  .tip-model-description {
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    color: #4b5563;
-  }
   

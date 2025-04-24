@@ -9,6 +9,34 @@ import {
   checkFileFormatFromText,
 } from "../utils/fileHandlers";
 
+const models = [
+  {
+    value: 'gemini-1.5-flash-8b',
+    label: 'Gemini 1.5 Flash-8B',
+    description: 'Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.'
+  },
+  {
+    value: 'gemini-2.0-flash-lite',
+    label: 'Gemini 2.0 Flash-Lite',
+    description: 'Giới hạn miễn phí: 30 lần/phút, 1500 lần một ngày.'
+  },
+  {
+    value: 'gemini-1.5-flash',
+    label: 'Gemini 1.5 Flash',
+    description: 'Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.'
+  },
+  {
+    value: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 Flash',
+    description: 'Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.'
+  },
+  {
+    value: 'gemini-2.5-pro-experimental-03-25',
+    label: 'Gemini 2.5 Pro Experimental 03-25',
+    description: 'Giới hạn miễn phí: 5 lần/phút, 25 lần một ngày.'
+  }
+];
+
 const UploadForm = ({ onFileParsed }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [apiKey, setApiKey] = useState("");
@@ -22,6 +50,9 @@ const UploadForm = ({ onFileParsed }) => {
   const [chapterCount, setChapterCount] = useState(0);
   const [averageWords, setAverageWords] = useState(0);
   const [selectedModel, setSelectedModel] = useState("gemini-pro");
+
+  //selected model
+  const selected = models.find(m => m.value === selectedModel);
 
   const fileInputRef = useRef(null);
 
@@ -135,9 +166,28 @@ const UploadForm = ({ onFileParsed }) => {
         <TranslationInfoPanel
           totalChapters={chapterCount}
           averageWordsPerChapter={averageWords}
-          selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
         />
+      </div>
+      <div className="tip-model-select">
+        <label htmlFor="modelSelect" className="tip-label">
+          🤖 Chọn Mô Hình AI:
+        </label>
+        <select
+          id="modelSelect"
+          className="tip-select"
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+        >
+          {models.map((model) => (
+            <option key={model.value} value={model.value}>
+              {model.label}
+            </option>
+          ))}
+        </select>
+
+        {selected && (
+          <p className="tip-model-description">{selected.description}</p>
+        )}
       </div>
       <div className="chapter-guide">
         <div className="chapter-guide-title">
