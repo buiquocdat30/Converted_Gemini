@@ -30,6 +30,7 @@ const ChapterList = ({
   const startIdx = (currentPage - 1) * chaptersPerPage;
   const endIdx = startIdx + chaptersPerPage;
   const currentChapters = chapters.slice(startIdx, endIdx);
+  const [jumpIndex, setJumpIndex] = useState("");
 
   //đếm chương
   const canTranslate = (index) => {
@@ -121,6 +122,17 @@ const ChapterList = ({
     });
   };
 
+
+  // hàm nhảy tới chương
+  const handleJumpToChapter = () => {
+    const chapNum = parseInt(jumpIndex);
+    if (!isNaN(chapNum) && chapNum >= 1 && chapNum <= chapters.length) {
+      const targetIndex = chapNum - 1;
+      const newPage = Math.ceil(chapNum / chaptersPerPage);
+      setCurrentPage(newPage);
+      onSelectChapter(targetIndex); // Gửi chương qua TranslationViewer
+    }
+  };
   return (
     <div className="chapter-list">
       <h3>📚 Danh sách chương ({chapters.length})</h3>
@@ -132,6 +144,7 @@ const ChapterList = ({
             <li key={idx}>
               <div className="chapter-item">
                 <div className="chapter-header">
+                  <p>Chương {idx+1}:</p>
                   <strong>
                     {isTranslated ? ch.translatedTitle : ch.title}
                   </strong>
@@ -189,21 +202,16 @@ const ChapterList = ({
           type="number"
           min={1}
           max={chapters.length}
+          placeholder="Nhập số chương..."
+          value={jumpIndex}
+          onChange={(e) => setJumpIndex(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              const chapNum = parseInt(e.target.value);
-              if (
-                !isNaN(chapNum) &&
-                chapNum >= 1 &&
-                chapNum <= chapters.length
-              ) {
-                const newPage = Math.ceil(chapNum / chaptersPerPage);
-                setCurrentPage(newPage);
-              }
+              handleJumpToChapter();
             }
           }}
-          placeholder="Nhập số chương..."
         />
+        <button onClick={handleJumpToChapter}>Nhảy</button>
       </div>
 
       <div className="translate-all-container">
