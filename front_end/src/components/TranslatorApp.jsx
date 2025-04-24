@@ -11,6 +11,15 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
   const [tempKey, setTempKey] = useState(apiKey || "");
 
+  //Chọn chương để Nhảy
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
+
+  //hàm chọn chương để Nhảy
+  const handleSelectJumbChapter = (index) => {
+    setSelectedChapterIndex(index);
+  };
+  
+
   
 
   // Khi nhận kết quả dịch từ ChapterList
@@ -114,7 +123,9 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
             chapters={mergedChapters}
             apiKey={currentApiKey}
             onTranslationResult={handleTranslationResult}
-            onSelectChapter={(idx) => setCurrentIndex(idx)} // 👈 truyền hàm chọn chương
+            onSelectChapter={(idx) => setCurrentIndex(idx)}
+             // 👈 truyền hàm chọn chương
+             onSelectJumbChapter ={handleSelectJumbChapter}
           />
         </div>
         <div className="translate-viewer-container">
@@ -124,6 +135,7 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
             onUpdateChapter={handleEditChapter}
             currentIndex={currentIndex} // 👈 truyền index xuống
             onChangeIndex={(idx) => setCurrentIndex(idx)} // 👈 để TranslateViewer chuyển chương
+            selectedChapterIndex={selectedChapterIndex}
           />
         </div>
       </div>

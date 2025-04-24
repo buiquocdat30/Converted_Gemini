@@ -7,6 +7,7 @@ const TranslateViewer = ({
   onUpdateChapter,
   currentIndex,
   onChangeIndex,
+  selectedChapterIndex
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [history, setHistory] = useState([
@@ -30,6 +31,12 @@ const TranslateViewer = ({
     setHistory([newContent]);
     setHistoryIndex(0);
     setIsEditing(false);
+    if (selectedChapterIndex !== null) {
+      currentIndex(selectedChapterIndex); // nếu bạn có state riêng
+    }
+    else {
+      currentIndex;
+    }
   }, [chapters, currentIndex]);
 
   const handleEdit = () => {
