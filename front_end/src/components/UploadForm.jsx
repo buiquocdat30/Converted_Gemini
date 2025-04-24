@@ -157,59 +157,82 @@ const UploadForm = ({ onFileParsed }) => {
 
   const checkFileFormatFromText = (text) => {
     const chapterRegex =
-      /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)$/i;
-
+      /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)/im;
+  
     const lines = text
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean);
+  
     const titles = [];
     const titleIndexes = [];
-
-    // Bước 1: Tìm tất cả các dòng là tiêu đề
+  
+    // Bước 1: Xác định tiêu đề chương
     lines.forEach((line, idx) => {
       if (chapterRegex.test(line)) {
         titles.push(line);
         titleIndexes.push(idx);
       }
     });
-
-    // Nếu số lượng tiêu đề là chẵn và chia đều cho 2 phần: phần 1 là tiêu đề duyệt, phần 2 là tiêu đề bắt đầu content
-    const half = titles.length / 2;
-
-    if (Number.isInteger(half)) {
-      const chapterTitles = titles.slice(0, half);
-      const contentStartIndexes = titleIndexes.slice(half);
-
-      const chapters = [];
-
-      for (let i = 0; i < half; i++) {
-        const start = contentStartIndexes[i] + 1;
-        const end = contentStartIndexes[i + 1] || lines.length;
-        const contentLines = lines.slice(start, end);
-        const content = contentLines.join("\n").trim();
-
-        chapters.push({
-          title: chapterTitles[i],
-          content,
-        });
-      }
-
-      const valid =
-        chapters.length > 0 &&
-        chapters.every((ch) => ch.content && ch.content.length > 0);
-
-      return {
-        valid,
-        chapters,
-        total: chapters.length,
-      };
+  
+    // Kiểm tra xem tiêu đề có lặp lại không → nếu có thì file dạng "title1 title2 title1 content1 ..."
+    const titleSet = new Set(titles);
+    const hasDuplicateTitles = titleSet.size !== titles.length;
+  
+    // Kiểm tra xem khoảng cách giữa tiêu đề có đều và cách nhau 2 dòng → nghi ngờ kiểu "title1 title2 content1 content2"
+    let evenlySpaced = true;
+    const gaps = [];
+  
+    for (let i = 1; i < titleIndexes.length; i++) {
+      gaps.push(titleIndexes[i] - titleIndexes[i - 1]);
     }
-
-    // Nếu không chia đều thì fallback về cách xử lý tuyến tính
+  
+    if (gaps.length >= 2) {
+      const firstGap = gaps[0];
+      evenlySpaced = gaps.every((g) => g === firstGap);
+    }
+  
+    // Nếu có duplicate hoặc khoảng cách giữa tiêu đề bất thường → dùng tuyến tính
+    const useLinear = hasDuplicateTitles || !evenlySpaced;
+  
+    if (!useLinear) {
+      // Dùng chia đôi nếu cấu trúc phù hợp
+      const half = titles.length / 2;
+  
+      if (Number.isInteger(half)) {
+        const chapterTitles = titles.slice(0, half);
+        const contentStartIndexes = titleIndexes.slice(half);
+  
+        const chapters = [];
+  
+        for (let i = 0; i < half; i++) {
+          const start = contentStartIndexes[i] + 1;
+          const end = contentStartIndexes[i + 1] || lines.length;
+          const contentLines = lines.slice(start, end);
+          const content = contentLines.join("\n").trim();
+  
+          chapters.push({
+            title: chapterTitles[i],
+            content,
+          });
+        }
+  
+        const valid =
+          chapters.length > 0 &&
+          chapters.every((ch) => ch.content && ch.content.length > 0);
+  
+        return {
+          valid,
+          chapters,
+          total: chapters.length,
+        };
+      }
+    }
+  
+    // Mặc định fallback sang tuyến tính
     const chapters = [];
     let currentChapter = null;
-
+  
     for (const line of lines) {
       if (chapterRegex.test(line)) {
         if (currentChapter) chapters.push(currentChapter);
@@ -221,19 +244,20 @@ const UploadForm = ({ onFileParsed }) => {
         currentChapter.content += line + "\n";
       }
     }
-
+  
     if (currentChapter) chapters.push(currentChapter);
-
+  
     const valid =
       chapters.length > 0 &&
       chapters.every((ch) => ch.content.trim().length > 0);
-
+  
     return {
       valid,
       chapters,
       total: chapters.length,
     };
   };
+    
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];

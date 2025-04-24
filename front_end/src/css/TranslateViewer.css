@@ -1,5 +1,6 @@
 .translation-viewer {
   padding: 20px;
+  /* margin-top: 20px; */
   background-color: #1f1f1f;
   color: #ffffff;
   border-radius: 8px;
@@ -9,8 +10,8 @@
   display: flex;
   flex: 1;
   position: sticky;
-  top:232px;
-    padding-top: 10px;
+  top: 208px;
+  padding-top: 10px;
   gap: 10px;
   margin-bottom: 15px;
   background-color: #2a2a2a;
