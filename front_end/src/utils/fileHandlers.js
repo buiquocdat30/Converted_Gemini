@@ -19,7 +19,6 @@ const handleEpubFile = async (
 
     for (let i = 0; i < spineItems.length; i++) {
       const item = spineItems[i];
-      const section = await item.load(book.load.bind(book));
       const html = await item.render();
 
       const parser = new DOMParser();
@@ -50,6 +49,7 @@ const handleEpubFile = async (
         // Lưu tiêu đề đã gặp
         seenTitles.add(match[1] || match[0]);
 
+        console.log("seenTitles", seenTitles);
         // Nếu đã có chương trước đó, thêm vào danh sách
         if (currentChapter) {
           chapters.push(currentChapter);
@@ -62,10 +62,10 @@ const handleEpubFile = async (
         };
       } else if (currentChapter) {
         // Nếu đang thu thập nội dung cho chương hiện tại
-        currentChapter.content += line + "\n\n";
+        currentChapter.content += (currentChapter.content ? "\n\n" : "") + line;
       }
     }
-
+    console.log("currentChapter: ", currentChapter);
     // Thêm chương cuối cùng vào danh sách
     if (currentChapter) {
       chapters.push(currentChapter);
@@ -81,27 +81,6 @@ const handleEpubFile = async (
     setChapters([]);
   }
 };
-// const handleTxtFile = (
-//   readerResult,
-//   setChapters,
-//   setError,
-//   setSucess,
-//   fileInputRef,
-//   setSelectedFile,
-//   file
-// ) => {
-//   const result = checkFileFormatFromText(readerResult);
-//   if (result.valid) {
-//     setChapters(result.chapters);
-//     setSucess("✅ File có thể sử dụng.");
-//     console.log("✅ TXT đã xử lý:", result.chapters);
-//   } else {
-//     setError(❌ File ${file.name} không đúng định dạng chương.);
-//     setSelectedFile(null);
-//     setChapters([]);
-//     setSucess("");
-//     fileInputRef.current.value = "";
-//   }
 
 const handleTxtFile = (
   readerResult,
@@ -183,7 +162,7 @@ const checkFileFormatFromText = (text) => {
         const start = contentStartIndexes[i] + 1;
         const end = contentStartIndexes[i + 1] || lines.length;
         const contentLines = lines.slice(start, end);
-        const content = contentLines.join("\n").trim();
+        const content = contentLines.join("\n\n").trim();
 
         chapters.push({
           title: chapterTitles[i],
@@ -215,7 +194,7 @@ const checkFileFormatFromText = (text) => {
         content: "",
       };
     } else if (currentChapter) {
-      currentChapter.content += line + "\n";
+      currentChapter.content += (currentChapter.content ? "\n\n" : "") + line;
     }
   }
 
