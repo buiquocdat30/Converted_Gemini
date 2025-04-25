@@ -1,10 +1,38 @@
 import ePub from "epubjs";
 
+//đếm số lượng từ
+const calculateChapterStats = (chapters) => {
+  const totalChapters = chapters.length;
+
+  const totalWords = chapters.reduce((sum, ch) => {
+    const titleWords = countWords(ch.title);
+    const contentWords = countWords(ch.content);
+    return sum + titleWords + contentWords;
+  }, 0);
+
+  return { totalChapters, totalWords };
+};
+
+// Đếm từ: nếu là tiếng Hán thì đếm từng ký tự Hán, nếu là tiếng Việt/Anh thì tách theo khoảng trắng
+const countWords = (text) => {
+  const chineseChars = text.match(/[\u4e00-\u9fff]/g) || [];
+  const nonChineseWords = text
+    .replace(/[\u4e00-\u9fff]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return chineseChars.length + nonChineseWords.length;
+};
+
 const handleEpubFile = async (
   readerResult,
   setChapters,
   setError,
-  setSuccess
+  setSuccess,
+  setChapterCount,
+  setTotalWords,
+  setAverageWords
 ) => {
   try {
     const book = ePub(readerResult);
@@ -19,6 +47,7 @@ const handleEpubFile = async (
 
     for (let i = 0; i < spineItems.length; i++) {
       const item = spineItems[i];
+      const section = await item.load(book.load.bind(book));
       const html = await item.render();
 
       const parser = new DOMParser();
@@ -49,7 +78,6 @@ const handleEpubFile = async (
         // Lưu tiêu đề đã gặp
         seenTitles.add(match[1] || match[0]);
 
-        console.log("seenTitles", seenTitles);
         // Nếu đã có chương trước đó, thêm vào danh sách
         if (currentChapter) {
           chapters.push(currentChapter);
@@ -62,16 +90,26 @@ const handleEpubFile = async (
         };
       } else if (currentChapter) {
         // Nếu đang thu thập nội dung cho chương hiện tại
-        currentChapter.content += (currentChapter.content ? "\n\n" : "") + line;
+        currentChapter.content += line + "\n\n";
       }
     }
-    console.log("currentChapter: ", currentChapter);
+
     // Thêm chương cuối cùng vào danh sách
     if (currentChapter) {
       chapters.push(currentChapter);
     }
 
     setChapters(chapters);
+    const { totalChapters, totalWords } = calculateChapterStats(chapters);
+    const averageWords = Math.round(totalWords / totalChapters);
+    setChapterCount(totalChapters);
+    setTotalWords(totalWords);
+    setAverageWords(averageWords);
+
+    console.log(`📘 Tổng chương: ${totalChapters}`);
+    console.log(`📝 Tổng từ: ${totalWords}`);
+    console.log(`📊 Trung bình từ/chương: ${averageWords}`);
+
     setSuccess("✅ File EPUB đã được xử lý.");
     console.log("✅ EPUB đã chia chương:", chapters);
   } catch (err) {
@@ -89,7 +127,10 @@ const handleTxtFile = (
   setSucess,
   fileInputRef,
   setSelectedFile,
-  file
+  file,
+  setChapterCount,
+  setTotalWords,
+  setAverageWords
 ) => {
   const result = checkFileFormatFromText(readerResult);
 
@@ -98,6 +139,16 @@ const handleTxtFile = (
     setChapters(result.chapters);
     setSucess("✅ File có thể sử dụng.");
     console.log("✅ TXT đã xử lý:", result.chapters);
+    const { totalChapters, totalWords } = calculateChapterStats(
+      result.chapters
+    );
+    const averageWords = Math.round(totalWords / totalChapters);
+    setChapterCount(totalChapters);
+    setTotalWords(totalWords);
+    setAverageWords(averageWords);
+    console.log(`📘 Tổng chương: ${totalChapters}`);
+    console.log(`📝 Tổng từ: ${totalWords}`);
+    console.log(`📊 Trung bình từ/chương: ${averageWords}`);
   } else {
     // Xử lý lỗi nếu file không đúng định dạng
     setError(`❌ File ${file.name} không đúng định dạng chương.`);
@@ -162,7 +213,7 @@ const checkFileFormatFromText = (text) => {
         const start = contentStartIndexes[i] + 1;
         const end = contentStartIndexes[i + 1] || lines.length;
         const contentLines = lines.slice(start, end);
-        const content = contentLines.join("\n\n").trim();
+        const content = contentLines.join("\n").trim();
 
         chapters.push({
           title: chapterTitles[i],
@@ -194,7 +245,7 @@ const checkFileFormatFromText = (text) => {
         content: "",
       };
     } else if (currentChapter) {
-      currentChapter.content += (currentChapter.content ? "\n\n" : "") + line;
+      currentChapter.content += line + "\n";
     }
   }
 

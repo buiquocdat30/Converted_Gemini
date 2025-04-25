@@ -1,10 +1,15 @@
 .tip-container {
-    margin-top: 1rem;
-    padding: 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    background-color: #f9fafb;
-  }
-  
-  
-  
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #f9fafb;
+  align-items: last baseline;
+}
+
+.tip-title {}
+
+.tip-body {
+  text-align: left;
+  line-height: 1.8;
+}
