@@ -122,7 +122,6 @@ const ChapterList = ({
     });
   };
 
-
   // hàm nhảy tới chương
   const handleJumpToChapter = () => {
     const chapNum = parseInt(jumpIndex);
@@ -144,7 +143,7 @@ const ChapterList = ({
             <li key={idx}>
               <div className="chapter-item">
                 <div className="chapter-header">
-                  <p>Chương {idx+1}:</p>
+                  <p>Chương {idx + 1}:</p>
                   <strong>
                     {isTranslated ? ch.translatedTitle : ch.title}
                   </strong>
@@ -211,7 +210,7 @@ const ChapterList = ({
             }
           }}
         />
-        <button onClick={handleJumpToChapter}>Nhảy</button>
+        <button onClick={handleJumpToChapter}>➡️ Đi tới</button>
       </div>
 
       <div className="translate-all-container">
