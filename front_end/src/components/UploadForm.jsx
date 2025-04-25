@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 // import "../css/App.css";
-import "../css/UploadForm.css"
+import "../css/UploadForm.css";
 import ConverteKeyInput from "./ConverteKeyInput";
 import TranslationInfoPanel from "./TranslationInfoPanel.jsx";
 
@@ -12,29 +12,30 @@ import {
 
 const models = [
   {
-    value: "gemini-1.5-flash-8b",
-    label: "Gemini 1.5 Flash-8B",
+    value: "gemini-1.5-pro", //ok
+    label: "Gemini 1.5 Pro",
     description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
   },
   {
-    value: "gemini-2.0-flash-lite",
-    label: "Gemini 2.0 Flash-Lite",
-    description: "Giới hạn miễn phí: 30 lần/phút, 1500 lần một ngày.",
-  },
-  {
-    value: "gemini-1.5-flash",
+    value: "gemini-1.5-flash", //ok
     label: "Gemini 1.5 Flash",
     description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
   },
   {
-    value: "gemini-2.0-flash",
-    label: "Gemini 2.0 Flash",
+    value: "gemini-1.5-flash-8b", //ok
+    label: "Gemini 1.5 Flash-8B",
     description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
   },
   {
-    value: "gemini-2.5-pro-experimental-03-25",
-    label: "Gemini 2.5 Pro Experimental 03-25",
-    description: "Giới hạn miễn phí: 5 lần/phút, 25 lần một ngày.",
+    value: "gemini-2.0-flash-lite", //ok
+    label: "Gemini 2.0 Flash-Lite",
+    description: "Giới hạn miễn phí: 30 lần/phút, 1500 lần một ngày.",
+  },
+
+  {
+    value: "gemini-2.0-flash", //ok
+    label: "Gemini 2.0 Flash",
+    description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
   },
 ];
 
@@ -123,7 +124,7 @@ const UploadForm = ({ onFileParsed }) => {
       return;
     }
 
-    onFileParsed(chapters, apiKey);
+    onFileParsed(chapters, apiKey, selectedModel);
     console.log("onFileParsed/ chapters:", chapters);
   };
 
@@ -177,34 +178,32 @@ const UploadForm = ({ onFileParsed }) => {
       {/* Hiển thị thông báo khi file dùng được */}
       <div>
         <TranslationInfoPanel
-           totalChapters={chapterCount}
-           totalWords={totalWords}
-           averageWordsPerChapter={averageWords}
+          totalChapters={chapterCount}
+          totalWords={totalWords}
+          averageWordsPerChapter={averageWords}
         />
       </div>
-
       <div className="tip-model-select">
-  <label className="tip-label">🤖 Chọn Mô Hình AI:</label>
-  <div className="tip-radio-group">
-    {models.map((model) => (
-      <label key={model.value} className="tip-radio-option">
-        <input
-          type="radio"
-          name="modelSelect"
-          value={model.value}
-          checked={selectedModel === model.value}
-          onChange={(e) => setSelectedModel(e.target.value)}
-        />
-        {model.label}
-      </label>
-    ))}
-  </div>
+        <label className="tip-label">🤖 Chọn Mô Hình AI:</label>
+        <div className="tip-radio-group">
+          {models.map((model) => (
+            <label key={model.value} className="tip-radio-option">
+              <input
+                type="radio"
+                name="modelSelect"
+                value={model.value}
+                checked={selectedModel === model.value}
+                onChange={(e) => setSelectedModel(e.target.value)}
+              />
+              {model.label}
+            </label>
+          ))}
+        </div>
 
-  {selected && (
-    <p className="tip-model-description">{selected.description}</p>
-  )}
-</div>
-
+        {selected && (
+          <p className="tip-model-description">{selected.description}</p>
+        )}
+      </div>
       <div className="chapter-guide">
         <div className="chapter-guide-title">
           <h4>📌 Các định dạng chương được hỗ trợ:</h4>
