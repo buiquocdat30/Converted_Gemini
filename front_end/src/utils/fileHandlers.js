@@ -213,7 +213,8 @@ const checkFileFormatFromText = (text) => {
         const start = contentStartIndexes[i] + 1;
         const end = contentStartIndexes[i + 1] || lines.length;
         const contentLines = lines.slice(start, end);
-        const content = contentLines.join("\n").trim();
+        const content = contentLines.map((line) => line + "\n\n").join("").trim();
+
 
         chapters.push({
           title: chapterTitles[i],
@@ -245,7 +246,7 @@ const checkFileFormatFromText = (text) => {
         content: "",
       };
     } else if (currentChapter) {
-      currentChapter.content += line + "\n";
+      currentChapter.content += line + "\n\n";
     }
   }
 
