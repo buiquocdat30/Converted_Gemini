@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -21,7 +21,7 @@ const ChapterList = ({
   const [isTranslateAllDisabled, setIsTranslateAllDisabled] = useState(false); //Disable nút dịch tổng
   const [isTranslatingAll, setIsTranslatingAll] = useState(false); //Nút quay quay loading
   const [hasTranslatedAll, setHasTranslatedAll] = useState(false); //đã dịch xong
-  const [isStopped, setIsStopped] = useState(false); //dừng dịch
+  const isStoppedRef = useRef(false); //dừng dịch
 
   //khu vực phân Trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,7 +93,7 @@ const ChapterList = ({
         setTotalProgress,
         setErrorMessages,
         onTranslationResult,
-        isStopped,
+        isStopped: isStoppedRef.current,
       });
     } catch (error) {
       console.error("Lỗi khi dịch chương:", error);
@@ -124,7 +124,7 @@ const ChapterList = ({
       setTotalProgress,
       onTranslationResult,
       onSelectChapter,
-      isStopped,
+      isStopped:isStoppedRef.current,
     });
   };
 
@@ -287,7 +287,6 @@ const ChapterList = ({
         <button
           className="translate-all-button"
           onClick={() => {
-            setIsStopped(false); // bật lại dịch
             if (hasTranslatedAll) {
               const confirmRetry = window.confirm(
                 "Bạn có muốn dịch lại toàn bộ chương lần nữa không?"
@@ -313,21 +312,20 @@ const ChapterList = ({
         </button>
         <button
           className="stop-translate-button"
-          onClick={() => setIsStopped(true)}
+          onClick={() => isStoppedRef.current = true}
           disabled={!isTranslatingAll}
         >
           🛑 Dừng dịch
         </button>
-        {totalProgress !== 0 && (
-          <div className="progress-bar-container">
-            <div
-              className="progress-bar"
-              style={{ width: `${totalProgress}%` }}
-            ></div>
-          </div>
-        )}
       </div>
-
+      {totalProgress !== 0 && (
+        <div className="progress-bar-container">
+          <div
+            className="progress-bar"
+            style={{ width: `${totalProgress}%` }}
+          ></div>
+        </div>
+      )}
       {errorMessages.general && (
         <div className="general-error">
           <p>{errorMessages.general}</p>

@@ -14,6 +14,7 @@ export const translateChapters = async ({
   isStopped,
 }) => {
   try {
+    console.log("isStopped:", isStopped);
     const res = await axios.post("http://localhost:8000/api/translate", {
       chapters: chaptersToTranslate,
       key: apiKey || "",
@@ -27,8 +28,10 @@ export const translateChapters = async ({
       const newErrors = {};
 
       for (let idx = 0; idx < translatedChapters.length; idx++) {
-        if (typeof isStopped === "function" && isStopped()) {
+        if (isStopped) {
+          console.log("isStopped:", isStopped);
           console.warn("⏹️ Dừng dịch theo yêu cầu người dùng.");
+          alert("🛑 Đã dừng quá trình dịch.");
           break;
         }
 
