@@ -52,7 +52,7 @@ const UploadForm = ({ onFileParsed }) => {
   const [chapterCount, setChapterCount] = useState(0); //tổng chương
   const [totalWords, setTotalWords] = useState(0); //tổng từ
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
-  const [selectedModel, setSelectedModel] = useState("gemini-pro");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
 
   //selected model
   const selected = models.find((m) => m.value === selectedModel);

@@ -5,6 +5,7 @@ export const translateSingleChapter = async ({
   index,
   chapters,
   apiKey,
+  model,
   setProgress,
   setResults,
   setErrorMessages,
@@ -40,6 +41,7 @@ export const translateSingleChapter = async ({
     const res = await axios.post("http://localhost:8000/api/translate", {
       chapters: [chapter],
       key: apiKey || "",
+      model: model,
     });
 
     console.log("in tạm chapers:", res.data.chapters);

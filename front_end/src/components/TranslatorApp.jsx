@@ -5,9 +5,9 @@ import ConverteKeyInput from "./ConverteKeyInput";
 import { translateSingleChapter } from "../services/translateSingleChapter";
 import "../css/TranslatorApp.css";
 
-const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
-  const [currentApiKey, setCurrentApiKey] = useState(apiKey || "");
-  const [translatedChapters, setTranslatedChapters] = useState([]);
+const TranslatorApp = ({ apiKey, chapters, setChapters, model,onUpdateChapter }) => {
+  const [currentApiKey, setCurrentApiKey] = useState(apiKey || "");//key đã nhập
+  const [translatedChapters, setTranslatedChapters] = useState([]);//đã dịch
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
   const [tempKey, setTempKey] = useState(apiKey || "");
 
@@ -122,6 +122,7 @@ const TranslatorApp = ({ apiKey, chapters, setChapters, onUpdateChapter }) => {
           <ChapterList
             chapters={mergedChapters}
             apiKey={currentApiKey}
+            model={model}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={(idx) => setCurrentIndex(idx)}
              // 👈 truyền hàm chọn chương
