@@ -3,9 +3,9 @@ const {
 } = require("../services/translateService");
 
 exports.translateText = async (req, res) => {
-  const { chapters, key } = req.body;
+  const { chapters, key, model } = req.body;
 
-  console.log("📌 Yêu cầu dịch nhận được:", { totalChapters: chapters?.length, hasKey: !!key });
+  console.log("📌 Yêu cầu dịch nhận được:", { totalChapters: chapters?.length, hasKey: !!key, modelAI:model });
 
   if (!chapters || !Array.isArray(chapters)) {
     return res.status(400).json({ error: "Thiếu danh sách chương cần dịch." });
@@ -17,9 +17,9 @@ exports.translateText = async (req, res) => {
     for (let i = 0; i < chapters.length; i++) {
       const ch = chapters[i];
 
-      const translatedContent = await performTranslation(ch.content || "", key);
+      const translatedContent = await performTranslation(ch.content || "", key, model);
       const translatedTitle = ch.title
-        ? await performTranslation(ch.title, key)
+        ? await performTranslation(ch.title, key, model)
         : ""; // không có title thì để trống
 
       translatedChapters.push({

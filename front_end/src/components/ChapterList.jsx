@@ -9,6 +9,7 @@ import "../css/ChapterList.css";
 const ChapterList = ({
   chapters,
   apiKey,
+  model,
   onTranslationResult,
   onSelectChapter,
 }) => {
@@ -20,6 +21,7 @@ const ChapterList = ({
   const [isTranslateAllDisabled, setIsTranslateAllDisabled] = useState(false); //Disable nút dịch tổng
   const [isTranslatingAll, setIsTranslatingAll] = useState(false); //Nút quay quay loading
   const [hasTranslatedAll, setHasTranslatedAll] = useState(false); //đã dịch xong
+  const [isStopped, setIsStopped] = useState(false); //dừng dịch
 
   //khu vực phân Trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,11 +87,13 @@ const ChapterList = ({
         chaptersToTranslate,
         chapters,
         apiKey,
+        model,
         setResults,
         setTranslatedCount,
         setTotalProgress,
         setErrorMessages,
         onTranslationResult,
+        isStopped,
       });
     } catch (error) {
       console.error("Lỗi khi dịch chương:", error);
@@ -112,6 +116,7 @@ const ChapterList = ({
       index,
       chapters,
       apiKey,
+      model,
       setProgress,
       setResults,
       setErrorMessages,
@@ -119,19 +124,29 @@ const ChapterList = ({
       setTotalProgress,
       onTranslationResult,
       onSelectChapter,
+      isStopped,
     });
   };
 
   // hàm nhảy tới chương
-  const handleJumpToChapter = () => {
-    const chapNum = parseInt(jumpIndex);
-    if (!isNaN(chapNum) && chapNum >= 1 && chapNum <= chapters.length) {
-      const targetIndex = chapNum - 1;
-      const newPage = Math.ceil(chapNum / chaptersPerPage);
+  const handleJumpToChapter = (type) => {
+    const num = parseInt(jumpIndex);
+    if (isNaN(num)) return;
+
+    if (type === "chapter" && num >= 1 && num <= chapters.length) {
+      // 👉 Nếu nhảy tới chương hợp lệ
+      const targetIndex = num - 1;
+      const newPage = Math.ceil(num / chaptersPerPage);
       setCurrentPage(newPage);
-      onSelectChapter(targetIndex); // Gửi chương qua TranslationViewer
+      onSelectChapter(targetIndex);
+    } else if (type === "page" && num >= 1 && num <= totalPages) {
+      // 👉 Nếu nhảy tới trang hợp lệ
+      setCurrentPage(num);
     }
+
+    setJumpIndex(""); // ✅ Reset input sau khi nhảy
   };
+
   return (
     <div className="chapter-list">
       <h3>📚 Danh sách chương ({chapters.length})</h3>
@@ -161,7 +176,7 @@ const ChapterList = ({
                       isTranslated ? "hidden" : ""
                     }`}
                   >
-                    Dịch
+                    📝 Dịch
                   </button>
                 </div>
 
@@ -184,39 +199,95 @@ const ChapterList = ({
           );
         })}
       </ul>
+      {/* trang chứa các chương khi vượt quá 10 chương */}
       <div className="pagination">
-        {Array.from({ length: totalPages }, (_, i) => (
-          <button
-            key={i}
-            className={currentPage === i + 1 ? "active" : ""}
-            onClick={() => setCurrentPage(i + 1)}
-          >
-            {i + 1}
-          </button>
-        ))}
+        <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+          ⏮️ Trang đầu
+        </button>
+
+        {currentPage > 3 && (
+          <>
+            <button onClick={() => setCurrentPage(1)}>1</button>
+            {currentPage > 4 && <span>...</span>}
+          </>
+        )}
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(
+            (pageNum) =>
+              pageNum === 1 ||
+              pageNum === totalPages ||
+              Math.abs(pageNum - currentPage) <= 1
+          )
+          .map((pageNum) => (
+            <button
+              key={pageNum}
+              className={currentPage === pageNum ? "active" : ""}
+              onClick={() => setCurrentPage(pageNum)}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+        {currentPage < totalPages - 2 && (
+          <>
+            {currentPage < totalPages - 3 && <span>...</span>}
+            <button onClick={() => setCurrentPage(totalPages)}>
+              {totalPages}
+            </button>
+          </>
+        )}
+
+        <button
+          onClick={() => setCurrentPage(totalPages)}
+          disabled={currentPage === totalPages}
+        >
+          ⏭️ Trang cuối
+        </button>
       </div>
+
+      {/* nhảy tới trang */}
+      <div className="jump-to-page">
+        <label>🔍 Nhảy tới trang:</label>
+        <input
+          type="number"
+          min={1}
+          max={totalPages}
+          placeholder="Nhập"
+          value={jumpIndex}
+          onChange={(e) => setJumpIndex(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleJumpToChapter("page");
+          }}
+        />
+        <button onClick={() => handleJumpToChapter("page")}>
+          ➡️ Đi tới trang
+        </button>
+      </div>
+      {/* nhảy tới chương */}
       <div className="jump-to-chapter">
         <label>🔍 Nhảy tới chương:</label>
         <input
           type="number"
           min={1}
           max={chapters.length}
-          placeholder="Nhập số chương..."
+          placeholder="Nhập"
           value={jumpIndex}
           onChange={(e) => setJumpIndex(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleJumpToChapter();
-            }
+            if (e.key === "Enter") handleJumpToChapter("chapter");
           }}
         />
-        <button onClick={handleJumpToChapter}>➡️ Đi tới</button>
+        <button onClick={() => handleJumpToChapter("chapter")}>
+          ➡️ Đi tới chương
+        </button>
       </div>
 
       <div className="translate-all-container">
         <button
           className="translate-all-button"
           onClick={() => {
+            setIsStopped(false); // bật lại dịch
             if (hasTranslatedAll) {
               const confirmRetry = window.confirm(
                 "Bạn có muốn dịch lại toàn bộ chương lần nữa không?"
@@ -235,12 +306,18 @@ const ChapterList = ({
               <FontAwesomeIcon icon={faSpinner} spin /> Đang dịch...
             </span>
           ) : hasTranslatedAll ? (
-            "Dịch lại toàn bộ chương"
+            "🔁 Dịch lại toàn bộ chương"
           ) : (
-            "Dịch toàn bộ chương"
+            "📖 Dịch toàn bộ chương"
           )}
         </button>
-
+        <button
+          className="stop-translate-button"
+          onClick={() => setIsStopped(true)}
+          disabled={!isTranslatingAll}
+        >
+          🛑 Dừng dịch
+        </button>
         {totalProgress !== 0 && (
           <div className="progress-bar-container">
             <div

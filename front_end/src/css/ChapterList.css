@@ -59,20 +59,7 @@
   font-size: 16px;
 }
 
-.chapter-list .translate-all-button {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-}
 
-.chapter-list .translate-all-button:hover {
-  background-color: #218838;
-}
 
 .chapter-item {
   display: flex;
@@ -87,9 +74,9 @@
   gap: 2px;
 }
 
-.chapter-header p{
+.chapter-header p {
   font-size: 18px;
-  width:37%;
+  width: 37%;
   display: block;
 }
 
@@ -146,55 +133,92 @@
 }
 
 /* page chương và nhảy tới chương */
+.pagination {
+  padding: 10px 0px;
+  margin: 5px 0px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
 
 .pagination button {
-  margin: 0 4px;
   padding: 4px 8px;
 }
+
 .pagination .active {
   background-color: #007bff;
   color: white;
 }
+
+/* nhảy tới trang */
+
+/* nhảy chương */
+.jump-to-page,
 .jump-to-chapter {
   margin-top: 1rem;
-}
-.jump-to-chapter input {
-  width: 60px;
-  padding: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
 }
 
+.jump-to-page input,
+.jump-to-chapter input {
+  /* width: 60px; */
+  padding: 4px;
+  width: 20%;
+}
+
+.jump-to-page label,
+.jump-to-chapter label {
+  width: 35%;
+}
+
+.jump-to-page button,
+.jump-to-chapter button {
+  width: 40%;
+}
 
 /* nút dịch all */
 .translate-all-container {
-  padding: 16px;
+  padding: 16px 0;
   background-color: #f3f3f3;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: space-between;
+  align-items: stretch;
   gap: 12px;
 }
 
-.translate-all-button {
-  padding: 10px 20px;
-  background-color: #4caf50;
+.chapter-list .translate-all-button,
+.chapter-list .stop-translate-button {
+
+  padding: 10px;
+  background-color: #4CAF50;
   color: white;
-  font-weight: bold;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  font-size: 16px;
+  width: 50%;
+
 }
 
-.translate-all-button:hover:enabled {
+
+
+.chapter-list .stop-translate-button:hover:enabled,
+.chapter-list .translate-all-button:hover:enabled {
   background-color: #45a049;
 }
 
-.translate-all-button:disabled {
+.chapter-list .translate-all-button:disabled,
+.chapter-list .stop-translate-button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+
 }
+
+
 
 .progress-bar-container {
   width: 100%;

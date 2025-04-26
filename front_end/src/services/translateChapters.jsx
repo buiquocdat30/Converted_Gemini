@@ -5,16 +5,19 @@ export const translateChapters = async ({
   chaptersToTranslate,
   chapters,
   apiKey,
+  model,
   setResults,
   setTranslatedCount,
   setTotalProgress,
   setErrorMessages,
   onTranslationResult,
+  isStopped,
 }) => {
   try {
     const res = await axios.post("http://localhost:8000/api/translate", {
       chapters: chaptersToTranslate,
       key: apiKey || "",
+      model: model,
     });
 
     const translatedChapters = res?.data?.chapters;
@@ -23,7 +26,13 @@ export const translateChapters = async ({
       const newResults = {};
       const newErrors = {};
 
-      translatedChapters.forEach((chapter, idx) => {
+      for (let idx = 0; idx < translatedChapters.length; idx++) {
+        if (typeof isStopped === "function" && isStopped()) {
+          console.warn("⏹️ Dừng dịch theo yêu cầu người dùng.");
+          break;
+        }
+
+        const chapter = translatedChapters[idx];
         const realIndex = chaptersToTranslate[idx].originalIndex;
         const translated = chapter.translated || "";
         const translatedTitle = chapter.translatedTitle || "";
@@ -40,7 +49,7 @@ export const translateChapters = async ({
           setTotalProgress(percent);
           return newCount;
         });
-      });
+      }
 
       setResults((prev) => ({ ...prev, ...newResults }));
       setErrorMessages((prev) => ({
