@@ -1,10 +1,15 @@
 // translateService.js
 require("dotenv").config(); // nên đặt trên cùng
-
-const axios = require("axios");
+const fs = require("fs").promises;
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const DEFAULT_KEY = process.env.DEFAULT_GEMINI_API_KEY;
+let API_KEYS = [
+  process.env.DEFAULT_GEMINI_API_KEY_1,
+  process.env.DEFAULT_GEMINI_API_KEY_2,
+  process.env.DEFAULT_GEMINI_API_KEY_3,
+]; // Ban đầu dùng key mặc định
+
+let currentKeyIndex = 0;
 const DEFAULT_MODEL=process.env.DEFAULT_MODEL_AI;
 
 const translateText = async (text, key, modelAI) => {
@@ -47,9 +52,11 @@ const translateText = async (text, key, modelAI) => {
 
   const result = await model.generateContent(prompt);
   console.log("📌 KQ dịch:", result || "MISSING");
+  
 
   const response = await result.response;
   console.log("📌 KQ res:", response || "MISSING");
+  console.log("📌 Kiểm tra API Token:", response.usageMetadata || "MISSING");
 
   const translated = await response.text();
   console.log("📌 KQ translate:", translated || "MISSING");

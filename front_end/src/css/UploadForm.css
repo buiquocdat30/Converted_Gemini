@@ -28,7 +28,33 @@ body {
     margin-bottom: 20px;
 }
 
+/*Khu vực upfile*/
 
+.file-container{
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+
+.file-container input{
+    width: 50%;
+}
+
+.file-container .btn-check-file{
+    width: 50%;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #32744f;
+    color: #fff;
+    font-size: 1.3rem;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
 
 /* Khu vực hướng dẫn */
 .chapter-guide {
@@ -46,13 +72,13 @@ body {
 }
 
 /* Khu vực chứa nút Hoàn tất */
-.converte {
+.converter-btn {
     display: flex;
     justify-content: center;
     gap: 10px;
 }
 
-.converte>button {
+.converter-btn>button {
     width: 100%;
     padding: 10px 20px;
     font-size: 16px;

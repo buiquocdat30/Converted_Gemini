@@ -163,13 +163,18 @@ const UploadForm = ({ onFileParsed }) => {
             : "🔓 Chế độ miễn phí - Chỉ dịch được 2 chương đầu tiên."}
         </small>
       </div>
-      <input
-        ref={fileInputRef}
-        className="converte-file"
-        type="file"
-        accept=".epub, .txt"
-        onChange={handleFileUpload}
-      />
+      <div className="file-container">
+        <input
+          ref={fileInputRef}
+          className="converte-file"
+          type="file"
+          accept=".epub, .txt"
+          onChange={handleFileUpload}
+        />
+        <button className="btn-check-file" onClick={handleCheckFileFormat}>
+          Kiểm tra File
+        </button>
+      </div>
       {loading && <p>⏳ Đang xử lý tệp...</p>}{" "}
       {/* Hiển thị thông báo khi đang tải lên */}
       {error && <p style={{ color: "red" }}>{error}</p>}{" "}
@@ -238,12 +243,9 @@ const UploadForm = ({ onFileParsed }) => {
           </ul>
         </div>
       </div>
-      <div className="converte">
+      <div className="converter-btn">
         <button className="btn-submit" onClick={handleSubmit}>
           Hoàn tất
-        </button>
-        <button className="btn-check-file" onClick={handleCheckFileFormat}>
-          Kiểm tra File
         </button>
       </div>
       {showGuide && (
