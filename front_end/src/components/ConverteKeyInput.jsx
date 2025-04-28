@@ -21,9 +21,13 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target.result;
-      const key = content.trim();
-      if (key) {
-        setApiKey(key);
+      const keys = content
+        .split("\n") // tách thành mảng dòng
+        .map((line) => line.trim()) // xóa khoảng trắng mỗi dòng
+        .filter((line) => line.length > 0); // loại dòng trống
+
+      if (keys.length > 0) {
+        setApiKey(keys);
       } else {
         alert("❗ File không chứa nội dung hợp lệ.");
       }
@@ -40,7 +44,7 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
           <input
             type={showKey ? "text" : "password"}
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => setApiKey([e.target.value])}
             placeholder="API Key..."
             className="api-input"
           />

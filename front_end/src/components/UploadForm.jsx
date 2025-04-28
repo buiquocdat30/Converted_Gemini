@@ -41,7 +41,7 @@ const models = [
 
 const UploadForm = ({ onFileParsed }) => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [apiKey, setApiKey] = useState("");
+  const [apiKey, setApiKey] = useState([]);
   const [showGuide, setShowGuide] = useState(false);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(false); // Thêm trạng thái loading
