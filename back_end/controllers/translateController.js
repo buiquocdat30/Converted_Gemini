@@ -15,29 +15,7 @@ exports.translateText = async (req, res) => {
     return res.status(400).json({ error: "Thiếu danh sách chương cần dịch." });
   }
 
-  // try {
-  //   const translatedChapters = [];
-
-  //   for (let i = 0; i < chapters.length; i++) {
-  //     const ch = chapters[i];
-
-  //     const translatedContent = await performTranslation(ch.content || "", key, model);
-  //     const translatedTitle = ch.title
-  //       ? await performTranslation(ch.title, key, model)
-  //       : ""; // không có title thì để trống
-
-  //     translatedChapters.push({
-  //       ...ch,
-  //       translatedTitle,
-  //       translated: translatedContent,
-  //     });
-
-  //     console.log(`✅ Đã dịch xong chương ${i + 1}/${chapters.length}`);
-  //   }
-
-  //   console.log("📦 Tất cả chương đã dịch:", translatedChapters.length);
-  //   res.json({ chapters: translatedChapters });
-  // } catch (err) {
+  //Dùng thường
   try {
     const translationPromises = chapters.map(async (ch, index) => {
       const startTime = Date.now(); // ⏳ Bắt đầu tính giờ
@@ -86,4 +64,6 @@ exports.translateText = async (req, res) => {
       error: "Dịch thất bại. Kiểm tra lại API key hoặc nội dung.",
     });
   }
+
+
 };

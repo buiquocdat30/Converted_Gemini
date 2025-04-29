@@ -38,11 +38,11 @@ export const translateSingleChapter = async ({
   }, 200); // mỗi 200ms tăng 5%
 
   try {
-    const res = await axios.post("http://localhost:8000/api/translate", {
-      chapters: [chapter],
-      key: apiKey || "",
-      model: model,
-    });
+      const res = await axios.post("http://localhost:8000/api/translate", {
+        chapters:chapter,
+        key: apiKey || "",
+        model: model,
+      });
 
     console.log("in tạm chapers:", res.data.chapters);
 

@@ -3,18 +3,65 @@
     flex-direction: column;
 }
 
+.translator-app-title{
+    cursor: pointer;
+}
+
+/* Nút tròn cố định góc trên bên phải */
+.menu-toggle-button {
+    position: fixed;
+    top: 12px;
+    right: 61px;
+    width: 50px;
+    height: 50px;
+    background-color: #28a745;
+    color: white;
+    font-size: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    /* Đảm bảo nút này nổi trên cùng */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+    /* Thêm hiệu ứng khi click */
+}
+
+.menu-toggle-button:hover {
+    transform: scale(1.1);
+    /* Tăng nhẹ khi hover */
+}
+
 .top-menu {
-    position: sticky;
-    top: 0;
+    position: fixed;
+    top: 20px;
+    right: 61px;
     background-color: #fff;
     border-bottom: 1px solid #ccc;
     padding: 10px 20px;
-    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    width: 100%;
+    width: 91.3%;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(-20px);
+    /* Đặt vị trí ban đầu cho menu khi ẩn */
+    pointer-events: none;
+    /* Không tương tác khi ẩn */
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    /* Hiệu ứng fade-in và slide */
+}
+
+/* Khi menu mở */
+.top-menu.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    /* Cho phép tương tác khi mở */
 }
 
 .top-menu h2 {
@@ -103,7 +150,7 @@
 .content {
     display: flex;
     margin-top: 20px;
-    gap: 30px;
+    gap: 10px;
     align-items: flex-start;
     /* canh từ trên xuống, tránh kéo giãn */
 }
@@ -111,7 +158,7 @@
 .chapter-list-container {
     flex: 1;
     position: sticky;
-    top: 208px;
+    top: 0;
     /* để tránh đè lên top-menu */
     width: 40%;
     overflow-y: auto;
@@ -124,7 +171,7 @@
 .translate-viewer-container {
     flex: 2;
     position: sticky;
-    top: 208px;
+    top: 0;
     width: 60%;
     position: sticky;
     padding-top: 20px;
