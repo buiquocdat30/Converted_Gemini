@@ -32,12 +32,14 @@ const handleEpubFile = async (
   setSuccess,
   setChapterCount,
   setTotalWords,
-  setAverageWords
+  setAverageWords,
+  setBooks,
+  setAuthor
 ) => {
   try {
     const book = ePub(readerResult);
     await book.ready;
-
+    console.log("book", book);
     const spineItems = book.spine.spineItems;
     const allTexts = [];
 
@@ -130,7 +132,9 @@ const handleTxtFile = (
   file,
   setChapterCount,
   setTotalWords,
-  setAverageWords
+  setAverageWords,
+  setBooks,
+  setAuthor
 ) => {
   const result = checkFileFormatFromText(readerResult);
 
@@ -213,8 +217,10 @@ const checkFileFormatFromText = (text) => {
         const start = contentStartIndexes[i] + 1;
         const end = contentStartIndexes[i + 1] || lines.length;
         const contentLines = lines.slice(start, end);
-        const content = contentLines.map((line) => line + "\n\n").join("").trim();
-
+        const content = contentLines
+          .map((line) => line + "\n\n")
+          .join("")
+          .trim();
 
         chapters.push({
           title: chapterTitles[i],

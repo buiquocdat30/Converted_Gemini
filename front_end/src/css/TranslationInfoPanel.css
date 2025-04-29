@@ -1,5 +1,4 @@
 .tip-container {
-  margin-top: 1rem;
   padding: 1rem;
   border: 1px dashed #d1d5db;
   border-radius: 0.5rem;
@@ -7,9 +6,57 @@
   align-items: last baseline;
 }
 
-.tip-title {}
 
 .tip-body {
   text-align: left;
   line-height: 1.8;
+}
+
+/* thêm xoá sửa */
+.tip-body-books,
+.tip-body-author {
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.books-input,
+.author-input {
+  padding: 4px 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-right: 6px;
+  transition: all 0.3s ease;
+  width: 200px;
+  opacity: 1;
+}
+
+.tip-body span {
+  cursor: pointer;
+  margin-left: 8px;
+  transition: color 0.3s ease;
+}
+
+.tip-body span:hover {
+  color: #007bff;
+}
+
+/* Transition helper classes */
+.fade-toggle {
+  opacity: 0;
+  visibility: hidden;
+  max-height: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+}
+
+.fade-toggle.show {
+  opacity: 1;
+  visibility: visible;
+  max-height: 100px;
+}
+
+/* Optional: Smoother layout */
+.tip-body p {
+  margin-bottom: 12px;
+  line-height: 1.6;
 }
