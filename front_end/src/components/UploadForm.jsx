@@ -49,6 +49,8 @@ const UploadForm = ({ onFileParsed }) => {
   const [success, setSuccess] = useState(""); //thêm trạng thái thành công
 
   //khu vực panel review file
+  const [books, setBooks] = useState(""); //tên truyện
+  const [author, setAuthor] = useState(""); //tên tác giả
   const [chapterCount, setChapterCount] = useState(0); //tổng chương
   const [totalWords, setTotalWords] = useState(0); //tổng từ
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
@@ -61,6 +63,8 @@ const UploadForm = ({ onFileParsed }) => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
+    console.log('đây là file.name: ',file)
+    setBooks(file.name.replace(/\.[^/.]+$/, ""))
     const allowedTypes = ["application/epub+zip", "text/plain"];
 
     if (!allowedTypes.includes(file.type)) {
@@ -77,7 +81,7 @@ const UploadForm = ({ onFileParsed }) => {
 
     reader.onload = async () => {
       const result = reader.result;
-
+      
       if (file.type === "application/epub+zip") {
         await handleEpubFile(
           result,
@@ -86,7 +90,9 @@ const UploadForm = ({ onFileParsed }) => {
           setSuccess,
           setChapterCount,
           setTotalWords,
-          setAverageWords
+          setAverageWords,
+          setBooks,
+          setAuthor
         );
       } else {
         handleTxtFile(
@@ -99,7 +105,9 @@ const UploadForm = ({ onFileParsed }) => {
           file,
           setChapterCount,
           setTotalWords,
-          setAverageWords
+          setAverageWords,
+          setBooks,
+          setAuthor
         );
       }
 
@@ -180,35 +188,7 @@ const UploadForm = ({ onFileParsed }) => {
       {error && <p style={{ color: "red" }}>{error}</p>}{" "}
       {/* Hiển thị thông báo lỗi nếu có */}
       {success && <p style={{ color: "red" }}>{success}</p>}{" "}
-      {/* Hiển thị thông báo khi file dùng được */}
-      <div>
-        <TranslationInfoPanel
-          totalChapters={chapterCount}
-          totalWords={totalWords}
-          averageWordsPerChapter={averageWords}
-        />
-      </div>
-      <div className="tip-model-select">
-        <label className="tip-label">🤖 Chọn Mô Hình AI:</label>
-        <div className="tip-radio-group">
-          {models.map((model) => (
-            <label key={model.value} className="tip-radio-option">
-              <input
-                type="radio"
-                name="modelSelect"
-                value={model.value}
-                checked={selectedModel === model.value}
-                onChange={(e) => setSelectedModel(e.target.value)}
-              />
-              {model.label}
-            </label>
-          ))}
-        </div>
-
-        {selected && (
-          <p className="tip-model-description">{selected.description}</p>
-        )}
-      </div>
+      {/* Hướng dẫn định dạng gile */}
       <div className="chapter-guide">
         <div className="chapter-guide-title">
           <h4>📌 Các định dạng chương được hỗ trợ:</h4>
@@ -234,15 +214,45 @@ const UploadForm = ({ onFileParsed }) => {
               <strong>第N章 (Số) </strong> - Ví dụ: "第99章 - 终极对决"
             </li>
             <li>
-              <strong>Số + Tiêu đề (Hán tự)+ Trang</strong> - Ví dụ: "19
-              啃老（第1页）"
-            </li>
-            <li>
               <strong>Giữa các chương:</strong> Là nội dung các chương
             </li>
           </ul>
         </div>
       </div>
+      {/* Hiển thị thông báo khi file dùng được */}
+      <div>
+        <TranslationInfoPanel
+          books={books}
+          author={author}
+          totalChapters={chapterCount}
+          totalWords={totalWords}
+          averageWordsPerChapter={averageWords}
+          setBooks={setBooks}
+          setAuthor={setAuthor}
+        />
+      </div>
+      <div className="tip-model-select">
+        <label className="tip-label">🤖 Chọn Mô Hình AI:</label>
+        <div className="tip-radio-group">
+          {models.map((model) => (
+            <label key={model.value} className="tip-radio-option">
+              <input
+                type="radio"
+                name="modelSelect"
+                value={model.value}
+                checked={selectedModel === model.value}
+                onChange={(e) => setSelectedModel(e.target.value)}
+              />
+              {model.label}
+            </label>
+          ))}
+        </div>
+
+        {selected && (
+          <p className="tip-model-description">{selected.description}</p>
+        )}
+      </div>
+      
       <div className="converter-btn">
         <button className="btn-submit" onClick={handleSubmit}>
           Hoàn tất
