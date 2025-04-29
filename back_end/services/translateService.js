@@ -2,20 +2,16 @@ const fs = require("fs").promises;
 const path = require("path");
 require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const ApiKeyManagers = require("./apiKeyManagers.js"); // 👈 Import ApiKeyManager
 
 const DEFAULT_KEYS = process.env.DEFAULT_GEMINI_API_KEYS
   ? process.env.DEFAULT_GEMINI_API_KEYS.split(",")
   : [];
 
-let aliveKeys = [...DEFAULT_KEYS]; // Các key mặc định còn sống
-const DEFAULT_MODEL = process.env.DEFAULT_MODEL_AI;
-const CUSTOM_KEYS_FILE = path.join(__dirname, "../data/custom_keys.txt"); // 📂 Nơi lưu key khách
+const apiKeyManager = new ApiKeyManagers(DEFAULT_KEYS);
 
-const getRandomKey = () => {
-  if (aliveKeys.length === 0) return null;
-  const index = Math.floor(Math.random() * aliveKeys.length);
-  return aliveKeys[index];
-};
+const DEFAULT_MODEL = process.env.DEFAULT_MODEL_AI;
+const CUSTOM_KEYS_FILE = path.join(__dirname, "../data/custom_keys.txt");
 
 // Hàm lưu key khách
 const saveCustomKey = async (key) => {
@@ -23,7 +19,6 @@ const saveCustomKey = async (key) => {
     const filePath = CUSTOM_KEYS_FILE;
     let existingKeys = [];
 
-    // Đọc các key cũ nếu có
     try {
       const data = await fs.readFile(filePath, "utf8");
       existingKeys = data
@@ -31,22 +26,16 @@ const saveCustomKey = async (key) => {
         .map((k) => k.trim())
         .filter((k) => k.length > 0);
     } catch (err) {
-      // Nếu file chưa tồn tại, bỏ qua lỗi
       if (err.code !== "ENOENT") {
         console.error("❌ Lỗi đọc custom keys:", err.message);
       }
     }
 
-    // Kiểm tra nếu đã tồn tại
     if (existingKeys.includes(key.trim())) {
-      console.log(
-        "⚡ Key đã tồn tại trong kho, bỏ qua:",
-        key.slice(0, 8) + "..."
-      );
+      console.log("⚡ Key đã tồn tại trong kho, bỏ qua:", key.slice(0, 8) + "...");
       return;
     }
 
-    // Ghi thêm vào cuối file
     await fs.appendFile(filePath, key.trim() + "\n");
     console.log("📥 Đã lưu key khách mới vào kho:", key.slice(0, 8) + "...");
   } catch (err) {
@@ -54,7 +43,6 @@ const saveCustomKey = async (key) => {
   }
 };
 
-// Hàm delay cho retry
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Hàm dịch text với retry thông minh
@@ -64,11 +52,16 @@ const translateText = async (text, customKey, modelAI) => {
   const currentModelAI = modelAI || DEFAULT_MODEL;
   if (!text) throw new Error("Thiếu nội dung cần dịch.");
 
-  let keyToUse = customKey || getRandomKey();
-  if (!keyToUse) throw new Error("Không còn API Key nào khả dụng.");
+  let keyToUse = customKey || null;
+  let isCustomKey = !!customKey;
 
-  let retryAttempts = 0; // Số lần thử lại
-  const maxRetryAttempts = 5; // Giới hạn số lần thử lại
+  if (!keyToUse) {
+    if (!apiKeyManager.hasUsableKey()) throw new Error("Không còn API Key mặc định khả dụng.");
+    keyToUse = apiKeyManager.getActiveKey();
+  }
+
+  let retryAttempts = 0;
+  const maxRetryAttempts = 5;
 
   while (retryAttempts < maxRetryAttempts) {
     try {
@@ -80,15 +73,25 @@ const translateText = async (text, customKey, modelAI) => {
       const startTime = Date.now();
       const result = await model.generateContent(prompt);
       const response = await result.response;
+
+      console.log('KQ Res usageMetadata.cachedContentTokenCount', response.usageMetadata.cachedContentTokenCount);
+      console.log('KQ Res usageMetadata.candidatesTokenCount', response.usageMetadata.candidatesTokenCount);
+
       const translated = await response.text();
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
       console.log(
-        `✅ Dịch thành công sau ${duration}s với key: ${keyToUse.slice(
-          0,
-          8
-        )}...`
+        `✅ Dịch thành công sau ${duration}s với key: ${keyToUse.slice(0, 8)}...`
       );
+
+      // Cập nhật usage nếu dùng key mặc định
+      if (!isCustomKey) {
+        apiKeyManager.updateUsage(keyToUse, 
+          (response.usageMetadata.cachedContentTokenCount || 0) +
+          (response.usageMetadata.candidatesTokenCount || 0)
+        );
+      }
+
       return translated;
     } catch (error) {
       const errorMessage = error.message || error.toString();
@@ -98,22 +101,19 @@ const translateText = async (text, customKey, modelAI) => {
         errorMessage.includes("Too Many Requests") ||
         errorMessage.includes("quotaMetric")
       ) {
-        // Bị rate limit tạm thời → delay retry
         const retryDelayMatch = errorMessage.match(/"retryDelay":"(\d+)s"/);
-        let retryDelay = 21000; // Mặc định là 21 giây nếu không tìm thấy trong lỗi
+        let retryDelay = 21000;
         if (retryDelayMatch && retryDelayMatch[1]) {
-          retryDelay = parseInt(retryDelayMatch[1]) * 1000; // Lấy thời gian delay từ API (giây -> milliseconds)
+          retryDelay = parseInt(retryDelayMatch[1]) * 1000;
         }
 
         console.log(
-          `⏳ Key ${keyToUse.slice(0, 8)}... bị giới hạn tốc độ. Chờ ${
-            retryDelay / 1000
-          }s rồi thử lại...`
+          `⏳ Key ${keyToUse.slice(0, 8)}... bị giới hạn tốc độ. Chờ ${retryDelay / 1000}s rồi thử lại...`
         );
         await delay(retryDelay);
-        retryAttempts++; // Tăng số lần thử lại
+        retryAttempts++;
         console.log(`🔄 Thử lại lần ${retryAttempts}/${maxRetryAttempts}`);
-        continue; // Thử lại với cùng một key
+        continue;
       }
 
       if (
@@ -121,24 +121,29 @@ const translateText = async (text, customKey, modelAI) => {
         errorMessage.includes("permission") ||
         errorMessage.includes("quota")
       ) {
-        // Key lỗi nặng → loại bỏ
-        console.log(`❌ Xóa key lỗi: ${keyToUse.slice(0, 8)}...`);
-        aliveKeys = aliveKeys.filter((k) => k !== keyToUse);
-        keyToUse = getRandomKey();
-        if (!keyToUse) {
-          throw new Error("Hết API Key khả dụng. Dịch thất bại.");
+        if (isCustomKey) {
+          throw new Error(`❌ Key khách ${keyToUse.slice(0, 8)}... đã hết quota hoặc lỗi permission. Dừng dịch.`);
+        } else {
+          console.log(`❌ Xóa key lỗi: ${keyToUse.slice(0, 8)}...`);
+          apiKeyManager.exhaustKey(keyToUse);
+          if (!apiKeyManager.hasUsableKey()) {
+            throw new Error("Hết API Key khả dụng. Dịch thất bại.");
+          }
+          keyToUse = apiKeyManager.getActiveKey();
+          retryAttempts = 0;
+          continue;
         }
-        retryAttempts = 0; // Reset retry attempts khi đổi key
-        continue;
       }
 
-      // Nếu lỗi khác thì quăng lỗi luôn
+      // Các lỗi khác
       throw new Error(`Lỗi dịch: ${errorMessage}`);
     }
   }
 
-  // Nếu retry vượt quá số lần tối đa mà không thành công
   throw new Error("Dịch thất bại sau nhiều lần thử. Vui lòng thử lại sau.");
 };
 
 module.exports = { translateText };
+
+
+
