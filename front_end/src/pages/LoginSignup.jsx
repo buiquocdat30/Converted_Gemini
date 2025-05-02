@@ -8,7 +8,7 @@ import {
   faEyeLowVision,
 } from "@fortawesome/free-solid-svg-icons";
 
-import "../css/LoginSignup.css";
+import "../pages/pageCSS/LoginSignup.css";
 
 const LoginSignup = () => {
   const [state, setState] = useState("Login");
@@ -162,23 +162,14 @@ const LoginSignup = () => {
           Fast Signup With Your Favourite Social Profile
         </p>
         <div className="loginsignup-social-icon">
-          {/* <div className="loginsignup-icons-container">
-          <img src={facebook_icon } alt="" />
+          <div className="loginsignup-icons-container">
+            {/* <img src={facebook_icon } alt="" /> */}
           </div>
           <div className="loginsignup-icons-container">
-          <img src={google_icon } alt="" />
+            {/* <img src={google_icon } alt="" /> */}
           </div>
           <div className="loginsignup-icons-container">
-          <img src={x_icon } alt="" />
-          </div> */}
-          <div className="loginsignup-icons-container">
-            <img src={instagram_icon} alt="" />
-          </div>
-          <div className="loginsignup-icons-container">
-            <img src={pintester_icon} alt="" />
-          </div>
-          <div className="loginsignup-icons-container">
-            <img src={whatsapp_icon} alt="" />
+            {/* <img src={x_icon } alt="" /> */}
           </div>
         </div>
       </div>

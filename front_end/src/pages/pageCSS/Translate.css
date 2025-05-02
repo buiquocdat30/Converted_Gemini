@@ -1,14 +1,8 @@
 /* Đặt màu nền tổng thể cho toàn trang */
 body {
-    max-width: 1240px;
-    width: 100%;
-    margin: 10px auto;
-    padding: 25px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    text-align: center;
-    background: url(../assets/home-bg-2.jpg);
+    margin: 0;
+    padding: 0;
+    background: #fff;
     font-family: Arial, sans-serif;
     font-size: 1.2rem;
     color: rgb(104, 146, 119);
