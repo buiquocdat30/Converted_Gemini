@@ -41,6 +41,10 @@
 
 }
 
+.nav-menu li a {
+    color: rgb(104, 146, 119);
+}
+
 .nav-menu hr {
     border: none;
     width: 80%;
@@ -64,11 +68,11 @@ hr:active {
 }
 
 .nav-login-cart button {
-    width: 157px;
-    height: 58px;
+    width: 114px;
+    height: 75px;
     outline: none;
     border: 1px solid #7a7a7a;
-    border-radius: 75px;
+    border-radius: 15px;
     color: #515151;
     font-size: 20px;
     font-weight: 500;
