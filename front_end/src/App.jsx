@@ -1,39 +1,29 @@
-import React, { useState } from "react";
-import UploadForm from "./components/UploadForm";
-import TranslatorApp from "./components/TranslatorApp";
+import React from "react";
+
+import Home from "../src/pages/Home";
+import Translate from "../src/pages/Translate";
+import Converte from "../src/pages/Converte";
+import LoginSignup from "../src/pages/LoginSignup";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+
+import home_bg from "../src/assets/home-bg-2.jpg";
 import "./css/App.css";
 
 const App = () => {
-  const [chapters, setChapters] = useState([]);
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gemini-2.0-flash");
-
-  const handleParsedChapters = (parsedChapters, key, model) => {
-    console.log("✔️ Nhận được từ UploadForm:", { parsedChapters, key, model });
-    setChapters(parsedChapters);
-    setApiKey(key);
-    setModel(model);
-  };
-
-  const handleUpdateChapterContent = (index, newContent) => {
-    setChapters((prev) =>
-      prev.map((ch, i) => (i === index ? { ...ch, content: newContent } : ch))
-    );
-  };
-
   return (
     <div>
-      {chapters.length === 0 ? (
-        <UploadForm onFileParsed={handleParsedChapters} />
-      ) : (
-        <TranslatorApp
-          apiKey={apiKey}
-          chapters={chapters}
-          model={model}
-          setChapters={setChapters}
-          onUpdateChapter={handleUpdateChapterContent}
-        />
-      )}
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/translate" element={<Translate />} />
+          <Route path="/converte" element={<Converte />} />
+          <Route path="/login" element={<LoginSignup />} />
+        </Routes>
+        <Footer />
+      </BrowserRouter>
     </div>
   );
 };
