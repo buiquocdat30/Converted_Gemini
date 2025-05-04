@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
-import "../css/TranslateViewer.css";
+import "./TranslateViewer.css";
 
 const TranslateViewer = ({
   chapters,
   onUpdateChapter,
   currentIndex,
   onChangeIndex,
-  selectedChapterIndex
+  selectedChapterIndex,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [history, setHistory] = useState([
@@ -33,8 +33,7 @@ const TranslateViewer = ({
     setIsEditing(false);
     if (selectedChapterIndex !== null) {
       currentIndex(selectedChapterIndex); // nếu bạn có state riêng
-    }
-    else {
+    } else {
       currentIndex;
     }
   }, [chapters, currentIndex]);

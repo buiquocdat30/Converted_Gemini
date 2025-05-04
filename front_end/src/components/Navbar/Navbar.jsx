@@ -1,7 +1,7 @@
 import React, { useContext, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "../css/Navbar.css";
-import logo from "../assets/icon.png";
+import "./Navbar.css";
+import logo from "../../assets/icon.png";
 
 const Navbar = () => {
   const [menu, setMenu] = useState("home");
@@ -30,19 +30,19 @@ const Navbar = () => {
           <Link style={{ textDecoration: "none" }} to="/">
             Guide
           </Link>
-          {menu === "shop" ? <hr /> : <></>}
-        </li>
-        <li onClick={() => setMenu("translate")}>
-          <Link style={{ textDecoration: "none" }} to="/translate">
-            Dịch
-          </Link>
-          {menu === "mens" ? <hr /> : <></>}
+          {menu === "home" ? <hr /> : <></>}
         </li>
         <li onClick={() => setMenu("converte")}>
           <Link style={{ textDecoration: "none" }} to="/converte">
             Chuyển đổi
           </Link>
-          {menu === "womens" ? <hr /> : <></>}
+          {menu === "converte" ? <hr /> : <></>}
+        </li>
+        <li onClick={() => setMenu("translate")}>
+          <Link style={{ textDecoration: "none" }} to="/translate">
+            Dịch
+          </Link>
+          {menu === "translate" ? <hr /> : <></>}
         </li>
       </ul>
       <div className="nav-login-cart">

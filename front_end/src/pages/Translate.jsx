@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import UploadForm from "../components/UploadForm";
-import TranslatorApp from "../components/TranslatorApp";
+import UploadForm from "../components/UploadForm/UploadForm";
+import TranslatorApp from "../components/TranslatorApp/TranslatorApp";
 import "../pages/pageCSS/Translate.css";
 
 const Translate = () => {

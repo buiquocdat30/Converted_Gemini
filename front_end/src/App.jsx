@@ -5,10 +5,8 @@ import Translate from "../src/pages/Translate";
 import Converte from "../src/pages/Converte";
 import LoginSignup from "../src/pages/LoginSignup";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-
-import home_bg from "../src/assets/home-bg-2.jpg";
+import Navbar from "./components/Navbar/Navbar";
+import Footer from "./components/Footer/Footer";
 import "./css/App.css";
 
 const App = () => {
@@ -18,8 +16,9 @@ const App = () => {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/translate" element={<Translate />} />
           <Route path="/converte" element={<Converte />} />
+          <Route path="/translate" element={<Translate />} />
+
           <Route path="/login" element={<LoginSignup />} />
         </Routes>
         <Footer />

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { translateChapters } from "../services/translateChapters";
-import { translateSingleChapter } from "../services/translateSingleChapter";
-import "../css/ChapterList.css";
+import { translateChapters } from "../../services/translateChapters";
+import { translateSingleChapter } from "../../services/translateSingleChapter";
+import "./ChapterList.css";
 
 const ChapterList = ({
   chapters,
@@ -124,7 +124,7 @@ const ChapterList = ({
       setTotalProgress,
       onTranslationResult,
       onSelectChapter,
-      isStopped:isStoppedRef.current,
+      isStopped: isStoppedRef.current,
     });
   };
 
@@ -312,7 +312,7 @@ const ChapterList = ({
         </button>
         <button
           className="stop-translate-button"
-          onClick={() => isStoppedRef.current = true}
+          onClick={() => (isStoppedRef.current = true)}
           disabled={!isTranslatingAll}
         >
           🛑 Dừng dịch
