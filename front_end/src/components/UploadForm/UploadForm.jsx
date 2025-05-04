@@ -1,14 +1,14 @@
 import React, { useState, useRef } from "react";
 // import "../css/App.css";
-import "../css/UploadForm.css";
-import ConverteKeyInput from "./ConverteKeyInput";
-import TranslationInfoPanel from "./TranslationInfoPanel.jsx";
+import "./UploadForm.css";
+import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
+import TranslationInfoPanel from "../TranslationInfoPanel/TranslationInfoPanel.jsx";
 
 import {
   handleEpubFile,
   handleTxtFile,
   checkFileFormatFromText,
-} from "../utils/fileHandlers";
+} from "../../utils/fileHandlers.js";
 
 const models = [
   {
@@ -63,8 +63,8 @@ const UploadForm = ({ onFileParsed }) => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    console.log('đây là file.name: ',file)
-    setBooks(file.name.replace(/\.[^/.]+$/, ""))
+    console.log("đây là file.name: ", file);
+    setBooks(file.name.replace(/\.[^/.]+$/, ""));
     const allowedTypes = ["application/epub+zip", "text/plain"];
 
     if (!allowedTypes.includes(file.type)) {
@@ -81,7 +81,7 @@ const UploadForm = ({ onFileParsed }) => {
 
     reader.onload = async () => {
       const result = reader.result;
-      
+
       if (file.type === "application/epub+zip") {
         await handleEpubFile(
           result,
@@ -252,7 +252,6 @@ const UploadForm = ({ onFileParsed }) => {
           <p className="tip-model-description">{selected.description}</p>
         )}
       </div>
-      
       <div className="converter-btn">
         <button className="btn-submit" onClick={handleSubmit}>
           Hoàn tất

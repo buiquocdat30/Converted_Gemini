@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import ChapterList from "./ChapterList";
-import TranslateViewer from "./TranslateViewer";
-import ConverteKeyInput from "./ConverteKeyInput";
-import { translateSingleChapter } from "../services/translateSingleChapter";
-import "../css/TranslatorApp.css";
+import ChapterList from "../ChapterList/ChapterList";
+import TranslateViewer from "../TranslateViewer/TranslateViewer";
+import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput";
+import { translateSingleChapter } from "../../services/translateSingleChapter.jsx";
+import "./TranslatorApp.css";
 
 const TranslatorApp = ({
   apiKey,
@@ -100,7 +100,12 @@ const TranslatorApp = ({
 
   return (
     <div className="wrapper">
-      <h2 className="translator-app-title" onClick={() => (window.location.href = "/")}>📘 Gemini Converte </h2>
+      <h2
+        className="translator-app-title"
+        onClick={() => (window.location.href = "/")}
+      >
+        📘 Gemini Converte{" "}
+      </h2>
       {/* Nút tròn để mở menu */}
       <div
         className="menu-toggle-button"
