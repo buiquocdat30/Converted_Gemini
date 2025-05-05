@@ -4,6 +4,7 @@ import Home from "../src/pages/Home";
 import Translate from "../src/pages/Translate";
 import Converte from "../src/pages/Converte";
 import LoginSignup from "../src/pages/LoginSignup";
+import Dictionary from "../src/pages/Dictionary";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/ConverteContext";
 import Navbar from "./components/Navbar/Navbar";
@@ -19,12 +20,10 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/converte" element={<Converte />} />
+            <Route path="/dictionary" element={<Dictionary />} />
             <Route path="/translate" element={<Translate />} />
 
-            <Route
-              path="/login"
-              element={<LoginSignup />}
-            />
+            <Route path="/login" element={<LoginSignup />} />
           </Routes>
           <Footer />
         </BrowserRouter>

@@ -1,4 +1,4 @@
-import React, {useContext,  useState } from "react";
+import React, { useContext, useState } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,11 +8,11 @@ import {
   faEye,
   faEyeLowVision,
 } from "@fortawesome/free-solid-svg-icons";
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from "../context/ConverteContext"
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/ConverteContext";
 import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
 
-const LoginSignup = ( ) => {
+const LoginSignup = () => {
   const { onLogin } = useContext(AuthContext);
   const [state, setState] = useState("Login");
   const dataDetails = { username: "", password: "", email: "" };
@@ -27,21 +27,24 @@ const LoginSignup = ( ) => {
   const login = async () => {
     try {
       console.log("Login Function Executed", formData);
-      const response = await axios.post("http://localhost:8000/auth/login", formData); // Sử dụng axios.post với formData
-      console.log("response:",response)
+      const response = await axios.post(
+        "http://localhost:8000/auth/login",
+        formData
+      ); // Sử dụng axios.post với formData
+      console.log("response:", response);
       const responseData = response.data; // Truy cập dữ liệu từ response.data
 
-      console.log("responseData:",responseData)
+      console.log("responseData:", responseData);
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
         localStorage.setItem("username", responseData.username);
-        if(onLogin){
+        if (onLogin) {
           onLogin(responseData.username);
         }
-        
+
         navigate("/");
-        console.log('Đang nhập thành cmn công')
-        alert('Đăng nhập thành công')
+        console.log("Đang nhập thành cmn công");
+        alert("Đăng nhập thành công");
       } else {
         alert(responseData.error);
         setFormData((prev) => ({ ...prev, password: "" }));
@@ -55,12 +58,16 @@ const LoginSignup = ( ) => {
   const signup = async () => {
     try {
       console.log("Sign Up Function Executed", formData);
-      const response = await axios.post("http://localhost:4000/signup", formData); // Sử dụng axios.post
+      const response = await axios.post(
+        "http://localhost:8000/auth/signup",
+        formData
+      ); // Sử dụng axios.post
       const responseData = response.data;
 
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
         navigate("/");
+        alert("Tạo tài khoản thành công");
       } else {
         alert(responseData.error);
       }
