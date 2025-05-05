@@ -68,39 +68,77 @@ hr:active {
     gap: 45px;
 }
 
-.nav-login-cart button {
-    width: 114px;
-    height: 75px;
-    outline: none;
-    border: 1px solid #7a7a7a;
+/* 
+menu người dùng sau khi đã đăng nhập */
+.user-menu {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.user-button {
+    background-color: #22a332;
+    color: white;
+    border: none;
+    padding: 20px 14px;
     border-radius: 15px;
-    color: #515151;
-    font-size: 20px;
-    font-weight: 500;
-    background: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.user-button:hover {
+    background-color: #159640;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 10px 15px;
+    z-index: 999;
+    min-width: 160px;
+}
+
+.dropdown-greeting {
+    margin: 0 0 10px 0;
+    font-weight: 600;
+}
+
+.dropdown-link {
+    display: block;
+    text-decoration: none;
+    color: #007bff;
+    margin-bottom: 10px;
+}
+
+.dropdown-link:hover {
+    text-decoration: underline;
+}
+
+.dropdown-logout {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
     cursor: pointer;
 }
 
-.nav-login-cart button:active {
-    background: #f3f3f3;
+.dropdown-logout:hover {
+    background-color: #c82333;
 }
 
-.nav-cart-count {
-    width: 22px;
-    height: 22px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: -35px;
-    margin-left: -55px;
-    border-radius: 11px;
-    font-size: 14px;
-    background: red;
+.login-button {
+    padding: 20px 14px;
+    background-color: #28a745;
     color: white;
-}
-
-.nav-dropdown {
-    display: none;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
 }
 
 @media(max-width:1280px) {
