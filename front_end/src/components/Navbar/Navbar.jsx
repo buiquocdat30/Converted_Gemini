@@ -1,14 +1,15 @@
 // Navbar.js
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../../assets/icon.png";
+import { AuthContext } from "../../context/ConverteContext"
 import LoginSignup from "../../pages/LoginSignup"; // Import LoginSignup
 //import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog" // Import shadcn dialog
 
 const Navbar = () => {
   const [menu, setMenu] = useState("home");
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // State quản lý đăng nhập
+  const { isLoggedIn, onLgout } = useContext(AuthContext);
   const menuRef = useRef();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State cho dialog
@@ -21,7 +22,7 @@ const Navbar = () => {
 
   // Hàm xử lý đăng nhập, được gọi từ LoginSignup
   const handleLogin = () => {
-    setIsLoggedIn(true);
+    // setIsLoggedIn(true);
     setOpen(false); // Đóng dialog sau khi đăng nhập
   };
 
@@ -29,13 +30,13 @@ const Navbar = () => {
   useEffect(() => {
     const token = localStorage.getItem("auth-token");
     if (token) {
-      setIsLoggedIn(true);
+      // setIsLoggedIn(true);
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("auth-token");
-    setIsLoggedIn(false);
+    // setIsLoggedIn(false);
     navigate("/");
   };
 
@@ -72,19 +73,19 @@ const Navbar = () => {
       </ul>
       <div className="nav-login-cart">
         {isLoggedIn ? (
-          <button onClick={handleLogout}>Logout</button>
+          <button onClick={onLgout}>Logout</button>
         ) : (
           <Link to="/login">
             <button>Login</button>
           </Link>
         )}
-        {open && (
+        {/* {open && (
           <div>
             {console.log("Navbar: Rendering LoginSignup, open =", open)}
             <LoginSignup onLogin={handleLogin} />
             <button onClick={() => setOpen(false)}>Close</button>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
