@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useContext,  useState } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -9,9 +9,11 @@ import {
   faEyeLowVision,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from "../context/ConverteContext"
 import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
 
 const LoginSignup = ( ) => {
+  const { onLogin } = useContext(AuthContext);
   const [state, setState] = useState("Login");
   const dataDetails = { username: "", password: "", email: "" };
   const [formData, setFormData] = useState(dataDetails);
@@ -33,8 +35,10 @@ const LoginSignup = ( ) => {
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
         localStorage.setItem("username", responseData.username);
+        onLogin();
         navigate("/");
         console.log('Đang nhập thành cmn công')
+        alert('Đăng nhập thành công')
       } else {
         alert(responseData.error);
         setFormData((prev) => ({ ...prev, password: "" }));
