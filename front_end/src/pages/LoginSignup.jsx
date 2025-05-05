@@ -52,7 +52,7 @@ const LoginSignup = () => {
     try {
       console.log("Sign Up Function Executed", formData);
       let responseData;
-      await fetch("http://localhost:4000/signup", {
+      await fetch("http://localhost:8000/signup", {
         method: "POST",
         headers: {
           Accept: "application/form-data",
