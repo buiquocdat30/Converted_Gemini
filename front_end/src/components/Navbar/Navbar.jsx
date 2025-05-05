@@ -1,16 +1,42 @@
-import React, { useContext, useRef, useState } from "react";
+// Navbar.js
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../../assets/icon.png";
+import LoginSignup from "../../pages/LoginSignup"; // Import LoginSignup
+//import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog" // Import shadcn dialog
 
 const Navbar = () => {
   const [menu, setMenu] = useState("home");
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // State quản lý đăng nhập
   const menuRef = useRef();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false); // State cho dialog
+
   const dropdown_toggle = (e) => {
     if (!menuRef.current) return;
     menuRef.current.classList.toggle("nav-menu-visible");
     e.target.classList.toggle("open");
+  };
+
+  // Hàm xử lý đăng nhập, được gọi từ LoginSignup
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setOpen(false); // Đóng dialog sau khi đăng nhập
+  };
+
+  // Kiểm tra token khi component mount để duy trì trạng thái đăng nhập
+  useEffect(() => {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth-token");
+    setIsLoggedIn(false);
+    navigate("/");
   };
 
   return (
@@ -26,7 +52,6 @@ const Navbar = () => {
       </div>
       <ul ref={menuRef} className="nav-menu">
         <li onClick={() => setMenu("home")}>
-          {/* nếu menu là cái đang click thì thêm thẻ hr vô */}
           <Link style={{ textDecoration: "none" }} to="/">
             Guide
           </Link>
@@ -46,23 +71,20 @@ const Navbar = () => {
         </li>
       </ul>
       <div className="nav-login-cart">
-        {/* {localStorage.getItem("auth-token") ? (
-          <button
-            onClick={() => {
-              localStorage.removeItem("auth-token");
-              window.location.replace("/");
-            }}
-          >
-            Logout
-          </button>
+        {isLoggedIn ? (
+          <button onClick={handleLogout}>Logout</button>
         ) : (
           <Link to="/login">
             <button>Login</button>
           </Link>
-        )} */}
-        <Link to="/login">
-          <button>Login</button>
-        </Link>
+        )}
+        {open && (
+          <div>
+            {console.log("Navbar: Rendering LoginSignup, open =", open)}
+            <LoginSignup onLogin={handleLogin} />
+            <button onClick={() => setOpen(false)}>Close</button>
+          </div>
+        )}
       </div>
     </div>
   );
