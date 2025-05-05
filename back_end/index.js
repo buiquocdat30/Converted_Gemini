@@ -17,13 +17,13 @@ app.use(bodyParser.json({ limit: "100mb" }));
 // Giới hạn 50MB cho JSON body
 app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 // Route upload
-app.use("/api/upload", uploadRoute);
+app.use("/upload", uploadRoute);
 
 //translate
-app.use("/api/translate", translateRoute);
+app.use("/translate", translateRoute);
 
 //user
-app.use("/api/auth", authRoute)
+app.use("/auth", authRoute)
 
 
 

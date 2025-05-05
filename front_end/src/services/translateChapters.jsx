@@ -15,7 +15,7 @@ export const translateChapters = async ({
 }) => {
   try {
     console.log("isStopped:", isStopped);
-    const res = await axios.post("http://localhost:8000/api/translate", {
+    const res = await axios.post("http://localhost:8000/translate", {
       chapters: chaptersToTranslate,
       key: apiKey || "",
       model: model,

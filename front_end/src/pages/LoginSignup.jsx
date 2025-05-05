@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
@@ -7,43 +8,39 @@ import {
   faEye,
   faEyeLowVision,
 } from "@fortawesome/free-solid-svg-icons";
+import { useNavigate } from 'react-router-dom';
+import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
 
-import "../pages/pageCSS/LoginSignup.css";
-
-const LoginSignup = () => {
+const LoginSignup = ( onLogin ) => {
   const [state, setState] = useState("Login");
-
   const dataDetails = { username: "", password: "", email: "" };
   const [formData, setFormData] = useState(dataDetails);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const changeHandler = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const login = async () => {
     try {
       console.log("Login Function Executed", formData);
-      let responseData;
-      await fetch("http://localhost:4000/login", {
-        method: "POST",
-        headers: {
-          Accept: "application/form-data",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-        .then((response) => response.json())
-        .then((data) => (responseData = data));
+      const response = await axios.post("http://localhost:8000/auth/login", formData); // Sử dụng axios.post với formData
+      console.log("response:",response)
+      const responseData = response.data; // Truy cập dữ liệu từ response.data
 
+      console.log("responseData:",responseData)
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
-        window.location.replace("/");
+        onLogin();
+        navigate("/");
+        console.log('Đang nhập thành cmn công')
       } else {
         alert(responseData.error);
         setFormData((prev) => ({ ...prev, password: "" }));
       }
     } catch (error) {
-      console.error("Error during signup:", error);
+      console.error("Error during login:", error);
       alert("Something went wrong! Please try again.");
     }
   };
@@ -51,21 +48,13 @@ const LoginSignup = () => {
   const signup = async () => {
     try {
       console.log("Sign Up Function Executed", formData);
-      let responseData;
-      await fetch("http://localhost:8000/signup", {
-        method: "POST",
-        headers: {
-          Accept: "application/form-data",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-        .then((response) => response.json())
-        .then((data) => (responseData = data));
+      const response = await axios.post("http://localhost:4000/signup", formData); // Sử dụng axios.post
+      const responseData = response.data;
 
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
-        window.location.replace("/");
+        onLogin();
+        navigate("/");
       } else {
         alert(responseData.error);
       }

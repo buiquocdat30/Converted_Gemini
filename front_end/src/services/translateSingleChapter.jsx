@@ -38,7 +38,7 @@ export const translateSingleChapter = async ({
   }, 200); // mỗi 200ms tăng 5%
 
   try {
-      const res = await axios.post("http://localhost:8000/api/translate", {
+      const res = await axios.post("http://localhost:8000/translate", {
         chapters:chapter,
         key: apiKey || "",
         model: model,
