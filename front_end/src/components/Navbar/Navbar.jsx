@@ -3,13 +3,11 @@ import React, { useState, useRef, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../../assets/icon.png";
-import { AuthContext } from "../../context/ConverteContext"
-import LoginSignup from "../../pages/LoginSignup"; // Import LoginSignup
-//import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog" // Import shadcn dialog
+import { AuthContext } from "../../context/ConverteContext";
 
 const Navbar = () => {
-  const [menu, setMenu] = useState("home");
-  const { isLoggedIn, onLogout, username } = useContext(AuthContext);
+  const { isLoggedIn, onLogout, username, menu, setMenu } =
+    useContext(AuthContext);
   const menuRef = useRef();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State cho dialog
@@ -19,7 +17,6 @@ const Navbar = () => {
     menuRef.current.classList.toggle("nav-menu-visible");
     e.target.classList.toggle("open");
   };
-
 
   return (
     <div className="navbar">
@@ -45,6 +42,12 @@ const Navbar = () => {
           </Link>
           {menu === "converte" ? <hr /> : <></>}
         </li>
+        <li onClick={() => setMenu("dictionary")}>
+          <Link style={{ textDecoration: "none" }} to="/dictionary">
+            Từ điển
+          </Link>
+          {menu === "dictionary" ? <hr /> : <></>}
+        </li>
         <li onClick={() => setMenu("translate")}>
           <Link style={{ textDecoration: "none" }} to="/translate">
             Dịch
@@ -52,24 +55,28 @@ const Navbar = () => {
           {menu === "translate" ? <hr /> : <></>}
         </li>
       </ul>
-      <div className="nav-login-cart">
+      <div className="nav-login">
         {isLoggedIn ? (
-           <div className="user-menu">
-           <button onClick={() => setOpen(!open)} className="user-button">
-             👤 {username}
-           </button>
-           {open && (
-             <div className="user-dropdown">
-               <p className="dropdown-greeting">👋 Xin chào, {username}!</p>
-               <Link to="/tu-truyen" className="dropdown-link">📚 Tủ truyện</Link>
-               <button onClick={onLogout} className="dropdown-logout">🚪 Đăng xuất</button>
-             </div>
-           )}
-         </div>
-       ) : (
-         <Link to="/login">
-           <button className="login-button">🔐 Đăng nhập</button>
-         </Link>
+          <div className="user-menu">
+            <button onClick={() => setOpen(!open)} className="user-button">
+              👤 {username}
+            </button>
+            {open && (
+              <div className="user-dropdown">
+                <p className="dropdown-greeting">👋 Xin chào, {username}!</p>
+                <Link to="/tu-truyen" className="dropdown-link">
+                  📚 Tủ truyện
+                </Link>
+                <button onClick={onLogout} className="dropdown-logout">
+                  🚪 Đăng xuất
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link to="/login">
+            <button className="login-button">🔐 Đăng nhập</button>
+          </Link>
         )}
         {/* {open && (
           <div>

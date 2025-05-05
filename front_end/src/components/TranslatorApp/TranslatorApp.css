@@ -3,7 +3,7 @@
     flex-direction: column;
 }
 
-.translator-app-title{
+.translator-app-title {
     cursor: pointer;
 }
 
@@ -37,7 +37,7 @@
 .top-menu {
     position: fixed;
     top: 20px;
-    right: 61px;
+    right: 84px;
     background-color: #fff;
     border-bottom: 1px solid #ccc;
     padding: 10px 20px;
@@ -45,7 +45,7 @@
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    width: 91.3%;
+    max-width: 1190px;
     z-index: 999;
     opacity: 0;
     transform: translateY(-20px);
@@ -61,6 +61,7 @@
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+    border-radius: 15px;
     /* Cho phép tương tác khi mở */
 }
 

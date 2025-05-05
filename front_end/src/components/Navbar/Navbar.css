@@ -62,7 +62,7 @@ hr:active {
     /* Hiệu ứng bóng */
 }
 
-.nav-login-cart {
+.nav-login {
     display: flex;
     align-items: center;
     gap: 45px;
