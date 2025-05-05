@@ -11,7 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
 
-const LoginSignup = ( onLogin ) => {
+const LoginSignup = ( ) => {
   const [state, setState] = useState("Login");
   const dataDetails = { username: "", password: "", email: "" };
   const [formData, setFormData] = useState(dataDetails);
@@ -32,7 +32,7 @@ const LoginSignup = ( onLogin ) => {
       console.log("responseData:",responseData)
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
-        onLogin();
+        localStorage.setItem("username", responseData.username);
         navigate("/");
         console.log('Đang nhập thành cmn công')
       } else {
@@ -53,7 +53,6 @@ const LoginSignup = ( onLogin ) => {
 
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
-        onLogin();
         navigate("/");
       } else {
         alert(responseData.error);
