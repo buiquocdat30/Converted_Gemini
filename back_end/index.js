@@ -4,6 +4,7 @@ const connectDB = require("./config/prismaConfig");
 const bodyParser = require("body-parser");
 const uploadRoute = require("./routes/uploadRoute");
 const translateRoute = require("./routes/translateRoute");
+const authRoute=require("./routes/authRoute")
 require("dotenv").config();
 
 const app = express();
@@ -20,6 +21,11 @@ app.use("/api/upload", uploadRoute);
 
 //translate
 app.use("/api/translate", translateRoute);
+
+//user
+app.use("/api/auth", authRoute)
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
