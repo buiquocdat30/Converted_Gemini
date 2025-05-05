@@ -9,7 +9,7 @@ import LoginSignup from "../../pages/LoginSignup"; // Import LoginSignup
 
 const Navbar = () => {
   const [menu, setMenu] = useState("home");
-  const { isLoggedIn, onLgout } = useContext(AuthContext);
+  const { isLoggedIn, onLogout, username } = useContext(AuthContext);
   const menuRef = useRef();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State cho dialog
@@ -20,25 +20,6 @@ const Navbar = () => {
     e.target.classList.toggle("open");
   };
 
-  // Hàm xử lý đăng nhập, được gọi từ LoginSignup
-  const handleLogin = () => {
-    // setIsLoggedIn(true);
-    setOpen(false); // Đóng dialog sau khi đăng nhập
-  };
-
-  // Kiểm tra token khi component mount để duy trì trạng thái đăng nhập
-  useEffect(() => {
-    const token = localStorage.getItem("auth-token");
-    if (token) {
-      // setIsLoggedIn(true);
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("auth-token");
-    // setIsLoggedIn(false);
-    navigate("/");
-  };
 
   return (
     <div className="navbar">
@@ -73,11 +54,22 @@ const Navbar = () => {
       </ul>
       <div className="nav-login-cart">
         {isLoggedIn ? (
-          <button onClick={onLgout}>Logout</button>
-        ) : (
-          <Link to="/login">
-            <button>Login</button>
-          </Link>
+           <div className="user-menu">
+           <button onClick={() => setOpen(!open)} className="user-button">
+             👤 {username}
+           </button>
+           {open && (
+             <div className="user-dropdown">
+               <p className="dropdown-greeting">👋 Xin chào, {username}!</p>
+               <Link to="/tu-truyen" className="dropdown-link">📚 Tủ truyện</Link>
+               <button onClick={onLogout} className="dropdown-logout">🚪 Đăng xuất</button>
+             </div>
+           )}
+         </div>
+       ) : (
+         <Link to="/login">
+           <button className="login-button">🔐 Đăng nhập</button>
+         </Link>
         )}
         {/* {open && (
           <div>

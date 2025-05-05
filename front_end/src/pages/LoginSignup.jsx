@@ -35,7 +35,10 @@ const LoginSignup = ( ) => {
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
         localStorage.setItem("username", responseData.username);
-        onLogin();
+        if(onLogin){
+          onLogin(responseData.username);
+        }
+        
         navigate("/");
         console.log('Đang nhập thành cmn công')
         alert('Đăng nhập thành công')
