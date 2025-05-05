@@ -38,8 +38,8 @@ async function loginUser(email, password) {
   if (!passwordMatch) {
     throw new Error("Mật khẩu không đúng");
   }
-  const token = jwt.sign({ userId: user.id }, JWT_SECRET);
-  return { token };
+  const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET,);
+  return { token, username: user.username };
 }
 
 module.exports = { registerUser, loginUser };
