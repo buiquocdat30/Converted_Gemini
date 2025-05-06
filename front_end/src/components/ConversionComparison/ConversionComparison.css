@@ -19,6 +19,9 @@
   .column h4 {
     margin-bottom: 8px;
   }
+  .column h5 {
+    margin-bottom: 8px;
+  }
   
   .column textarea {
     width: 100%;
