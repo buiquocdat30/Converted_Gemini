@@ -27,7 +27,7 @@ app.use("/translate", translateRoute);
 app.use("/auth", authRoute);
 
 //coverte file
-//app.use("/converte", converteRoute);
+app.use("/converte", converteRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
