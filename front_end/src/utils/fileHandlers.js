@@ -126,7 +126,7 @@ const handleTxtFile = (
   readerResult,
   setChapters,
   setError,
-  setSucess,
+  setSuccess,
   fileInputRef,
   setSelectedFile,
   file,
@@ -141,7 +141,7 @@ const handleTxtFile = (
   if (result.valid) {
     // Set chapters và xử lý thành công
     setChapters(result.chapters);
-    setSucess("✅ File có thể sử dụng.");
+    setSuccess("✅ File có thể sử dụng.");
     console.log("✅ TXT đã xử lý:", result.chapters);
     const { totalChapters, totalWords } = calculateChapterStats(
       result.chapters
@@ -158,7 +158,7 @@ const handleTxtFile = (
     setError(`❌ File ${file.name} không đúng định dạng chương.`);
     setSelectedFile(null);
     setChapters([]); // Reset chapters nếu có lỗi
-    setSucess(""); // Reset success message
+    setSuccess(""); // Reset success message
     fileInputRef.current.value = ""; // Reset file input
   }
 };
