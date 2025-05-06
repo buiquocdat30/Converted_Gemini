@@ -31,7 +31,7 @@
   }
   
   .convert-button {
-    background-color: #32744f;
+    background-color: #199638;
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -42,7 +42,7 @@
   }
   
   .check-button:hover {
-    background-color: #0056b3;
+    background-color: #32744f;
   }
   
   .loading-message {

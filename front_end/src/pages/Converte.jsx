@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import ePub from "epubjs"; // nếu dùng epub.js
+import axios from "axios";
 import ConversionComparison from "../components/ConversionComparison/ConversionComparison";
 import TranslationInfoPanel from "../components/TranslationInfoPanel/TranslationInfoPanel";
 import "./pageCSS/Converte.css"; // Import file CSS
@@ -178,30 +179,20 @@ const Converte = () => {
     setError("");
     setSuccess("");
     try {
-      const response = await fetch("/api/convert-format", {
-        method: "POST",
-        body: JSON.stringify({
-          chapters: rawChapters,
-          bookName: books,
-          authorName: author,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await axios.post("http://localhost:8000/converte", {
+        chapters: rawChapters,
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi chuyển đổi định dạng.");
-      }
-      const data = await response.json();
+  
+      const data = response.data; // ✅ axios trả về data ở đây
       setConvertedChapters(data.convertedChapters);
-      setLoading(false);
       setSuccess("✅ Chuyển đổi định dạng thành công!");
     } catch (err) {
-      setError(`❗ Lỗi chuyển đổi định dạng: ${err.message}`);
+      setError(`❗ Lỗi chuyển đổi định dạng: ${err.response?.data?.error || err.message}`);
+    } finally {
       setLoading(false);
     }
   };
+  
 
   const handleNext = () => {
     setCurrentIndex((prev) => Math.min(prev + 1, rawChapters.length - 1));
