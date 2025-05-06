@@ -1,36 +1,36 @@
-const fs = require("fs");
+// const fs = require("fs");
 
-// Regex hỗ trợ đa ngôn ngữ + khoảng trắng đầu dòng
-const chapterRegex =
-  /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim;
+// // Regex hỗ trợ đa ngôn ngữ + khoảng trắng đầu dòng
+// const chapterRegex =
+//   /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim;
 
-const readTxt = (filePath) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile(filePath, "utf-8", (err, content) => {
-      if (err) return reject(err);
+// const readTxt = (filePath) => {
+//   return new Promise((resolve, reject) => {
+//     fs.readFile(filePath, "utf-8", (err, content) => {
+//       if (err) return reject(err);
 
-      // ✨ Làm sạch đầu dòng
-      const cleanedContent = content
-        .split("\n")
-        .map((line) => line.trimStart())
-        .join("\n");
+//       // ✨ Làm sạch đầu dòng
+//       const cleanedContent = content
+//         .split("\n")
+//         .map((line) => line.trimStart())
+//         .join("\n");
 
-      // ✨ Cắt nội dung thành [title, content, title, content, ...]
-      const parts = cleanedContent.split(chapterRegex).slice(1);
+//       // ✨ Cắt nội dung thành [title, content, title, content, ...]
+//       const parts = cleanedContent.split(chapterRegex).slice(1);
 
-      const chapters = [];
-      for (let i = 0; i < parts.length; i += 2) {
-        const title = parts[i]?.trim() || `Chương ${i / 2 + 1}`;
-        const content = parts[i + 1]?.trim() || "";
-        chapters.push({ title, content });
-      }
+//       const chapters = [];
+//       for (let i = 0; i < parts.length; i += 2) {
+//         const title = parts[i]?.trim() || `Chương ${i / 2 + 1}`;
+//         const content = parts[i + 1]?.trim() || "";
+//         chapters.push({ title, content });
+//       }
 
-      resolve(chapters);
-    });
-  });
-};
+//       resolve(chapters);
+//     });
+//   });
+// };
 
-module.exports = { readTxt };
+// module.exports = { readTxt };
 
 // const fs = require("fs");
 
@@ -74,3 +74,49 @@ module.exports = { readTxt };
 // };
 
 // module.exports = { readTxt };
+
+
+
+
+
+
+
+//hợp nhất 2 hàm
+const fs = require("fs");
+
+const chapterRegex =
+  /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim;
+
+const readTxt = (filePath) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile(filePath, "utf-8", (err, content) => {
+      if (err) return reject(err);
+
+      const lines = content.split("\n").map((line) => line.trimStart());
+
+      // Tìm index của dòng đầu tiên chứa chương
+      const firstChapterIndex = lines.findIndex((line) => chapterRegex.test(line));
+
+      if (firstChapterIndex === -1) {
+        return reject("❌ Không tìm thấy chương nào trong tệp.");
+      }
+
+      // Lấy nội dung từ chương đầu tiên trở đi
+      const contentFromFirstChapter = lines.slice(firstChapterIndex).join("\n");
+
+      // Phân tách nội dung thành các phần [title, content, title, content, ...]
+      const parts = contentFromFirstChapter.split(chapterRegex).slice(1);
+
+      const chapters = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        const title = parts[i]?.trim() || `Chương ${Math.floor(i / 2) + 1}`;
+        const content = parts[i + 1]?.trim() || "";
+        chapters.push({ title, content });
+      }
+
+      resolve(chapters);
+    });
+  });
+};
+
+module.exports = { readTxt };

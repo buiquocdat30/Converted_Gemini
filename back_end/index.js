@@ -1,10 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const connectDB = require("./config/prismaConfig");
 const bodyParser = require("body-parser");
 const uploadRoute = require("./routes/uploadRoute");
 const translateRoute = require("./routes/translateRoute");
-const authRoute=require("./routes/authRoute")
+const converteRoute = require("./routes/converteRoute");
+const authRoute = require("./routes/authRoute");
 require("dotenv").config();
 
 const app = express();
@@ -16,16 +16,18 @@ app.use(cors());
 app.use(bodyParser.json({ limit: "100mb" }));
 // Giới hạn 50MB cho JSON body
 app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
-// Route upload
+
+// Route upload file
 app.use("/upload", uploadRoute);
 
 //translate
 app.use("/translate", translateRoute);
 
 //user
-app.use("/auth", authRoute)
+app.use("/auth", authRoute);
 
-
+//coverte file
+//app.use("/converte", converteRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
