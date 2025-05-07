@@ -4,7 +4,7 @@ const {
 
 exports.translateText = async (req, res) => {
   const { chapters, key, model } = req.body;
-
+  console.log(req.body.chapters);
   console.log("📌 Yêu cầu dịch nhận được:", {
     totalChapters: chapters?.length,
     hasKey: !!key,
@@ -64,6 +64,4 @@ exports.translateText = async (req, res) => {
       error: "Dịch thất bại. Kiểm tra lại API key hoặc nội dung.",
     });
   }
-
-
 };
