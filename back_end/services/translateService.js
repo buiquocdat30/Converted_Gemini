@@ -9,7 +9,7 @@ const DEFAULT_KEYS = process.env.DEFAULT_GEMINI_API_KEYS
   : [];
 
 const apiKeyManager = new ApiKeyManagers(DEFAULT_KEYS);
-
+// console.log('Đây là apiKeyManager: ',apiKeyManager)
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL_AI;
 const CUSTOM_KEYS_FILE = path.join(__dirname, "../data/custom_keys.txt");
 
