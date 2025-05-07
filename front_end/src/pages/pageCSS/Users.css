@@ -1,0 +1,327 @@
+/* pageCSS/Users.css */
+.users-page {
+    display: flex;
+    min-height: 100vh; /* Đảm bảo trang chiếm toàn bộ chiều cao */
+    transition: background-color 0.3s, color 0.3s, background-image 0.3s; /* Hiệu ứng chuyển đổi mượt mà */
+    margin: 10px auto;
+    border-radius: 15px;
+}
+
+/* Light Theme (mặc định nếu không có class dark) */
+.users-page.light {
+    background-color: #f4f7f6;
+    color: #333;
+}
+.users-page.light .users-sidebar {
+    background-color: #e9ecef;
+    border-right: 1px solid #ccc;
+    border-top-left-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+.users-page.light .menu-item {
+    color: #333;
+}
+.users-page.light .menu-item:hover,
+.users-page.light .menu-item.active {
+    background-color: #d1d9e0;
+}
+.users-page.light .users-content {
+    background-color: #fff;
+}
+.users-page.light input,
+.users-page.light button,
+.users-page.light select,
+.users-page.light textarea {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+}
+.users-page.light button {
+    background-color: #007bff;
+    color: white;
+}
+.users-page.light button:hover {
+    background-color: #0056b3;
+}
+.users-page.light table th,
+.users-page.light table td {
+    border: 1px solid #ddd;
+}
+.users-page.light table th {
+    background-color: #f2f2f2;
+}
+
+
+/* Dark Theme */
+body.dark .users-page, /* Nếu bạn áp dụng class 'dark' cho body */
+.users-page.dark {
+    background-color: #1a1a1a; /* Màu nền chính tối hơn */
+    color: #e0e0e0;
+}
+.users-page.dark .users-sidebar {
+    background-color: #2c2c2c; /* Sidebar tối hơn */
+    border-right: 1px solid #444;
+}
+.users-page.dark .menu-item {
+    color: #e0e0e0; /* Chữ màu sáng */
+}
+.users-page.dark .menu-item:hover,
+.users-page.dark .menu-item.active {
+    background-color: #4a4a4a; /* Màu hover/active tối hơn */
+}
+.users-page.dark .users-content {
+    background-color: #222; /* Nội dung nền tối */
+}
+.users-page.dark h2, .users-page.dark h3 {
+    color: #f5f5f5;
+}
+.users-page.dark input,
+.users-page.dark button,
+.users-page.dark select,
+.users-page.dark textarea {
+    background-color: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+}
+.users-page.dark input::placeholder {
+    color: #aaa;
+}
+.users-page.dark button {
+    background-color: #555;
+    color: #e0e0e0;
+    border: 1px solid #777;
+}
+.users-page.dark button:hover {
+    background-color: #666;
+}
+.users-page.dark table {
+    border-collapse: collapse; /* Đảm bảo border gộp lại đẹp hơn */
+    width: 100%;
+}
+.users-page.dark table th,
+.users-page.dark table td {
+    border: 1px solid #444; /* Border tối hơn cho table */
+    padding: 8px;
+    text-align: left;
+}
+.users-page.dark table th {
+    background-color: #3a3a3a; /* Header table tối hơn */
+}
+.users-page.dark .profile-form .form-group,
+.users-page.dark .password-form .form-group {
+    margin-bottom: 15px;
+}
+.users-page.dark .profile-form label,
+.users-page.dark .password-form label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+
+/* General Sidebar styles */
+.users-sidebar {
+    width: 280px; /* Tăng chiều rộng sidebar */
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Khoảng cách nhỏ giữa các menu item */
+}
+
+.user-info-menu {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.user-info-menu:hover {
+    background-color: rgba(0,0,0,0.05); /* Màu nền nhẹ khi hover */
+}
+.menu-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 15px; /* Tăng khoảng cách */
+    object-fit: cover;
+}
+.user-info-menu span {
+    font-weight: bold;
+    font-size: 1.1em; /* Tăng kích thước chữ */
+}
+
+.menu-item {
+    padding: 12px 15px; /* Tăng padding */
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Khoảng cách giữa icon (placeholder) và text */
+    font-size: 1em; /* Điều chỉnh kích thước chữ */
+}
+
+.menu-item.active {
+    font-weight: bold;
+}
+
+.menu-item-dropdown .menu-item { /* Style cho mục "Tủ truyện" */
+    display: flex;
+    justify-content: space-between;
+}
+
+.dropdown-content {
+    padding-left: 20px; /* Thụt lề cho các mục con */
+    display: flex;
+    flex-direction: column;
+    gap: 3px; /* Khoảng cách nhỏ hơn cho submenu */
+}
+.dropdown-content .sub-item {
+    padding: 10px 15px; /* Padding cho submenu item */
+    font-size: 0.95em; /* Chữ nhỏ hơn một chút */
+}
+.dropdown-content .sub-item.active {
+    font-weight: bold; /* Vẫn giữ bold cho active sub-item */
+}
+
+
+/* General Content styles */
+.users-content {
+    flex-grow: 1;
+    padding: 30px; /* Tăng padding cho content */
+    overflow-y: auto; /* Cho phép cuộn nếu nội dung dài */
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+}
+
+.users-content h2 {
+    margin-top: 0;
+    margin-bottom: 25px; /* Tăng khoảng cách dưới h2 */
+    font-size: 1.8em; /* Tăng kích thước h2 */
+    border-bottom: 1px solid #eee; /* Đường gạch chân nhẹ */
+    padding-bottom: 10px;
+}
+.users-page.dark .users-content h2 {
+    border-bottom: 1px solid #444;
+}
+
+.users-content h3 {
+    margin-top: 20px;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+}
+
+/* Styles cho các form và table (ví dụ) */
+.profile-settings .form-group,
+.password-form .form-group {
+    margin-bottom: 20px; /* Tăng khoảng cách */
+}
+.profile-settings label,
+.password-form label {
+    display: block;
+    margin-bottom: 8px; /* Tăng khoảng cách */
+    font-weight: 500;
+}
+.profile-settings input[type="text"],
+.profile-settings input[type="date"],
+.profile-settings input[type="file"],
+.password-form input[type="password"] {
+    width: 100%;
+    padding: 10px; /* Tăng padding */
+    border-radius: 4px;
+    box-sizing: border-box; /* Quan trọng để padding không làm tăng kích thước */
+    font-size: 1em;
+}
+.profile-settings button,
+.password-form button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+.avatar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.current-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    object-fit: cover;
+    border: 2px solid #ccc; /* Thêm border cho avatar */
+}
+.users-page.dark .current-avatar {
+    border: 2px solid #555;
+}
+.avatar-group input[type="file"] {
+    margin-bottom: 5px;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+table th, table td {
+    padding: 12px; /* Tăng padding */
+    text-align: left;
+}
+table th {
+    font-weight: 600;
+}
+table input[type="text"] {
+    width: 95%; /* Để input không bị tràn */
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+/* Key Management Specific */
+.key-management table .status-active { color: green; }
+.key-management table .status-near_limit { color: orange; }
+.key-management table .status-pending { color: Moccasin; }
+.users-page.dark .key-management table .status-active { color: lightgreen; }
+.users-page.dark .key-management table .status-near_limit { color: #FFC107; } /* Vàng đậm hơn cho dark mode */
+.users-page.dark .key-management table .status-pending { color: #FFEBCD; }
+
+
+/* Interface Settings */
+.interface-settings .theme-selection,
+.interface-settings .background-selection {
+    margin-bottom: 30px;
+}
+.interface-settings button {
+    margin-right: 10px;
+    padding: 8px 15px;
+}
+.interface-settings button.active {
+    border: 2px solid #007bff; /* Hoặc màu theme của bạn */
+    font-weight: bold;
+}
+.users-page.dark .interface-settings button.active {
+    border: 2px solid lightblue;
+}
+.current-background-preview {
+    max-width: 200px;
+    max-height: 150px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    display: block;
+}
+.users-page.dark .current-background-preview {
+    border: 1px solid #555;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 30px 0;
+}
+.users-page.dark hr {
+    border-top: 1px solid #444;
+}
