@@ -14,7 +14,7 @@ const models = [
   {
     value: "gemini-1.5-pro", //ok
     label: "Gemini 1.5 Pro",
-    description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
+    description: "Giới hạn miễn phí: 2 lần/phút, 50 lần một ngày.",
   },
   {
     value: "gemini-1.5-flash", //ok

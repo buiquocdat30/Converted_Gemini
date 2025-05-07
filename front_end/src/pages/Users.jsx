@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { AuthContext } from "../context/ConverteContext";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
 
 // Placeholder components cho nội dung bên phải
 // Bạn có thể tách chúng ra thành các file riêng nếu cần
 const ProfileSettings = () => {
+    
   const [username, setUsername] = useState("CurrentUser");
   const [avatar, setAvatar] = useState("https://via.placeholder.com/150"); // Placeholder avatar URL
   const [dob, setDob] = useState("");
@@ -49,7 +51,7 @@ const ProfileSettings = () => {
       <h2>Trang Cá Nhân</h2>
       <form onSubmit={handleProfileUpdate} className="profile-form">
         <div className="form-group avatar-group">
-          <label htmlFor="avatar-upload">Avatar:</label>
+          <label htmlFor="avatar-upload"></label>
           <img src={avatar} alt="User Avatar" className="current-avatar" />
           <input
             type="file"

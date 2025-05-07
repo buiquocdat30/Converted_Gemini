@@ -50,6 +50,7 @@
     border: none;
     width: 80%;
     height: 3px;
+    margin: 5px;
     border-radius: 10px;
     background: #32744f;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
