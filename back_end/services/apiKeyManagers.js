@@ -1,80 +1,97 @@
-const { getModelInfo } = require("./services/modelManager");
+// const fs = require("fs").promises;
+// const path = require("path");
 
-class ApiKeyManagers {
-  constructor(apiKeys, modelName = "gemini-1.5-pro") {
-    this.apiKeys = apiKeys.map((key, i) => ({
+// const DEFAULT_KEYS = process.env.DEFAULT_GEMINI_API_KEYS
+//   ? process.env.DEFAULT_GEMINI_API_KEYS.split(",")
+//   : [];
+
+// let aliveKeys = [...DEFAULT_KEYS];
+// const CUSTOM_KEYS_FILE = path.join(__dirname, "../data/custom_keys.txt");
+
+// const keyIndexes = new Map();
+
+// //duyệt và trả key tuần tự
+// const getAroundKeyFrom = (keyArray, id = "default") => {
+//   if (!Array.isArray(keyArray) || keyArray.length === 0) return null;
+
+//   const currentIndex = keyIndexes.get(id) || 0;
+//   const key = keyArray[currentIndex];
+//   const nextIndex = (currentIndex + 1) % keyArray.length;
+//   keyIndexes.set(id, nextIndex);
+
+//   return key;
+// };
+
+// //lưu key của khách
+// const saveCustomKey = async (key) => {
+//   try {
+//     const filePath = CUSTOM_KEYS_FILE;
+//     let existingKeys = [];
+
+//     try {
+//       const data = await fs.readFile(filePath, "utf8");
+//       existingKeys = data
+//         .split("\n")
+//         .map((k) => k.trim())
+//         .filter((k) => k.length > 0);
+//     } catch (err) {
+//       if (err.code !== "ENOENT") {
+//         console.error("❌ Lỗi đọc custom keys:", err.message);
+//       }
+//     }
+
+//     if (existingKeys.includes(key.trim())) {
+//       console.log("⚡ Key đã tồn tại, bỏ qua:", key.slice(0, 8) + "...");
+//       return;
+//     }
+
+//     await fs.appendFile(filePath, key.trim() + "\n");
+//     console.log("📥 Đã lưu key khách mới:", key.slice(0, 8) + "...");
+//   } catch (err) {
+//     console.error("❌ Lỗi lưu key khách:", err.message);
+//   }
+// };
+
+// module.exports = {
+//   aliveKeys,
+//   getAroundKeyFrom,
+//   saveCustomKey,
+// };
+
+// apiKeyManager.js
+const fs = require("fs").promises;
+const path = require("path");
+const { getModelInfo } = require("./modelAIManagers");
+
+const CUSTOM_KEYS_FILE = path.join(__dirname, "../data/custom_keys.txt");
+
+const DEFAULT_KEYS = process.env.DEFAULT_GEMINI_API_KEYS
+  ? process.env.DEFAULT_GEMINI_API_KEYS.split(",")
+  : [];
+
+let aliveKeys = [...DEFAULT_KEYS];
+const keyIndexes = new Map();
+
+class ApiKeyManager {
+  constructor(modelValue) {
+    this.modelInfo = getModelInfo(modelValue);
+    this.apiKeys = aliveKeys.map((key) => ({
       key,
       status: "active",
       tokenUsed: 0,
+      dailyUsed: 0,
+      cooldownCount: 0,
       lastUsed: 0,
-      index: i,
-      rpmCount: 0, // lượt gọi trong 1 phút
     }));
-
-    this.cooldownTime = 3 * 60 * 1000;
-    this.modelInfo = getModelInfo(modelName);
-    this.roundRobinIndex = 0;
-
-    setInterval(() => {
-      this.apiKeys.forEach((k) => (k.rpmCount = 0)); // reset RPM mỗi phút
-    }, 60 * 1000);
-  }
-
-  getKeysForCalls(callCount) {
-    const keys = [];
-    let remainingCalls = callCount;
-
-    const usableKeys = this.apiKeys.filter((k) => k.status === "active");
-
-    if (!this.modelInfo) throw new Error("Thiếu thông tin model.");
-
-    while (remainingCalls > 0) {
-      const key = usableKeys.find((k) => k.rpmCount < this.modelInfo.rpm);
-
-      if (!key) break; // không còn key nào khả dụng
-
-      const canUse = this.modelInfo.rpm - key.rpmCount;
-      const useNow = Math.min(canUse, remainingCalls);
-
-      keys.push({ key: key.key, count: useNow });
-
-      key.rpmCount += useNow;
-      remainingCalls -= useNow;
-    }
-
-    if (remainingCalls > 0) {
-      throw new Error(
-        `Không đủ key khả dụng để thực hiện ${callCount} lượt gọi.`
-      );
-    }
-
-    return keys;
+    this.cooldownTime = 60000; // 1 phút
   }
 
   getActiveKey() {
-    const usableKeys = this.apiKeys.filter((k) => k.status === "active");
-
-    if (usableKeys.length === 0) {
-      throw new Error("Không có API Key nào khả dụng.");
+    const available = this.apiKeys.find((k) => k.status === "active");
+    if (!available) {
+      throw new Error("No active API keys available.");
     }
-
-    // Round-robin chọn key
-    let key;
-    for (let i = 0; i < usableKeys.length; i++) {
-      const index = (this.roundRobinIndex + i) % usableKeys.length;
-      const candidate = usableKeys[index];
-
-      if (!this.modelInfo || candidate.rpmCount < this.modelInfo.rpm) {
-        this.roundRobinIndex = (index + 1) % usableKeys.length;
-        candidate.rpmCount += 1;
-        key = candidate.key;
-        break;
-      }
-    }
-
-    if (!key) throw new Error("Tất cả key đều đã đạt giới hạn RPM.");
-
-    return key;
+    return available.key;
   }
 
   updateUsage(apiKey, tokensUsed) {
@@ -89,7 +106,17 @@ class ApiKeyManagers {
     const keyObj = this.apiKeys.find((k) => k.key === apiKey);
     if (keyObj && keyObj.status !== "exhausted") {
       keyObj.status = "cooldown";
-      setTimeout(() => (keyObj.status = "active"), this.cooldownTime);
+      keyObj.cooldownCount = (keyObj.cooldownCount || 0) + 1;
+      keyObj.dailyUsed = (keyObj.dailyUsed || 0) + 1;
+
+      setTimeout(() => {
+        if (
+          keyObj.status === "cooldown" &&
+          keyObj.dailyUsed < this.modelInfo.rpd
+        ) {
+          keyObj.status = "active";
+        }
+      }, this.cooldownTime);
     }
   }
 
@@ -103,6 +130,49 @@ class ApiKeyManagers {
   hasUsableKey() {
     return this.apiKeys.some((k) => k.status === "active");
   }
+
+  getAroundKeyFrom(id = "default") {
+    const keyArray = this.apiKeys
+      .filter((k) => k.status === "active")
+      .map((k) => k.key);
+    if (!Array.isArray(keyArray) || keyArray.length === 0) return null;
+
+    const currentIndex = keyIndexes.get(id) || 0;
+    const key = keyArray[currentIndex];
+    const nextIndex = (currentIndex + 1) % keyArray.length;
+    keyIndexes.set(id, nextIndex);
+
+    return key;
+  }
+
+  async saveCustomKey(key) {
+    try {
+      const filePath = CUSTOM_KEYS_FILE;
+      let existingKeys = [];
+
+      try {
+        const data = await fs.readFile(filePath, "utf8");
+        existingKeys = data
+          .split("\n")
+          .map((k) => k.trim())
+          .filter((k) => k.length > 0);
+      } catch (err) {
+        if (err.code !== "ENOENT") {
+          console.error("❌ Lỗi đọc custom keys:", err.message);
+        }
+      }
+
+      if (existingKeys.includes(key.trim())) {
+        console.log("⚡ Key đã tồn tại, bỏ qua:", key.slice(0, 8) + "...");
+        return;
+      }
+
+      await fs.appendFile(filePath, key.trim() + "\n");
+      console.log("📥 Đã lưu key khách mới:", key.slice(0, 8) + "...");
+    } catch (err) {
+      console.error("❌ Lỗi lưu key khách:", err.message);
+    }
+  }
 }
 
-module.exports = ApiKeyManagers;
+module.exports = ApiKeyManager;
