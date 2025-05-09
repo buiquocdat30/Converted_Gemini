@@ -106,7 +106,7 @@
 
 require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { ApiKeyManager, saveCustomKey } = require("./apiKeyManagers");
+const  ApiKeyManager = require("./apiKeyManagers");
 const { DEFAULT_MODEL } = require("./modelAIManagers");
 
 // ⏳ Delay helper
@@ -133,14 +133,14 @@ const translateText = async (text, customKey, modelAI) => {
   if (typeof customKey === "string" && customKey.trim()) {
     keyToUse = customKey.trim();
     if (!apiKeyManager.aliveKeys.includes(keyToUse)) {
-      await saveCustomKey(keyToUse); // Lưu nếu chưa có trong default
+      await apiKeyManager.saveCustomKey(keyToUse); // Lưu nếu chưa có trong default
     }
   } else if (Array.isArray(customKey) && customKey.length > 0) {
     // Duyệt qua từng key trong mảng customKey
     for (const key of customKey) {
       const trimmedKey = key.trim();
       if (trimmedKey && !apiKeyManager.aliveKeys.includes(trimmedKey)) {
-        await saveCustomKey(trimmedKey); // Lưu key nếu chưa có
+        await apiKeyManager.saveCustomKey(trimmedKey); // Lưu key nếu chưa có
       }
     }
     keyToUse = apiKeyManager.getAroundKeyFrom(customKey, "custom");
@@ -184,6 +184,7 @@ const translateText = async (text, customKey, modelAI) => {
           : 21000;
 
         console.log(`⏳ Chờ ${retryDelay / 1000}s vì giới hạn quota...`);
+        apiKeyManager.handle429Error(keyToUse);
         await delay(retryDelay);
         retryAttempts++;
         continue;

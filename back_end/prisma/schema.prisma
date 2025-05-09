@@ -7,6 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ApiKeyStatus {
+  ACTIVE
+  COOLDOWN
+  EXHAUSTED
+}
+
+
+//quản lý user
 model User {
   id             String             @id @default(auto()) @map("_id") @db.ObjectId
   email          String             @unique
@@ -22,6 +30,7 @@ model User {
   @@map("Users")
 }
 
+//các truyện của user đã up
 model UserLibraryStory {
   id        String               @id @default(auto()) @map("_id") @db.ObjectId
   name      String
@@ -35,6 +44,7 @@ model UserLibraryStory {
   @@map("User_library_stories")
 }
 
+//các chương truyện đã up
 model UserLibraryChapter {
   id            String                   @id @default(auto()) @map("_id") @db.ObjectId
   story         UserLibraryStory         @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -50,6 +60,7 @@ model UserLibraryChapter {
   @@map("User_library_chapters")
 }
 
+//các chương đã dịch
 model UserTranslatedChapter {
   id          String             @id @default(auto()) @map("_id") @db.ObjectId
   chapter     UserLibraryChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -62,6 +73,7 @@ model UserTranslatedChapter {
   @@map("User_translated_chapters")
 }
 
+//các phiên bản dịch truyện user đã up
 model UserTranslationVersion {
   id             String             @id @default(auto()) @map("_id") @db.ObjectId
   translatedText String
@@ -73,17 +85,64 @@ model UserTranslationVersion {
   @@map("User_translation_versions")
 }
 
+//quản lý key của user, người dùng sẽ có thể thêm xoá sửa key của minh được
 model UserApiKey {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  key       String   @unique // Lưu trữ API key, đánh dấu unique
-  user      User     @relation(fields: [userId], references: [id]) // Quan hệ với User
-  userId    String   @db.ObjectId // ID của User sở hữu key này
-  status    String   @default("active") // Trạng thái key: "active" | "cooldown" | "exhausted"
-  tokenUsed Int      @default(0) // Số token đã sử dụng (có thể cần hoặc không, tùy mức độ quản lý)
-  lastUsed  DateTime @default(now()) // Thời điểm sử dụng gần nhất
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique(fields: [userId, key]) // Đảm bảo 1 user không thêm trùng 1 key
+   id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  key         String        // Có thể trùng (nếu user dùng cùng key nhiều lần)
+  userId      String        @db.ObjectId
+  modelId     String        @db.ObjectId
+  label       String?       // Tên tùy chọn để user dễ phân biệt: "Key Gemini chính", "Dự phòng", v.v.
+  status      ApiKeyStatus  @default(ACTIVE)
+  usageCount  Int           @default(0)
+  lastUsedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id])
+  model       Model         @relation(fields: [modelId], references: [id])
+  @@unique([userId, key, modelId]) // Một user có thể thêm key trùng, nhưng không trùng với cùng model
   @@map("User_api_keys") // Tên collection trong MongoDB
+}
+
+
+
+//quản lý các nhà cung cấp và mô hình AI
+model Provider {
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  name  String  @unique
+  models Model[]
+
+  @@map("Provider") // Ánh xạ model Provider tới collection "Provider" trong MongoDB
+}
+
+model Model {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  providerId  String   @db.ObjectId
+  value       String
+  rpm         Int?
+  tpm         Int?
+  rpd         Int?
+  label       String
+  description String
+  provider    Provider @relation(fields: [providerId], references: [id])
+  userApiKey  UserApiKey[]
+
+  @@unique([providerId, value]) // Đảm bảo mỗi model value là duy nhất trong một provider
+  @@map("Model") // Ánh xạ model Model tới collection "Model" trong MongoDB
+}
+
+//key mặc định của hệ thống khi user ko nhập key
+model DefaultKey {
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  key   String  @unique
+  value String
+  @@map("DefaultKey")
+}
+
+//từ điển
+model Dictionary {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  hanTu      String   @unique
+  pinyin     String?
+  nghiaViet  String
+  @@map("Dictionary")
 }
