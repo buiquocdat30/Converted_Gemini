@@ -1,4 +1,5 @@
 // Map tên model → thông số
+
 const models = {
   google: {
     "gemini-1.5-pro": {
@@ -43,17 +44,26 @@ const models = {
     },
   },
 };
-
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL_AI;
-function getModelInfo(modelValue) {
-  for (const provider in models) {
-    if (models[provider][modelValue]) {
-      return models[provider][modelValue];
-    }
+
+// Hàm hiện tại (có thể giữ lại hoặc điều chỉnh)
+async function getModelInfo(modelValue) {
+  try {
+    return await prisma.model.findFirst({
+      where: { value: modelValue },
+      include: { provider: true },
+    });
+  } catch (error) {
+    console.error(
+      `Lỗi khi lấy thông tin model với value ${modelValue}:`,
+      error
+    );
+    return null;
   }
-  return null;
 }
+
 module.exports = {
   DEFAULT_MODEL,
+
   getModelInfo,
 };
