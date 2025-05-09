@@ -1,5 +1,7 @@
 // --- Thao tác với Model ---
 const prisma = require("../../config/prismaConfig");
+const fs = require('fs').promises;
+const path = require('path');
 
 async function getAllModels(providerId = null) {
   try {

@@ -1,6 +1,8 @@
 
 // --- Thao tác với Provider ---
 const prisma = require("../../config/prismaConfig");
+const fs = require('fs').promises;
+const path = require('path');
 
 async function getAllProviders() {
   try {
