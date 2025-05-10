@@ -112,6 +112,9 @@ const ChapterList = ({
 
   // Hàm dịch từng chương
   const translate = (index) => {
+    console.log('chapters',chapters)
+    console.log('apiKey',apiKey)
+    console.log('model',model)
     translateSingleChapter({
       index,
       chapters,

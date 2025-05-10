@@ -38,6 +38,10 @@ export const translateSingleChapter = async ({
   }, 200); // mỗi 200ms tăng 5%
 
   try {
+    console.log('chapter:',chapter)
+    console.log('apiKey:',apiKey)
+    console.log('model:',model)
+    
     const res = await axios.post("http://localhost:8000/translate", {
       chapters: [chapter],
       key: apiKey || "",
