@@ -9,7 +9,7 @@ const authRoute = require("./routes/authRoute");
 //quản lý admin-panel
 const providerRoutes = require('./admin/adminRoutes/providerRoutes');
 const modelRoutes = require('./admin/adminRoutes/modelRoutes');
-const defaultKeyRoutes = require('./admin/adminRoutesdefaultKeyRoutes');
+const defaultKeyRoutes = require('./admin/adminRoutes/defaultKeyRoutes');
 const tudienRoutes = require('./admin/adminRoutes/tudienRoutes');
 const userRoutes = require('./admin/adminRoutes/userRoutes');
 

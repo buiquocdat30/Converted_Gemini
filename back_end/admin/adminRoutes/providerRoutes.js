@@ -1,7 +1,7 @@
 // routes/providerRoutes.js
 const express = require('express');
 const router = express.Router();
-const providerController = require('../controllers/providerController');
+const providerController = require('../adminControllers/providerController');
 
 router.get('/', providerController.getAllProviders);
 router.get('/:id', providerController.getProviderById);
