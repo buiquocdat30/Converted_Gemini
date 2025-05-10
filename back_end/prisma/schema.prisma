@@ -105,6 +105,12 @@ model UserApiKey {
 
 
 
+
+
+
+//admin panel
+
+
 //quản lý các nhà cung cấp và mô hình AI
 model Provider {
   id    String  @id @default(auto()) @map("_id") @db.ObjectId

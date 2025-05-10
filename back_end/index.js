@@ -5,6 +5,8 @@ const uploadRoute = require("./routes/uploadRoute");
 const translateRoute = require("./routes/translateRoute");
 const converteRoute = require("./routes/converteRoute");
 const authRoute = require("./routes/authRoute");
+const userApiKeyRoute = require("./routes/userApiKeyRoute");
+const userLibraryRoute = require("./routes/userLibraryRoute");
 
 //quản lý admin-panel
 const providerRoutes = require('./admin/adminRoutes/providerRoutes');
@@ -31,11 +33,15 @@ app.use("/upload", uploadRoute);
 //translate
 app.use("/translate", translateRoute);
 
-//user
+//user authentication
 app.use("/auth", authRoute);
 
 //coverte file
 app.use("/converte", converteRoute);
+
+// Quản lý tài nguyên của user
+app.use("/user/keys", userApiKeyRoute);     // API keys của user
+app.use("/user/library", userLibraryRoute); // Thư viện truyện của user
 
 //quản lý admin-panel
 app.use('/admin/providers', providerRoutes);
@@ -43,7 +49,6 @@ app.use('/admin/models', modelRoutes);
 app.use('/admin/default-keys', defaultKeyRoutes);
 app.use('/admin/han-viet', tudienRoutes);
 app.use('/admin/users', userRoutes);
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

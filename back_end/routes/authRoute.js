@@ -1,26 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const authService = require("../services/authService");
+const authController = require("../controllers/authController");
+const authMiddleware = require("../middleware/authMiddleware");
 
-router.post("/signup", async (req, res) => {
-  const { username, email, password } = req.body;
-  try {
-    const { token } = await authService.registerUser(username, email, password);
-    res.status(201).json({ success: true, token });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+// Đăng ký và đăng nhập không cần xác thực
+router.post("/signup", authController.signup);
+router.post("/login", authController.login);
 
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-
-    const { token, username } = await authService.loginUser(email, password);
-    res.json({ success: true, token, username });
-  } catch (error) {
-    res.status(401).json({ success: false, error: error.message });
-  }
-});
+// Xác thực token cần middleware
+router.get("/verify", authMiddleware, authController.verifyToken);
 
 module.exports = router;
