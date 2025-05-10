@@ -1,7 +1,7 @@
 // routes/TuDienRoutes.js
 const express = require('express');
 const router = express.Router();
-const tudienController = require('../controllers/tudienController');
+const tudienController = require('../adminControllers/tudienController');
 
 router.get('/', tudienController.getAllTuDien);
 router.get('/:id', tudienController.getTuDienById);

@@ -1,5 +1,5 @@
 // controllers/providerController.js
-const providerService = require('../services/providerService');
+const providerService = require('../adminServices/providerService');
 
 async function getAllProviders(req, res) {
   try {

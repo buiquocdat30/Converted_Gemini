@@ -1,5 +1,5 @@
 // controllers/TuDienController.js
-const TuDienService = require('../services/TuDienService');
+const TuDienService = require('../adminServices/TuDienService');
 
 async function getAllTuDien(req, res) {
   try {
