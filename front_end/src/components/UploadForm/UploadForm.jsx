@@ -1,7 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useContext } from "react";
 // import "../css/App.css";
 import "./UploadForm.css";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
+import { AuthContext } from "../../context/ConverteContext"; 
 import TranslationInfoPanel from "../TranslationInfoPanel/TranslationInfoPanel.jsx";
 
 import {
@@ -40,6 +41,7 @@ const models = [
 ];
 
 const UploadForm = ({ onFileParsed }) => {
+  const { isLoggedIn, username,setUsername, onLogin, onLogout, setMenu, menu } = useContext(AuthContext);
   const [selectedFile, setSelectedFile] = useState(null);
   const [apiKey, setApiKey] = useState([]);
   const [showGuide, setShowGuide] = useState(false);
@@ -161,6 +163,7 @@ const UploadForm = ({ onFileParsed }) => {
   };
 
   return (
+    
     <div className="wrapper">
       <h2>📘 Gemini Converte</h2>
       <ConverteKeyInput apiKey={apiKey} setApiKey={setApiKey} />
@@ -179,9 +182,9 @@ const UploadForm = ({ onFileParsed }) => {
           accept=".epub, .txt"
           onChange={handleFileUpload}
         />
-        <button className="btn-check-file" onClick={handleCheckFileFormat}>
+        {/* <button className="btn-check-file" onClick={handleCheckFileFormat}>
           Kiểm tra File
-        </button>
+        </button> */}
       </div>
       {loading && <p>⏳ Đang xử lý tệp...</p>}{" "}
       {/* Hiển thị thông báo khi đang tải lên */}
