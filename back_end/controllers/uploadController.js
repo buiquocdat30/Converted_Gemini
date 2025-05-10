@@ -82,8 +82,23 @@ const handleImageUpload = async (req, res) => {
     }
 };
 
+const getUserImages = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const images = await uploadService.getUserImages(userId);
+        res.json({
+            success: true,
+            data: images
+        });
+    } catch (err) {
+        console.error("❌ Lỗi lấy thông tin ảnh:", err);
+        res.status(500).json({ error: err.message || "Đã xảy ra lỗi khi lấy thông tin ảnh" });
+    }
+};
+
 module.exports = {
     handleUpload,
     handleImageUpload,
+    getUserImages,
     upload
 };

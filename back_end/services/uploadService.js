@@ -78,8 +78,8 @@ const uploadService = {
         const ext = path.extname(imageFile.originalname);
         const fileName = `${type}_${userId}_${Date.now()}${ext}`;
         
-        // Lưu ảnh vào thư mục uploads
-        const uploadDir = path.join(__dirname, '../uploads');
+        // Lưu ảnh vào thư mục uploads tương ứng
+        const uploadDir = path.join(__dirname, `../data/upload/${type}`);
         const filePath = path.join(uploadDir, fileName);
 
         // Tạo thư mục nếu chưa tồn tại
@@ -103,8 +103,28 @@ const uploadService = {
 
         return {
             fileName,
-            filePath,
+            filePath: `/data/upload/${type}/${fileName}`, // Trả về đường dẫn tương đối
             type
+        };
+    },
+
+    // Lấy thông tin ảnh của user
+    getUserImages: async (userId) => {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                avatar: true,
+                backgroundImage: true
+            }
+        });
+
+        if (!user) {
+            throw new Error("Không tìm thấy user");
+        }
+
+        return {
+            avatar: user.avatar ? `/data/upload/avatar/${user.avatar}` : null,
+            backgroundImage: user.backgroundImage ? `/data/upload/background/${user.backgroundImage}` : null
         };
     }
 };
