@@ -1,66 +1,194 @@
 import React, { useState, useEffect } from "react";
 import { AuthContext } from "../context/ConverteContext";
+import axios from "axios";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
 
 // Placeholder components cho nội dung bên phải
 // Bạn có thể tách chúng ra thành các file riêng nếu cần
 const ProfileSettings = () => {
-    
-  const [username, setUsername] = useState("CurrentUser");
-  const [avatar, setAvatar] = useState("https://via.placeholder.com/150"); // Placeholder avatar URL
+  const [username, setUsername] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [backgroundImage, setBackgroundImage] = useState("");
   const [dob, setDob] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const handleAvatarChange = (e) => {
-    // Logic để upload và thay đổi avatar
+  // Lấy thông tin user khi component mount
+  useEffect(() => {
+    const fetchUserImages = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("/api/upload/user/images", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const { avatar: avatarPath, backgroundImage: bgPath } = response.data.data;
+        if (avatarPath) setAvatar(avatarPath);
+        if (bgPath) setBackgroundImage(bgPath);
+      } catch (error) {
+        console.error("Lỗi khi lấy thông tin ảnh:", error);
+      }
+    };
+
+    fetchUserImages();
+  }, []);
+
+  const handleAvatarChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setAvatar(event.target.result);
-      };
-      reader.readAsDataURL(e.target.files[0]);
-      console.log("Avatar changed:", e.target.files[0].name);
+      try {
+        setLoading(true);
+        const formData = new FormData();
+        formData.append("image", e.target.files[0]);
+
+        const token = localStorage.getItem("token");
+        const response = await axios.post("/api/upload/image/avatar", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        setAvatar(response.data.data.filePath);
+        setMessage("Cập nhật avatar thành công!");
+      } catch (error) {
+        console.error("Lỗi khi upload avatar:", error);
+        setMessage("Lỗi khi upload avatar: " + (error.response?.data?.error || error.message));
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleProfileUpdate = (e) => {
-    e.preventDefault();
-    // Logic để cập nhật thông tin cá nhân
-    console.log("Updating profile:", { username, dob });
-    alert("Thông tin cá nhân đã được cập nhật (giả lập).");
+  const handleBackgroundChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      try {
+        setLoading(true);
+        const formData = new FormData();
+        formData.append("image", e.target.files[0]);
+
+        const token = localStorage.getItem("token");
+        const response = await axios.post("/api/upload/image/background", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        setBackgroundImage(response.data.data.filePath);
+        setMessage("Cập nhật ảnh nền thành công!");
+      } catch (error) {
+        console.error("Lỗi khi upload ảnh nền:", error);
+        setMessage("Lỗi khi upload ảnh nền: " + (error.response?.data?.error || error.message));
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
-  const handleChangePassword = (e) => {
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      await axios.put(
+        "/api/user/profile",
+        {
+          username,
+          birthdate: dob,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setMessage("Cập nhật thông tin thành công!");
+    } catch (error) {
+      console.error("Lỗi khi cập nhật thông tin:", error);
+      setMessage("Lỗi khi cập nhật thông tin: " + (error.response?.data?.error || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmNewPassword) {
-      alert("Mật khẩu mới không khớp!");
+      setMessage("Mật khẩu mới không khớp!");
       return;
     }
-    // Logic để đổi mật khẩu
-    console.log("Changing password...");
-    alert("Mật khẩu đã được thay đổi (giả lập).");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmNewPassword("");
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      await axios.put(
+        "/api/user/password",
+        {
+          currentPassword,
+          newPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setMessage("Đổi mật khẩu thành công!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (error) {
+      console.error("Lỗi khi đổi mật khẩu:", error);
+      setMessage("Lỗi khi đổi mật khẩu: " + (error.response?.data?.error || error.message));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="profile-settings">
       <h2>Trang Cá Nhân</h2>
+      {message && <div className="message">{message}</div>}
+      
       <form onSubmit={handleProfileUpdate} className="profile-form">
         <div className="form-group avatar-group">
-          <label htmlFor="avatar-upload"></label>
-          <img src={avatar} alt="User Avatar" className="current-avatar" />
+          <label htmlFor="avatar-upload">Ảnh đại diện:</label>
+          <img 
+            src={avatar || "https://via.placeholder.com/150"} 
+            alt="User Avatar" 
+            className="current-avatar" 
+          />
           <input
             type="file"
             id="avatar-upload"
             accept="image/*"
             onChange={handleAvatarChange}
+            disabled={loading}
           />
           <small>Nhấp vào ảnh để thay đổi hoặc chọn file mới.</small>
         </div>
+
+        <div className="form-group">
+          <label htmlFor="background-upload">Ảnh nền:</label>
+          <img 
+            src={backgroundImage || "https://via.placeholder.com/300x150"} 
+            alt="Background" 
+            className="current-background" 
+          />
+          <input
+            type="file"
+            id="background-upload"
+            accept="image/*"
+            onChange={handleBackgroundChange}
+            disabled={loading}
+          />
+          <small>Chọn ảnh nền mới.</small>
+        </div>
+
         <div className="form-group">
           <label htmlFor="username">Username:</label>
           <input
@@ -68,8 +196,10 @@ const ProfileSettings = () => {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            disabled={loading}
           />
         </div>
+
         <div className="form-group">
           <label htmlFor="dob">Ngày sinh:</label>
           <input
@@ -77,9 +207,13 @@ const ProfileSettings = () => {
             id="dob"
             value={dob}
             onChange={(e) => setDob(e.target.value)}
+            disabled={loading}
           />
         </div>
-        <button type="submit">Lưu thay đổi</button>
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Đang xử lý..." : "Lưu thay đổi"}
+        </button>
       </form>
 
       <hr />
@@ -94,6 +228,7 @@ const ProfileSettings = () => {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
+            disabled={loading}
           />
         </div>
         <div className="form-group">
@@ -104,6 +239,7 @@ const ProfileSettings = () => {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
+            disabled={loading}
           />
         </div>
         <div className="form-group">
@@ -114,9 +250,12 @@ const ProfileSettings = () => {
             value={confirmNewPassword}
             onChange={(e) => setConfirmNewPassword(e.target.value)}
             required
+            disabled={loading}
           />
         </div>
-        <button type="submit">Đổi mật khẩu</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Đang xử lý..." : "Đổi mật khẩu"}
+        </button>
       </form>
     </div>
   );

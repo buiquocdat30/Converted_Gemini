@@ -7,6 +7,7 @@ const converteRoute = require("./routes/converteRoute");
 const authRoute = require("./routes/authRoute");
 const userApiKeyRoute = require("./routes/userApiKeyRoute");
 const userLibraryRoute = require("./routes/userLibraryRoute");
+const path = require("path");
 
 //quản lý admin-panel
 const providerRoutes = require('./admin/adminRoutes/providerRoutes');
@@ -49,6 +50,9 @@ app.use('/admin/models', modelRoutes);
 app.use('/admin/default-keys', defaultKeyRoutes);
 app.use('/admin/han-viet', tudienRoutes);
 app.use('/admin/users', userRoutes);
+
+// Phục vụ các file tĩnh từ thư mục data/upload
+app.use('/data/upload', express.static(path.join(__dirname, 'data/upload')));
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

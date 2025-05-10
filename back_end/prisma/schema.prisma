@@ -21,6 +21,7 @@ model User {
   username       String             @unique // Thêm trường username, đảm bảo là duy nhất
   password       String // Thêm trường password
   avatar         String? // Thêm trường avatar, có thể null (người dùng có thể không có avatar)
+  backgroundImage         String? // Thêm trường backgroundImage, có thể null (người dùng có thể không có backgroundImage)
   birthdate      DateTime? // Thêm trường birthdate, có thể null
   libraryStories UserLibraryStory[]
   createdAt      DateTime           @default(now())
