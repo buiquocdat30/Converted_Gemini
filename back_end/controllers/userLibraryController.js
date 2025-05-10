@@ -1,21 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const userLibraryService = require('../services/userLibraryService');
 
 const userLibraryController = {
     // Lấy tất cả truyện của user
     getAllStories: async (req, res) => {
         try {
             const userId = req.user.id;
-            const stories = await prisma.userLibraryStory.findMany({
-                where: { userId },
-                include: {
-                    chapters: {
-                        include: {
-                            translation: true
-                        }
-                    }
-                }
-            });
+            const stories = await userLibraryService.getAllStories(userId);
             res.json(stories);
         } catch (error) {
             console.error('Error getting stories:', error);
@@ -29,19 +19,7 @@ const userLibraryController = {
             const { id } = req.params;
             const userId = req.user.id;
 
-            const story = await prisma.userLibraryStory.findFirst({
-                where: {
-                    id,
-                    userId
-                },
-                include: {
-                    chapters: {
-                        include: {
-                            translation: true
-                        }
-                    }
-                }
-            });
+            const story = await userLibraryService.getStoryById(id, userId);
 
             if (!story) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
@@ -60,12 +38,10 @@ const userLibraryController = {
             const userId = req.user.id;
             const { name, author } = req.body;
 
-            const newStory = await prisma.userLibraryStory.create({
-                data: {
-                    name,
-                    author,
-                    userId
-                }
+            const newStory = await userLibraryService.createStory({
+                name,
+                author,
+                userId
             });
 
             res.status(201).json(newStory);
@@ -82,16 +58,9 @@ const userLibraryController = {
             const userId = req.user.id;
             const { name, author } = req.body;
 
-            const updatedStory = await prisma.userLibraryStory.updateMany({
-                where: {
-                    id,
-                    userId
-                },
-                data: {
-                    name,
-                    author,
-                    updatedAt: new Date()
-                }
+            const updatedStory = await userLibraryService.updateStory(id, userId, {
+                name,
+                author
             });
 
             if (updatedStory.count === 0) {
@@ -111,12 +80,7 @@ const userLibraryController = {
             const { id } = req.params;
             const userId = req.user.id;
 
-            const deletedStory = await prisma.userLibraryStory.deleteMany({
-                where: {
-                    id,
-                    userId
-                }
-            });
+            const deletedStory = await userLibraryService.deleteStory(id, userId);
 
             if (deletedStory.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
@@ -135,22 +99,7 @@ const userLibraryController = {
             const { storyId } = req.params;
             const userId = req.user.id;
 
-            const chapters = await prisma.userLibraryChapter.findMany({
-                where: {
-                    story: {
-                        id: storyId,
-                        userId
-                    }
-                },
-                include: {
-                    translation: true,
-                    versions: true
-                },
-                orderBy: {
-                    chapterNumber: 'asc'
-                }
-            });
-
+            const chapters = await userLibraryService.getChapters(storyId, userId);
             res.json(chapters);
         } catch (error) {
             console.error('Error getting chapters:', error);
@@ -166,35 +115,16 @@ const userLibraryController = {
             const userId = req.user.id;
 
             // Kiểm tra truyện tồn tại và thuộc về user
-            const story = await prisma.userLibraryStory.findFirst({
-                where: {
-                    id: storyId,
-                    userId
-                }
-            });
+            const story = await userLibraryService.getStoryById(storyId, userId);
 
             if (!story) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
             }
 
-            // Kiểm tra số chương đã tồn tại chưa
-            const existingChapter = await prisma.userLibraryChapter.findFirst({
-                where: {
-                    storyId,
-                    chapterNumber
-                }
-            });
-
-            if (existingChapter) {
-                return res.status(400).json({ error: 'Số chương đã tồn tại' });
-            }
-
-            const newChapter = await prisma.userLibraryChapter.create({
-                data: {
-                    storyId,
-                    chapterNumber,
-                    rawText
-                }
+            const newChapter = await userLibraryService.addChapter({
+                storyId,
+                chapterNumber,
+                rawText
             });
 
             res.status(201).json(newChapter);
@@ -211,19 +141,12 @@ const userLibraryController = {
             const { rawText } = req.body;
             const userId = req.user.id;
 
-            const updatedChapter = await prisma.userLibraryChapter.updateMany({
-                where: {
-                    storyId,
-                    chapterNumber: parseInt(chapterNumber),
-                    story: {
-                        userId
-                    }
-                },
-                data: {
-                    rawText,
-                    updatedAt: new Date()
-                }
-            });
+            const updatedChapter = await userLibraryService.updateChapter(
+                storyId,
+                chapterNumber,
+                userId,
+                { rawText }
+            );
 
             if (updatedChapter.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy chương' });
@@ -242,15 +165,11 @@ const userLibraryController = {
             const { storyId, chapterNumber } = req.params;
             const userId = req.user.id;
 
-            const deletedChapter = await prisma.userLibraryChapter.deleteMany({
-                where: {
-                    storyId,
-                    chapterNumber: parseInt(chapterNumber),
-                    story: {
-                        userId
-                    }
-                }
-            });
+            const deletedChapter = await userLibraryService.deleteChapter(
+                storyId,
+                chapterNumber,
+                userId
+            );
 
             if (deletedChapter.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy chương' });
