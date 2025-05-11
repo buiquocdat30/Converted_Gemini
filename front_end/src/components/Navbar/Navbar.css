@@ -77,18 +77,39 @@ menu người dùng sau khi đã đăng nhập */
     width: 100%;
 }
 
+.user-avatar-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.username-text {
+    font-size: 14px;
+    color: #333;
+}
+
 .user-button {
-    background-color: #22a332;
-    color: white;
+    display: flex;
+    align-items: center;
+    padding: 4px 12px;
     border: none;
-    padding: 20px 14px;
-    border-radius: 15px;
+    background: transparent;
     cursor: pointer;
-    font-weight: bold;
+    transition: all 0.3s ease;
 }
 
 .user-button:hover {
-    background-color: #159640;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
 }
 
 .user-dropdown {

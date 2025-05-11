@@ -24,6 +24,9 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 
+// Phục vụ các file tĩnh từ thư mục data/upload
+app.use("/data/upload", express.static(path.join(__dirname, "data/upload")));
+
 // Tăng giới hạn kích thước của payload cho phép
 app.use(bodyParser.json({ limit: "100mb" }));
 // Giới hạn 50MB cho JSON body
@@ -54,9 +57,6 @@ app.use("/admin/models", modelRoutes);
 app.use("/admin/default-keys", defaultKeyRoutes);
 app.use("/admin/han-viet", tudienRoutes);
 app.use("/admin/users", userRoutes);
-
-// Phục vụ các file tĩnh từ thư mục data/upload
-app.use("/data/upload", express.static(path.join(__dirname, "data/upload")));
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
