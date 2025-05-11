@@ -5,6 +5,7 @@ const uploadRoute = require("./routes/uploadRoute");
 const translateRoute = require("./routes/translateRoute");
 const converteRoute = require("./routes/converteRoute");
 const authRoute = require("./routes/authRoute");
+const userRoute = require("./routes/userRoute");
 const userApiKeyRoute = require("./routes/userApiKeyRoute");
 const userLibraryRoute = require("./routes/userLibraryRoute");
 const path = require("path");

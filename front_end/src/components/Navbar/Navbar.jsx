@@ -1,5 +1,5 @@
 // Navbar.js
-import React, { useState, useRef,  useContext } from "react";
+import React, { useState, useRef, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import "./Navbar.css";
@@ -7,7 +7,7 @@ import logo from "../../assets/icon.png";
 import { AuthContext } from "../../context/ConverteContext";
 
 const Navbar = () => {
-  const { isLoggedIn, onLogout, username, menu, setMenu } =
+  const { isLoggedIn, onLogout, userData, menu, setMenu } =
     useContext(AuthContext);
   const menuRef = useRef();
   const navigate = useNavigate();
@@ -60,14 +60,15 @@ const Navbar = () => {
         {isLoggedIn ? (
           <div className="user-menu">
             <button onClick={() => setOpen(!open)} className="user-button">
-              👤 {username}
+              👤 {userData.username}
+              {console.log("userData.username:", userData.username)}
             </button>
             {open && (
               <div className="user-dropdown">
-                <p className="dropdown-greeting">👋 Xin chào, {username}!</p>
-                <Link to="/user">
-                  Trang cá nhân
-                </Link>
+                <p className="dropdown-greeting">
+                  👋 Xin chào, {userData.username}!
+                </p>
+                <Link to="/user">Trang cá nhân</Link>
                 <Link to="/tu-truyen" className="dropdown-link">
                   📚 Tủ truyện
                 </Link>
