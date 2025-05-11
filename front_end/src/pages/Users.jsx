@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
@@ -6,7 +6,9 @@ import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và vi�
 // Placeholder components cho nội dung bên phải
 // Bạn có thể tách chúng ra thành các file riêng nếu cần
 const ProfileSettings = () => {
-  const [username, setUsername] = useState("");
+  const { isLoggedIn, username, setUsername, onLogin, onLogout } =
+    useContext(AuthContext);
+  //const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState("");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [dob, setDob] = useState("");
@@ -26,7 +28,8 @@ const ProfileSettings = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        const { avatar: avatarPath, backgroundImage: bgPath } = response.data.data;
+        const { avatar: avatarPath, backgroundImage: bgPath } =
+          response.data.data;
         if (avatarPath) setAvatar(avatarPath);
         if (bgPath) setBackgroundImage(bgPath);
       } catch (error) {
@@ -45,49 +48,63 @@ const ProfileSettings = () => {
         formData.append("image", e.target.files[0]);
 
         const token = localStorage.getItem("token");
-        const response = await axios.post("/api/upload/image/avatar", formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        const response = await axios.post(
+          "/api/upload/image/avatar",
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
 
         setAvatar(response.data.data.filePath);
         setMessage("Cập nhật avatar thành công!");
       } catch (error) {
         console.error("Lỗi khi upload avatar:", error);
-        setMessage("Lỗi khi upload avatar: " + (error.response?.data?.error || error.message));
+        setMessage(
+          "Lỗi khi upload avatar: " +
+            (error.response?.data?.error || error.message)
+        );
       } finally {
         setLoading(false);
       }
     }
   };
 
-  const handleBackgroundChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      try {
-        setLoading(true);
-        const formData = new FormData();
-        formData.append("image", e.target.files[0]);
+  // const handleBackgroundChange = async (e) => {
+  //   if (e.target.files && e.target.files[0]) {
+  //     try {
+  //       setLoading(true);
+  //       const formData = new FormData();
+  //       formData.append("image", e.target.files[0]);
 
-        const token = localStorage.getItem("token");
-        const response = await axios.post("/api/upload/image/background", formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
+  //       const token = localStorage.getItem("token");
+  //       const response = await axios.post(
+  //         "/api/upload/image/background",
+  //         formData,
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //             "Content-Type": "multipart/form-data",
+  //           },
+  //         }
+  //       );
 
-        setBackgroundImage(response.data.data.filePath);
-        setMessage("Cập nhật ảnh nền thành công!");
-      } catch (error) {
-        console.error("Lỗi khi upload ảnh nền:", error);
-        setMessage("Lỗi khi upload ảnh nền: " + (error.response?.data?.error || error.message));
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+  //       setBackgroundImage(response.data.data.filePath);
+  //       setMessage("Cập nhật ảnh nền thành công!");
+  //     } catch (error) {
+  //       console.error("Lỗi khi upload ảnh nền:", error);
+  //       setMessage(
+  //         "Lỗi khi upload ảnh nền: " +
+  //           (error.response?.data?.error || error.message)
+  //       );
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
+  // };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -109,7 +126,10 @@ const ProfileSettings = () => {
       setMessage("Cập nhật thông tin thành công!");
     } catch (error) {
       console.error("Lỗi khi cập nhật thông tin:", error);
-      setMessage("Lỗi khi cập nhật thông tin: " + (error.response?.data?.error || error.message));
+      setMessage(
+        "Lỗi khi cập nhật thông tin: " +
+          (error.response?.data?.error || error.message)
+      );
     } finally {
       setLoading(false);
     }
@@ -143,7 +163,10 @@ const ProfileSettings = () => {
       setConfirmNewPassword("");
     } catch (error) {
       console.error("Lỗi khi đổi mật khẩu:", error);
-      setMessage("Lỗi khi đổi mật khẩu: " + (error.response?.data?.error || error.message));
+      setMessage(
+        "Lỗi khi đổi mật khẩu: " +
+          (error.response?.data?.error || error.message)
+      );
     } finally {
       setLoading(false);
     }
@@ -153,14 +176,14 @@ const ProfileSettings = () => {
     <div className="profile-settings">
       <h2>Trang Cá Nhân</h2>
       {message && <div className="message">{message}</div>}
-      
+
       <form onSubmit={handleProfileUpdate} className="profile-form">
         <div className="form-group avatar-group">
           <label htmlFor="avatar-upload">Ảnh đại diện:</label>
-          <img 
-            src={avatar || "https://via.placeholder.com/150"} 
-            alt="User Avatar" 
-            className="current-avatar" 
+          <img
+            src={avatar || "https://via.placeholder.com/150"}
+            alt="User Avatar"
+            className="current-avatar"
           />
           <input
             type="file"
@@ -170,23 +193,6 @@ const ProfileSettings = () => {
             disabled={loading}
           />
           <small>Nhấp vào ảnh để thay đổi hoặc chọn file mới.</small>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="background-upload">Ảnh nền:</label>
-          <img 
-            src={backgroundImage || "https://via.placeholder.com/300x150"} 
-            alt="Background" 
-            className="current-background" 
-          />
-          <input
-            type="file"
-            id="background-upload"
-            accept="image/*"
-            onChange={handleBackgroundChange}
-            disabled={loading}
-          />
-          <small>Chọn ảnh nền mới.</small>
         </div>
 
         <div className="form-group">
@@ -211,7 +217,7 @@ const ProfileSettings = () => {
           />
         </div>
 
-        <button type="submit" disabled={loading}>
+        <button className="use-btn" type="submit" disabled={loading}>
           {loading ? "Đang xử lý..." : "Lưu thay đổi"}
         </button>
       </form>
@@ -253,7 +259,7 @@ const ProfileSettings = () => {
             disabled={loading}
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button className="use-btn" type="submit" disabled={loading}>
           {loading ? "Đang xử lý..." : "Đổi mật khẩu"}
         </button>
       </form>
@@ -441,7 +447,11 @@ const KeyManagement = () => {
   return (
     <div className="key-management">
       <h2>Quản Lý Khóa (API Key Gemini)</h2>
-      <button onClick={handleAddKey} style={{ marginBottom: "20px" }}>
+      <button
+        className="use-btn"
+        onClick={handleAddKey}
+        style={{ marginBottom: "20px" }}
+      >
         Thêm Key Mới
       </button>
       <table>
@@ -466,7 +476,12 @@ const KeyManagement = () => {
               <td>{key.usage}</td>
               <td className={`status-${key.status}`}>{key.status}</td>
               <td>
-                <button onClick={() => handleRemoveKey(key.id)}>Xóa</button>
+                <button
+                  className="use-btn"
+                  onClick={() => handleRemoveKey(key.id)}
+                >
+                  Xóa
+                </button>
                 {/* Thêm nút sửa nếu cần */}
               </td>
             </tr>
@@ -527,6 +542,7 @@ const InterfaceSettings = ({
         )}
         <input type="file" accept="image/*" onChange={handleBgUpload} />
         <button
+          className="use-btn"
           onClick={() => onBackgroundChange("")}
           disabled={!currentBackground}
         >
