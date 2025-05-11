@@ -130,7 +130,7 @@ model Model {
   label       String
   description String
   provider    Provider @relation(fields: [providerId], references: [id])
-  userApiKey  UserApiKey[]
+
 
   @@unique([providerId, value]) // Đảm bảo mỗi model value là duy nhất trong một provider
   @@map("Model") // Ánh xạ model Model tới collection "Model" trong MongoDB

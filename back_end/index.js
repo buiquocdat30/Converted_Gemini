@@ -10,11 +10,11 @@ const userLibraryRoute = require("./routes/userLibraryRoute");
 const path = require("path");
 
 //quản lý admin-panel
-const providerRoutes = require('./admin/adminRoutes/providerRoutes');
-const modelRoutes = require('./admin/adminRoutes/modelRoutes');
-const defaultKeyRoutes = require('./admin/adminRoutes/defaultKeyRoutes');
-const tudienRoutes = require('./admin/adminRoutes/tudienRoutes');
-const userRoutes = require('./admin/adminRoutes/userRoutes');
+const providerRoutes = require("./admin/adminRoutes/providerRoutes");
+const modelRoutes = require("./admin/adminRoutes/modelRoutes");
+const defaultKeyRoutes = require("./admin/adminRoutes/defaultKeyRoutes");
+const tudienRoutes = require("./admin/adminRoutes/tudienRoutes");
+const userRoutes = require("./admin/adminRoutes/userRoutes");
 
 require("dotenv").config();
 
@@ -40,19 +40,22 @@ app.use("/auth", authRoute);
 //coverte file
 app.use("/converte", converteRoute);
 
+//quản lý user
+app.use("/user", userRoute);
+
 // Quản lý tài nguyên của user
-app.use("/user/keys", userApiKeyRoute);     // API keys của user
+app.use("/user/keys", userApiKeyRoute); // API keys của user
 app.use("/user/library", userLibraryRoute); // Thư viện truyện của user
 
 //quản lý admin-panel
-app.use('/admin/providers', providerRoutes);
-app.use('/admin/models', modelRoutes);
-app.use('/admin/default-keys', defaultKeyRoutes);
-app.use('/admin/han-viet', tudienRoutes);
-app.use('/admin/users', userRoutes);
+app.use("/admin/providers", providerRoutes);
+app.use("/admin/models", modelRoutes);
+app.use("/admin/default-keys", defaultKeyRoutes);
+app.use("/admin/han-viet", tudienRoutes);
+app.use("/admin/users", userRoutes);
 
 // Phục vụ các file tĩnh từ thư mục data/upload
-app.use('/data/upload', express.static(path.join(__dirname, 'data/upload')));
+app.use("/data/upload", express.static(path.join(__dirname, "data/upload")));
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
