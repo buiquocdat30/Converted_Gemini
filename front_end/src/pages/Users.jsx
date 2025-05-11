@@ -16,6 +16,10 @@ const ProfileSettings = () => {
   } = useContext(AuthContext);
 
   const [username, setUsername] = useState(userData.username || "");
+  const [avatar, setAvatar] = useState(
+    `http://localhost:8000/data/upload/avatar/${userData.avatar}`
+  );
+  const defaultAvatar = "https://www.w3schools.com/howto/img_avatar.png";
   const [dob, setDob] = useState(userData.birthdate || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -25,6 +29,7 @@ const ProfileSettings = () => {
   useEffect(() => {
     setUsername(userData.username || "");
     setDob(userData.birthdate || "");
+    setAvatar(`http://localhost:8000/data/upload/avatar/${userData.avatar}`);
   }, [userData]);
 
   const handleAvatarChange = async (e) => {
@@ -111,7 +116,7 @@ const ProfileSettings = () => {
         <div className="form-group avatar-group">
           <label htmlFor="avatar-upload">Ảnh đại diện:</label>
           <img
-            src={userData.avatar || "https://via.placeholder.com/150"}
+            src={avatar || defaultAvatar}
             alt="User Avatar"
             className="current-avatar"
           />
@@ -488,15 +493,17 @@ const InterfaceSettings = ({
 const Users = () => {
   const [activeMenu, setActiveMenu] = useState("profile"); // 'profile', 'translated', 'translating', 'keys', 'interface'
   const [isTruyenDropdownOpen, setIsTruyenDropdownOpen] = useState(false);
-  const [userData, setUserData] = useState({
-    name: "Tên User Mẫu",
-    avatar: "https://via.placeholder.com/40", // URL avatar mẫu
-  });
+  const { userData } = useContext(AuthContext);
+  const [username, setUsername] = useState(userData.username || "");
+  const [avatar, setAvatar] = useState(
+    `http://localhost:8000/data/upload/avatar/${userData.avatar}`
+  );
+  const defaultAvatar = "https://www.w3schools.com/howto/img_avatar.png";
 
   // Quản lý theme và background
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light"
-  ); // Mặc định là light, hoặc lấy từ localStorage
+  );
   const [backgroundImage, setBackgroundImage] = useState(
     () => localStorage.getItem("backgroundImage") || ""
   );
@@ -517,7 +524,10 @@ const Users = () => {
     document.body.style.backgroundAttachment = "fixed"; // tùy chọn
     localStorage.setItem("backgroundImage", backgroundImage); // Lưu lựa chọn background
   }, [backgroundImage]);
-
+  useEffect(() => {
+    setUsername(userData.username || "");
+    setAvatar(`http://localhost:8000/data/upload/avatar/${userData.avatar}`);
+  }, [userData]);
   const handleMenuClick = (menuItem) => {
     setActiveMenu(menuItem);
     if (menuItem !== "translated" && menuItem !== "translating") {
@@ -570,12 +580,8 @@ const Users = () => {
           className="user-info-menu"
           onClick={() => handleMenuClick("profile")}
         >
-          <img
-            src={userData.avatar}
-            alt="User Avatar"
-            className="menu-avatar"
-          />
-          <span>{userData.name}</span>
+          <img src={avatar} alt="User Avatar" className="menu-avatar" />
+          <span>{userData.username}</span>
         </div>
         <div
           className={`menu-item ${activeMenu === "profile" ? "active" : ""}`}

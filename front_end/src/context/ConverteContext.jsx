@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth-token");
     if (token) {
       setIsLoggedIn(true);
       fetchUserData(token);
@@ -68,22 +68,38 @@ export const AuthProvider = ({ children }) => {
   const updateUserProfile = async (updateData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        "http://localhost:8000/user/profile",
-        updateData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const token = localStorage.getItem("auth-token");
 
-      if (response.data) {
-        setUserData((prev) => ({
-          ...prev,
-          ...response.data,
-        }));
+      // Kiểm tra xem có phải là cập nhật mật khẩu không
+      if (updateData.currentPassword && updateData.newPassword) {
+        // Nếu có currentPassword và newPassword thì gọi API đổi mật khẩu
+        const response = await axios.put(
+          "http://localhost:8000/user/change-password",
+          updateData,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        return response.data;
+      } else {
+        // Nếu không có password thì gọi API cập nhật thông tin cơ bản
+        const response = await axios.put(
+          "http://localhost:8000/user/profile",
+          updateData,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.data) {
+          setUserData((prev) => ({
+            ...prev,
+            ...response.data,
+          }));
+          await fetchUserData(token);
+        }
+        return response.data;
       }
-      return response.data;
     } catch (err) {
       console.error("Lỗi khi cập nhật thông tin:", err);
       setError(err.message);
@@ -97,7 +113,7 @@ export const AuthProvider = ({ children }) => {
   const updateAvatar = async (formData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth-token");
       const response = await axios.post(
         "http://localhost:8000/upload/image/avatar",
         formData,
@@ -110,10 +126,17 @@ export const AuthProvider = ({ children }) => {
       );
 
       if (response.data) {
+        // Log để kiểm tra response
+        console.log("Avatar update response:", response.data);
+
+        // Cập nhật userData với avatar mới
         setUserData((prev) => ({
           ...prev,
-          avatar: response.data.data.filePath,
+          avatar: response.data.filePath || response.data.data.filePath,
         }));
+
+        // Fetch lại toàn bộ thông tin user để đảm bảo dữ liệu đồng bộ
+        await fetchUserData(token);
       }
       return response.data;
     } catch (err) {
@@ -129,7 +152,7 @@ export const AuthProvider = ({ children }) => {
   const updateBackground = async (formData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth-token");
       const response = await axios.post(
         "http://localhost:8000/upload/image/background",
         formData,
@@ -161,7 +184,7 @@ export const AuthProvider = ({ children }) => {
   const addApiKey = async (keyData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth-token");
       const response = await axios.post(
         "http://localhost:8000/user/keys",
         keyData,
@@ -189,7 +212,7 @@ export const AuthProvider = ({ children }) => {
   const removeApiKey = async (keyId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth-token");
       await axios.delete(`http://localhost:8000/user/keys/${keyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -213,7 +236,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const onLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("auth-token");
     setIsLoggedIn(false);
     setUserData({
       id: "",

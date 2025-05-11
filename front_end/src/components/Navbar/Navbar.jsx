@@ -57,13 +57,26 @@ const Navbar = () => {
         </li>
       </ul>
       <div className="nav-login">
-        {isLoggedIn && !loading ? (
+        {isLoggedIn ? (
           <div className="user-menu">
             <button onClick={() => setOpen(!open)} className="user-button">
-              👤 {userData.username}
-              {console.log("userData.username:", userData.username)}
+              {loading ? (
+                "Loading..."
+              ) : (
+                <div className="user-avatar-container">
+                  <img
+                    src={
+                      userData.avatar
+                        ? `http://localhost:8000/data/upload/avatar/${userData.avatar}`
+                        : "https://www.w3schools.com/howto/img_avatar.png"
+                    }
+                    alt="User Avatar"
+                    className="user-avatar"
+                  />
+                </div>
+              )}
             </button>
-            {open && (
+            {open && !loading && (
               <div className="user-dropdown">
                 <p className="dropdown-greeting">
                   👋 Xin chào, {userData.username}!

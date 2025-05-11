@@ -180,8 +180,8 @@ body.dark .users-page,
 }
 
 .menu-avatar {
-    width: 40px;
-    height: 40px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     margin-right: 15px;
     /* Tăng khoảng cách */
@@ -516,8 +516,8 @@ input[type="file"] {
 
 /* Avatar styles */
 .current-avatar {
-    width: 100px;
-    height: 100px;
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
     object-fit: cover;
     margin: 10px 0;
