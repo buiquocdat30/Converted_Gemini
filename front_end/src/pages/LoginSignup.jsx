@@ -13,7 +13,7 @@ import { AuthContext } from "../context/ConverteContext";
 import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
 
 const LoginSignup = () => {
-  const { onLogin } = useContext(AuthContext);
+  const { onLogin, userData } = useContext(AuthContext);
   const [state, setState] = useState("Login");
   const dataDetails = { username: "", password: "", email: "" };
   const [formData, setFormData] = useState(dataDetails);
