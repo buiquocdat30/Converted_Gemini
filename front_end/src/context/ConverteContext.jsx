@@ -1,71 +1,250 @@
 // context/ConverteContext.jsx
 import React, { createContext, useState, useEffect } from "react";
+import axios from "axios";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-
   const [menu, setMenu] = useState("home");
+
+  // User data state
   const [userData, setUserData] = useState({
-    username: "User",
-    password: "",
-    avatar: "https://via.placeholder.com/40", // URL avatar mẫu
-    backgroundImg: "https://via.placeholder.com/40",
-    birthDay: "",
-    libraryStories: [],
+    id: "",
+    username: "",
+    email: "",
+    avatar: "",
+    backgroundImage: "",
+    birthdate: "",
+    libraryStories: [], // Truyện trong thư viện
+    userApiKeys: [], // API keys của user
+    createdAt: "",
+    updatedAt: "",
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem("auth-token");
-    const storedUsername = localStorage.getItem("username");
+  // Loading state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
     if (token) {
       setIsLoggedIn(true);
-      if (storedUsername) {
-        setUsername(storedUsername);
-        fetchUserData(storedUsername, token);
-      }
+      fetchUserData(token);
     }
   }, []);
 
-  const fetchUserData = async (username, token) => {
+  const fetchUserData = async (token) => {
     try {
-      const response = await axios.get(
-        `http://localhost:8000/api/user/${username}`,
+      setLoading(true);
+      const response = await axios.get("http://localhost:8000/user/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("response:", response);
+      if (response.data) {
+        setUserData({
+          id: response.data.id,
+          username: response.data.username,
+          email: response.data.email,
+          avatar: response.data.avatar || "",
+          backgroundImage: response.data.backgroundImage || "",
+          birthdate: response.data.birthdate || "",
+          libraryStories: response.data.libraryStories || [],
+          userApiKeys: response.data.UserApiKey || [],
+          createdAt: response.data.createdAt,
+          updatedAt: response.data.updatedAt,
+        });
+      }
+      console.log("userData:", userData);
+    } catch (err) {
+      console.error("Lỗi khi lấy thông tin user:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cập nhật thông tin user
+  const updateUserProfile = async (updateData) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        "http://localhost:8000/user/profile",
+        updateData,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setUserData(response.data);
+
+      if (response.data) {
+        setUserData((prev) => ({
+          ...prev,
+          ...response.data,
+        }));
+      }
+      return response.data;
     } catch (err) {
-      console.error("Lỗi lấy user data:", err);
+      console.error("Lỗi khi cập nhật thông tin:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const onLogin = (username) => {
-    setUsername(username);
+  // Cập nhật avatar
+  const updateAvatar = async (formData) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:8000/upload/image/avatar",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data) {
+        setUserData((prev) => ({
+          ...prev,
+          avatar: response.data.data.filePath,
+        }));
+      }
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi cập nhật avatar:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cập nhật background
+  const updateBackground = async (formData) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:8000/upload/image/background",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data) {
+        setUserData((prev) => ({
+          ...prev,
+          backgroundImage: response.data.data.filePath,
+        }));
+      }
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi cập nhật background:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quản lý API keys
+  const addApiKey = async (keyData) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:8000/user/keys",
+        keyData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data) {
+        setUserData((prev) => ({
+          ...prev,
+          userApiKeys: [...prev.userApiKeys, response.data],
+        }));
+      }
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi thêm API key:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeApiKey = async (keyId) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:8000/user/keys/${keyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUserData((prev) => ({
+        ...prev,
+        userApiKeys: prev.userApiKeys.filter((key) => key.id !== keyId),
+      }));
+    } catch (err) {
+      console.error("Lỗi khi xóa API key:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onLogin = (userData) => {
     setIsLoggedIn(true);
+    setUserData(userData);
   };
 
   const onLogout = () => {
-    localStorage.removeItem("auth-token");
-    localStorage.removeItem("username");
-    setUsername("");
+    localStorage.removeItem("token");
     setIsLoggedIn(false);
+    setUserData({
+      id: "",
+      username: "",
+      email: "",
+      avatar: "",
+      backgroundImage: "",
+      birthdate: "",
+      libraryStories: [],
+      userApiKeys: [],
+      createdAt: "",
+      updatedAt: "",
+    });
   };
 
   return (
     <AuthContext.Provider
       value={{
         isLoggedIn,
-        username,
-        setUsername,
         onLogin,
         onLogout,
         setMenu,
         menu,
+        userData,
+        loading,
+        error,
+        updateUserProfile,
+        updateAvatar,
+        updateBackground,
+        addApiKey,
+        removeApiKey,
       }}
     >
       {children}

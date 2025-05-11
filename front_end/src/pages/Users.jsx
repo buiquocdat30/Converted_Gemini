@@ -6,132 +6,72 @@ import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và vi�
 // Placeholder components cho nội dung bên phải
 // Bạn có thể tách chúng ra thành các file riêng nếu cần
 const ProfileSettings = () => {
-  const { isLoggedIn, username, setUsername, onLogin, onLogout } =
-    useContext(AuthContext);
-  //const [username, setUsername] = useState("");
-  const [avatar, setAvatar] = useState("");
-  const [backgroundImage, setBackgroundImage] = useState("");
-  const [dob, setDob] = useState("");
+  const {
+    userData,
+    loading,
+    error,
+    updateUserProfile,
+    updateAvatar,
+    updateBackground,
+  } = useContext(AuthContext);
+
+  const [username, setUsername] = useState(userData.username || "");
+  const [dob, setDob] = useState(userData.birthdate || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Lấy thông tin user khi component mount
   useEffect(() => {
-    const fetchUserImages = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get("/api/upload/user/images", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const { avatar: avatarPath, backgroundImage: bgPath } =
-          response.data.data;
-        if (avatarPath) setAvatar(avatarPath);
-        if (bgPath) setBackgroundImage(bgPath);
-      } catch (error) {
-        console.error("Lỗi khi lấy thông tin ảnh:", error);
-      }
-    };
-
-    fetchUserImages();
-  }, []);
+    setUsername(userData.username || "");
+    setDob(userData.birthdate || "");
+  }, [userData]);
 
   const handleAvatarChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       try {
-        setLoading(true);
         const formData = new FormData();
         formData.append("image", e.target.files[0]);
-
-        const token = localStorage.getItem("token");
-        const response = await axios.post(
-          "/api/upload/image/avatar",
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        setAvatar(response.data.data.filePath);
+        await updateAvatar(formData);
         setMessage("Cập nhật avatar thành công!");
       } catch (error) {
-        console.error("Lỗi khi upload avatar:", error);
         setMessage(
           "Lỗi khi upload avatar: " +
             (error.response?.data?.error || error.message)
         );
-      } finally {
-        setLoading(false);
       }
     }
   };
 
-  // const handleBackgroundChange = async (e) => {
-  //   if (e.target.files && e.target.files[0]) {
-  //     try {
-  //       setLoading(true);
-  //       const formData = new FormData();
-  //       formData.append("image", e.target.files[0]);
-
-  //       const token = localStorage.getItem("token");
-  //       const response = await axios.post(
-  //         "/api/upload/image/background",
-  //         formData,
-  //         {
-  //           headers: {
-  //             Authorization: `Bearer ${token}`,
-  //             "Content-Type": "multipart/form-data",
-  //           },
-  //         }
-  //       );
-
-  //       setBackgroundImage(response.data.data.filePath);
-  //       setMessage("Cập nhật ảnh nền thành công!");
-  //     } catch (error) {
-  //       console.error("Lỗi khi upload ảnh nền:", error);
-  //       setMessage(
-  //         "Lỗi khi upload ảnh nền: " +
-  //           (error.response?.data?.error || error.message)
-  //       );
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
-  // };
+  const handleBackgroundChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      try {
+        const formData = new FormData();
+        formData.append("image", e.target.files[0]);
+        await updateBackground(formData);
+        setMessage("Cập nhật ảnh nền thành công!");
+      } catch (error) {
+        setMessage(
+          "Lỗi khi upload ảnh nền: " +
+            (error.response?.data?.error || error.message)
+        );
+      }
+    }
+  };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      await axios.put(
-        "/api/user/profile",
-        {
-          username,
-          birthdate: dob,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await updateUserProfile({
+        username,
+        birthdate: dob,
+      });
       setMessage("Cập nhật thông tin thành công!");
     } catch (error) {
-      console.error("Lỗi khi cập nhật thông tin:", error);
       setMessage(
         "Lỗi khi cập nhật thông tin: " +
           (error.response?.data?.error || error.message)
       );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -143,34 +83,24 @@ const ProfileSettings = () => {
     }
 
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      await axios.put(
-        "/api/user/password",
-        {
-          currentPassword,
-          newPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await updateUserProfile({
+        currentPassword,
+        newPassword,
+      });
       setMessage("Đổi mật khẩu thành công!");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
     } catch (error) {
-      console.error("Lỗi khi đổi mật khẩu:", error);
       setMessage(
         "Lỗi khi đổi mật khẩu: " +
           (error.response?.data?.error || error.message)
       );
-    } finally {
-      setLoading(false);
     }
   };
+
+  if (loading) return <div>Đang tải...</div>;
+  if (error) return <div>Lỗi: {error}</div>;
 
   return (
     <div className="profile-settings">
@@ -181,7 +111,7 @@ const ProfileSettings = () => {
         <div className="form-group avatar-group">
           <label htmlFor="avatar-upload">Ảnh đại diện:</label>
           <img
-            src={avatar || "https://via.placeholder.com/150"}
+            src={userData.avatar || "https://via.placeholder.com/150"}
             alt="User Avatar"
             className="current-avatar"
           />
@@ -400,53 +330,48 @@ const TranslatingStories = () => {
 };
 
 const KeyManagement = () => {
-  // Dữ liệu mẫu, bạn sẽ fetch từ API hoặc state
-  const [keys, setKeys] = useState([
-    {
-      id: "gemini-key-1",
-      rpm: 60,
-      tpd: 1000,
-      rpd: 1000000,
-      usage: 50000,
-      status: "active",
-    },
-    {
-      id: "gemini-key-2",
-      rpm: 60,
-      tpd: 500,
-      rpd: 500000,
-      usage: 450000,
-      status: "near_limit",
-    },
-  ]);
-  // RPM: Requests Per Minute
-  // TPD: Tokens Per Day
-  // RPD: Requests Per Day (thường API key không có RPD, mà là RPM và giới hạn token/ngày hoặc token/phút)
-  // Tôi sẽ dùng RPM và TPD (Tokens Per Day) cho Gemini
+  const { userData, loading, error, addApiKey, removeApiKey } =
+    useContext(AuthContext);
+  const [message, setMessage] = useState("");
 
-  const handleAddKey = () => {
+  const handleAddKey = async () => {
     const newKey = prompt("Nhập API Key mới của Gemini:");
     if (newKey) {
-      setKeys([
-        ...keys,
-        { id: newKey, rpm: 0, tpd: 0, usage: 0, status: "pending" },
-      ]);
-      // Logic gọi API để lưu key mới
-      console.log("Adding new key:", newKey);
+      try {
+        await addApiKey({
+          key: newKey,
+          label: "Key Gemini mới",
+        });
+        setMessage("Thêm key thành công!");
+      } catch (error) {
+        setMessage(
+          "Lỗi khi thêm key: " + (error.response?.data?.error || error.message)
+        );
+      }
     }
   };
 
-  const handleRemoveKey = (keyId) => {
-    if (window.confirm(`Bạn có chắc muốn xóa key ${keyId}?`)) {
-      setKeys(keys.filter((key) => key.id !== keyId));
-      // Logic gọi API để xóa key
-      console.log("Removing key:", keyId);
+  const handleRemoveKey = async (keyId) => {
+    if (window.confirm(`Bạn có chắc muốn xóa key này?`)) {
+      try {
+        await removeApiKey(keyId);
+        setMessage("Xóa key thành công!");
+      } catch (error) {
+        setMessage(
+          "Lỗi khi xóa key: " + (error.response?.data?.error || error.message)
+        );
+      }
     }
   };
+
+  if (loading) return <div>Đang tải...</div>;
+  if (error) return <div>Lỗi: {error}</div>;
 
   return (
     <div className="key-management">
       <h2>Quản Lý Khóa (API Key Gemini)</h2>
+      {message && <div className="message">{message}</div>}
+
       <button
         className="use-btn"
         onClick={handleAddKey}
@@ -458,23 +383,31 @@ const KeyManagement = () => {
         <thead>
           <tr>
             <th>Key ID (một phần)</th>
-            <th>RPM (Requests Per Minute)</th>
-            <th>TPD (Tokens Per Day)</th>
-            {/* <th>RPD (Requests Per Day)</th> // Thường không có, thay bằng Tokens Per Minute nếu có */}
-            <th>Đã sử dụng (Tokens)</th>
+            <th>Label</th>
             <th>Trạng thái</th>
+            <th>Số lần sử dụng</th>
+            <th>Lần sử dụng cuối</th>
             <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
-          {keys.map((key) => (
+          {userData.userApiKeys.map((key) => (
             <tr key={key.id}>
-              <td>{key.id.substring(0, 10)}...</td>
-              <td>{key.rpm}</td>
-              <td>{key.tpd}</td>
-              {/* <td>{key.rpd}</td> */}
-              <td>{key.usage}</td>
-              <td className={`status-${key.status}`}>{key.status}</td>
+              <td>{key.key.substring(0, 10)}...</td>
+              <td>{key.label || "Không có nhãn"}</td>
+              <td className={`status-${key.status.toLowerCase()}`}>
+                {key.status === "ACTIVE"
+                  ? "Hoạt động"
+                  : key.status === "COOLDOWN"
+                  ? "Đang nghỉ"
+                  : "Đã hết hạn"}
+              </td>
+              <td>{key.usageCount}</td>
+              <td>
+                {key.lastUsedAt
+                  ? new Date(key.lastUsedAt).toLocaleString()
+                  : "Chưa sử dụng"}
+              </td>
               <td>
                 <button
                   className="use-btn"
@@ -482,7 +415,6 @@ const KeyManagement = () => {
                 >
                   Xóa
                 </button>
-                {/* Thêm nút sửa nếu cần */}
               </td>
             </tr>
           ))}
