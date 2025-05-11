@@ -7,7 +7,7 @@ import logo from "../../assets/icon.png";
 import { AuthContext } from "../../context/ConverteContext";
 
 const Navbar = () => {
-  const { isLoggedIn, onLogout, userData, menu, setMenu } =
+  const { isLoggedIn, onLogout, userData, menu, setMenu, loading } =
     useContext(AuthContext);
   const menuRef = useRef();
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const Navbar = () => {
         </li>
       </ul>
       <div className="nav-login">
-        {isLoggedIn ? (
+        {isLoggedIn && !loading ? (
           <div className="user-menu">
             <button onClick={() => setOpen(!open)} className="user-button">
               👤 {userData.username}
