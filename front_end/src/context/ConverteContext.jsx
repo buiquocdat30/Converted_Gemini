@@ -71,7 +71,8 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("auth-token");
 
       // Kiểm tra xem có phải là cập nhật mật khẩu không
-      if (updateData.currentPassword && updateData.newPassword) {
+      if (updateData.newPassword) {
+        console.log("updateData:", updateData.newPassword);
         // Nếu có currentPassword và newPassword thì gọi API đổi mật khẩu
         const response = await axios.put(
           "http://localhost:8000/user/change-password",
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }) => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+        await fetchUserData(token);
         return response.data;
       } else {
         // Nếu không có password thì gọi API cập nhật thông tin cơ bản
@@ -231,8 +233,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const onLogin = (userData) => {
+    if (!userData) return;
+    
     setIsLoggedIn(true);
-    setUserData(userData);
+    setUserData({
+      id: userData.id || "",
+      username: userData.username || "",
+      email: userData.email || "",
+      avatar: userData.avatar || "",
+      backgroundImage: userData.backgroundImage || "",
+      birthdate: userData.birthdate || "",
+      libraryStories: userData.libraryStories || [],
+      userApiKeys: userData.userApiKeys || [],
+      createdAt: userData.createdAt || "",
+      updatedAt: userData.updatedAt || "",
+    });
   };
 
   const onLogout = () => {
@@ -250,6 +265,7 @@ export const AuthProvider = ({ children }) => {
       createdAt: "",
       updatedAt: "",
     });
+    
   };
 
   return (

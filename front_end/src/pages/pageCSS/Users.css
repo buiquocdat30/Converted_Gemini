@@ -555,3 +555,27 @@ input[type="file"] {
 .users-page.dark button:hover:not(:disabled) {
     background-color: #003d82;
 }
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  width: 100%;
+  padding-right: 40px; /* Để chừa chỗ cho icon */
+}
+
+.show-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.show-icon:hover {
+  color: #333;
+}

@@ -11,6 +11,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/ConverteContext";
 import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
+// import instagram_icon from "../Components/Assets/instagram_icon.png";
+// import pintester_icon from "../Components/Assets/pintester_icon.png";
+// import whatsapp_icon from "../Components/Assets/whatsapp_icon.png";
 
 const LoginSignup = () => {
   const { onLogin, userData } = useContext(AuthContext);
@@ -27,23 +30,40 @@ const LoginSignup = () => {
   const login = async () => {
     try {
       console.log("Login Function Executed", formData);
-      const response = await axios.post(
-        "http://localhost:8000/auth/login",
-        formData
-      ); // Sử dụng axios.post với formData
-      console.log("response:", response);
-      const responseData = response.data; // Truy cập dữ liệu từ response.data
+      let responseData;
+      await fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: {
+          Accept: "application/form-data",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+        .then((response) => response.json())
+        .then((data) => (responseData = data));
 
-      console.log("responseData:", responseData);
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
-        localStorage.setItem("username", responseData.username);
+        // Tạo object user từ response data
+        const userData = {
+          id: responseData.id,
+          username: responseData.username,
+          email: responseData.email,
+          avatar: responseData.avatar || "",
+          backgroundImage: responseData.backgroundImage || "",
+          birthdate: responseData.birthdate || "",
+          libraryStories: responseData.libraryStories || [],
+          userApiKeys: responseData.UserApiKey || [],
+          createdAt: responseData.createdAt,
+          updatedAt: responseData.updatedAt,
+        };
+        
         if (onLogin) {
-          onLogin(responseData.username);
+          onLogin(userData);
         }
 
         navigate("/");
-        console.log("Đang nhập thành cmn công");
+        console.log("Đăng nhập thành công");
         alert("Đăng nhập thành công");
       } else {
         alert(responseData.error);
@@ -58,14 +78,38 @@ const LoginSignup = () => {
   const signup = async () => {
     try {
       console.log("Sign Up Function Executed", formData);
-      const response = await axios.post(
-        "http://localhost:8000/auth/signup",
-        formData
-      ); // Sử dụng axios.post
-      const responseData = response.data;
+      let responseData;
+      await fetch("http://localhost:8000/auth/signup", {
+        method: "POST",
+        headers: {
+          Accept: "application/form-data",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+        .then((response) => response.json())
+        .then((data) => (responseData = data));
 
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
+        // Tạo object user từ response data
+        const userData = {
+          id: responseData.id,
+          username: responseData.username,
+          email: responseData.email,
+          avatar: responseData.avatar || "",
+          backgroundImage: responseData.backgroundImage || "",
+          birthdate: responseData.birthdate || "",
+          libraryStories: responseData.libraryStories || [],
+          userApiKeys: responseData.UserApiKey || [],
+          createdAt: responseData.createdAt,
+          updatedAt: responseData.updatedAt,
+        };
+        
+        if (onLogin) {
+          onLogin(userData);
+        }
+
         navigate("/");
         alert("Tạo tài khoản thành công");
       } else {

@@ -92,25 +92,15 @@ class UserService {
   }
 
   // Change password
-  async changePassword(userId, currentPassword, newPassword) {
+  async changePassword(userId, newPassword) {
     try {
-      // Get user with password
+      // Get user
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: {
-          id: true,
-          password: true,
-        },
       });
 
       if (!user) {
         throw new Error("User not found");
-      }
-
-      // Verify current password
-      const isValid = await bcrypt.compare(currentPassword, user.password);
-      if (!isValid) {
-        return false;
       }
 
       // Hash new password
