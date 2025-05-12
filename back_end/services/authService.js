@@ -39,7 +39,8 @@ async function loginUser(email, password) {
     throw new Error("Mật khẩu không đúng");
   }
   const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET,);
-  return { token, username: user.username };
+  return { token, user };
+  
 }
 
 module.exports = { registerUser, loginUser };
