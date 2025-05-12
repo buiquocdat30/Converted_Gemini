@@ -131,18 +131,19 @@ const ProfileSettings = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="username">Username:</label>
+          <label htmlFor="username">Thay đổi tên người dùng</label>
           <input
             type="text"
             id="username"
             value={username}
+            placeholder="Nhập tên người dùng muốn thay đổi..."
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading}
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="dob">Ngày sinh:</label>
+          <label htmlFor="dob">Cập nhật ngày sinh</label>
           <input
             type="date"
             id="dob"
