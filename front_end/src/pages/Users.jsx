@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -582,8 +583,9 @@ const InterfaceSettings = ({
 
 const Users = () => {
   const [activeMenu, setActiveMenu] = useState("profile"); // 'profile', 'translated', 'translating', 'keys', 'interface'
+  const navigate = useNavigate();
   const [isTruyenDropdownOpen, setIsTruyenDropdownOpen] = useState(false);
-  const { userData } = useContext(AuthContext);
+  const { userData, onLogout } = useContext(AuthContext);
   const [username, setUsername] = useState(userData.username || "");
   const [avatar, setAvatar] = useState(
     `http://localhost:8000/data/upload/avatar/${userData.avatar}`
@@ -631,10 +633,11 @@ const Users = () => {
 
   const handleLogout = () => {
     // Logic đăng xuất
+    onLogout();
+    navigate("/");
+    document.body.style.backgroundImage = "";
     console.log("User logged out");
-    alert("Đăng xuất thành công! (giả lập)");
-    // Ví dụ: xóa token, redirect về trang login
-    // window.location.href = '/login';
+    alert("Đăng xuất thành công!");
   };
 
   const renderContent = () => {
@@ -671,7 +674,7 @@ const Users = () => {
           onClick={() => handleMenuClick("profile")}
         >
           <img src={avatar} alt="User Avatar" className="menu-avatar" />
-          <span>{userData.username}</span>
+          <span>{username}</span>
         </div>
         <div
           className={`menu-item ${activeMenu === "profile" ? "active" : ""}`}

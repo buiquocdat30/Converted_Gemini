@@ -13,7 +13,6 @@ const Navbar = () => {
   const timeoutRef = useRef(null);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State cho dialog
-  const [visible, setVisible] = useState(false); // điều khiển class CSS
 
   const dropdown_toggle = (e) => {
     if (!menuRef.current) return;
@@ -23,6 +22,8 @@ const Navbar = () => {
   const handleLogout = () => {
     onLogout();
     navigate("/");
+    console.log("User logged out");
+    alert("Đăng xuất thành công!");
   };
   // Hàm bắt đầu timeout 1s để ẩn
   const startCloseTimer = () => {
@@ -39,17 +40,6 @@ const Navbar = () => {
     return () => clearTimeout(timeoutRef.current); // cleanup khi component unmount
   }, []);
 
-  // Mở dropdown
-  const openMenu = () => {
-    setOpen(true);
-    setVisible(true);
-  };
-
-  // Đóng dropdown mượt
-  const closeMenu = () => {
-    setOpen(false);
-    setTimeout(() => setVisible(false), 1000); // đợi 1s để hiệu ứng hoàn tất
-  };
   return (
     <div className="navbar">
       <div
