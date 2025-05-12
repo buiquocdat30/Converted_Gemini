@@ -112,7 +112,20 @@ menu người dùng sau khi đã đăng nhập */
     border-radius: 20px;
 }
 
+
+
+
+
+
+
+/* Khu vực user-menu */
 .user-dropdown {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    /* THÊM: trượt nhẹ từ trên xuống */
+    transition: opacity 1s ease, visibility 1s ease, transform 1s ease;
+    /* THÊM: hiệu ứng trượt */
     position: absolute;
     top: 120%;
     right: 0;
@@ -123,6 +136,20 @@ menu người dùng sau khi đã đăng nhập */
     padding: 10px 15px;
     z-index: 999;
     min-width: 160px;
+}
+
+.user-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    /* THÊM: vị trí bình thường khi hiện */
+}
+
+.user-dropdown.hide {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    /* THÊM: trượt lên khi ẩn */
 }
 
 .dropdown-greeting {

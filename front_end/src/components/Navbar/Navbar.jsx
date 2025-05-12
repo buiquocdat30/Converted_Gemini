@@ -1,5 +1,5 @@
 // Navbar.js
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import "./Navbar.css";
@@ -9,10 +9,11 @@ import { AuthContext } from "../../context/ConverteContext";
 const Navbar = () => {
   const { isLoggedIn, onLogout, userData, menu, setMenu, loading } =
     useContext(AuthContext);
-  console.log('NavbaruserData',userData)
   const menuRef = useRef();
+  const timeoutRef = useRef(null);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State cho dialog
+  const [visible, setVisible] = useState(false); // điều khiển class CSS
 
   const dropdown_toggle = (e) => {
     if (!menuRef.current) return;
@@ -21,7 +22,33 @@ const Navbar = () => {
   };
   const handleLogout = () => {
     onLogout();
-    navigate("/login");
+    navigate("/");
+  };
+  // Hàm bắt đầu timeout 1s để ẩn
+  const startCloseTimer = () => {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setOpen(false), 1900);
+  };
+
+  // Hàm huỷ timeout nếu người dùng tương tác
+  const cancelCloseTimer = () => {
+    clearTimeout(timeoutRef.current);
+  };
+
+  useEffect(() => {
+    return () => clearTimeout(timeoutRef.current); // cleanup khi component unmount
+  }, []);
+
+  // Mở dropdown
+  const openMenu = () => {
+    setOpen(true);
+    setVisible(true);
+  };
+
+  // Đóng dropdown mượt
+  const closeMenu = () => {
+    setOpen(false);
+    setTimeout(() => setVisible(false), 1000); // đợi 1s để hiệu ứng hoàn tất
   };
   return (
     <div className="navbar">
@@ -63,7 +90,12 @@ const Navbar = () => {
       <div className="nav-login">
         {isLoggedIn ? (
           <div className="user-menu">
-            <button onClick={() => setOpen(!open)} className="user-button">
+            <button
+              onClick={() => setOpen(!open)}
+              onMouseEnter={cancelCloseTimer}
+              onMouseLeave={startCloseTimer}
+              className="user-button"
+            >
               {loading ? (
                 "Loading..."
               ) : (
@@ -80,8 +112,8 @@ const Navbar = () => {
                 </div>
               )}
             </button>
-            {open && !loading && (
-              <div className="user-dropdown">
+            {!loading && (
+              <div className={`user-dropdown ${open ? "show" : "hide"}`}>
                 <p className="dropdown-greeting">
                   👋 Xin chào, {userData.username}!
                 </p>
@@ -100,7 +132,6 @@ const Navbar = () => {
             <button className="login-button">🔐 Đăng nhập</button>
           </Link>
         )}
-
       </div>
     </div>
   );
