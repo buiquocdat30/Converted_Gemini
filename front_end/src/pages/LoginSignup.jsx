@@ -44,7 +44,7 @@ const LoginSignup = () => {
 
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
-        console.log('FE responseData',responseData.user.id)
+        console.log("FE responseData", responseData.user.backgroundImage);
         // Tạo object user từ response data
         const userData = {
           id: responseData.user.id,
@@ -58,10 +58,10 @@ const LoginSignup = () => {
           createdAt: responseData.user.createdAt,
           updatedAt: responseData.user.updatedAt,
         };
-        console.log('Loginsignup userData',userData)
+        console.log("Loginsignup userData", userData);
         if (onLogin) {
           onLogin(userData);
-          console.log('userData',userData)
+          console.log("userData", userData);
         }
 
         navigate("/");
@@ -107,7 +107,7 @@ const LoginSignup = () => {
           createdAt: responseData.createdAt,
           updatedAt: responseData.updatedAt,
         };
-        
+
         if (onLogin) {
           onLogin(userData);
         }
@@ -158,6 +158,11 @@ const LoginSignup = () => {
               name="password"
               value={formData.password}
               onChange={changeHandler}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  state === "Login" ? login() : signup();
+                }
+              }}
               type={showPassword ? "text" : "password"}
               placeholder="Your Password"
             />

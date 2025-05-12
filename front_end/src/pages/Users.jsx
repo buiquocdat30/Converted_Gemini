@@ -22,13 +22,13 @@ const ProfileSettings = () => {
     `http://localhost:8000/data/upload/avatar/${userData.avatar}`
   );
   const defaultAvatar = "https://www.w3schools.com/howto/img_avatar.png";
-  
+
   // Hàm chuyển đổi từ DateTime sang dd/mm/yyyy
   const formatDateToDisplay = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
@@ -36,7 +36,7 @@ const ProfileSettings = () => {
   // Hàm chuyển đổi từ dd/mm/yyyy sang DateTime
   const formatDateToDateTime = (dateString) => {
     if (!dateString) return "";
-    const [day, month, year] = dateString.split('/');
+    const [day, month, year] = dateString.split("/");
     return new Date(year, month - 1, day).toISOString();
   };
 
@@ -50,17 +50,17 @@ const ProfileSettings = () => {
   // Hàm xử lý khi người dùng nhập ngày tháng
   const handleDobChange = (e) => {
     let value = e.target.value;
-    
+
     // Chỉ cho phép nhập số và dấu /
-    value = value.replace(/[^\d/]/g, '');
-    
+    value = value.replace(/[^\d/]/g, "");
+
     // Tự động thêm dấu / sau khi nhập đủ 2 số cho ngày hoặc tháng
-    if (value.length === 2 && !value.includes('/')) {
-      value = value + '/';
-    } else if (value.length === 5 && value.split('/').length === 2) {
-      value = value + '/';
+    if (value.length === 2 && !value.includes("/")) {
+      value = value + "/";
+    } else if (value.length === 5 && value.split("/").length === 2) {
+      value = value + "/";
     }
-    
+
     // Giới hạn độ dài tối đa là 10 ký tự (dd/mm/yyyy)
     if (value.length <= 10) {
       setDob(value);
@@ -96,28 +96,14 @@ const ProfileSettings = () => {
     }
   };
 
-  const handleBackgroundChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      try {
-        const formData = new FormData();
-        formData.append("image", e.target.files[0]);
-        await updateBackground(formData);
-        setMessage("Cập nhật ảnh nền thành công!");
-      } catch (error) {
-        setMessage(
-          "Lỗi khi upload ảnh nền: " +
-            (error.response?.data?.error || error.message)
-        );
-      }
-    }
-  };
-
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    
+
     // Kiểm tra định dạng ngày tháng trước khi gửi
     if (dob && !isValidDateFormat(dob)) {
-      setMessage("Định dạng ngày tháng không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy");
+      setMessage(
+        "Định dạng ngày tháng không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy"
+      );
       return;
     }
 
@@ -504,19 +490,50 @@ const InterfaceSettings = ({
   currentBackground,
   onBackgroundChange,
 }) => {
+  const {
+    userData,
+    loading,
+    error,
+    updateUserProfile,
+    updateAvatar,
+    updateBackground,
+  } = useContext(AuthContext);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [message, setMessage] = useState("");
+
   const handleBgUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         onBackgroundChange(event.target.result); // Truyền URL data của ảnh
       };
-      reader.readAsDataURL(e.target.files[0]);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveBackground = async () => {
+    if (selectedFile) {
+      try {
+        const formData = new FormData();
+        formData.append("image", selectedFile);
+        await updateBackground(formData);
+        setMessage("Cập nhật ảnh nền thành công!");
+        setSelectedFile(null);
+      } catch (error) {
+        setMessage(
+          "Lỗi khi upload ảnh nền: " +
+            (error.response?.data?.error || error.message)
+        );
+      }
     }
   };
 
   return (
     <div className="interface-settings">
       <h2>Giao Diện</h2>
+      {message && <div className="message">{message}</div>}
       <div className="theme-selection">
         <h3>Chọn Giao Diện:</h3>
         <button
@@ -542,13 +559,22 @@ const InterfaceSettings = ({
           />
         )}
         <input type="file" accept="image/*" onChange={handleBgUpload} />
-        <button
-          className="use-btn"
-          onClick={() => onBackgroundChange("")}
-          disabled={!currentBackground}
-        >
-          Xóa ảnh nền
-        </button>
+        <div className="background-buttons">
+          <button
+            className="use-btn"
+            onClick={handleSaveBackground}
+            disabled={!selectedFile}
+          >
+            Lưu ảnh nền
+          </button>
+          <button
+            className="use-btn"
+            onClick={() => onBackgroundChange("")}
+            disabled={!currentBackground}
+          >
+            Xóa ảnh nền
+          </button>
+        </div>
       </div>
     </div>
   );
