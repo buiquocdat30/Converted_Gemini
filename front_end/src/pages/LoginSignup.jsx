@@ -44,22 +44,24 @@ const LoginSignup = () => {
 
       if (responseData.success) {
         localStorage.setItem("auth-token", responseData.token);
+        console.log('FE responseData',responseData.user.id)
         // Tạo object user từ response data
         const userData = {
-          id: responseData.id,
-          username: responseData.username,
-          email: responseData.email,
-          avatar: responseData.avatar || "",
-          backgroundImage: responseData.backgroundImage || "",
-          birthdate: responseData.birthdate || "",
-          libraryStories: responseData.libraryStories || [],
-          userApiKeys: responseData.UserApiKey || [],
-          createdAt: responseData.createdAt,
-          updatedAt: responseData.updatedAt,
+          id: responseData.user.id,
+          username: responseData.user.username,
+          email: responseData.user.email,
+          avatar: responseData.user.avatar || "",
+          backgroundImage: responseData.user.backgroundImage || "",
+          birthdate: responseData.user.birthdate || "",
+          libraryStories: responseData.user.libraryStories || [],
+          userApiKeys: responseData.user.UserApiKey || [],
+          createdAt: responseData.user.createdAt,
+          updatedAt: responseData.user.updatedAt,
         };
-        
+        console.log('Loginsignup userData',userData)
         if (onLogin) {
           onLogin(userData);
+          console.log('userData',userData)
         }
 
         navigate("/");

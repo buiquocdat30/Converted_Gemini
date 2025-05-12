@@ -9,6 +9,7 @@ import { AuthContext } from "../../context/ConverteContext";
 const Navbar = () => {
   const { isLoggedIn, onLogout, userData, menu, setMenu, loading } =
     useContext(AuthContext);
+  console.log('NavbaruserData',userData)
   const menuRef = useRef();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State cho dialog

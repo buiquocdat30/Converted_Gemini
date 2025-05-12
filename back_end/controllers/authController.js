@@ -57,11 +57,11 @@ const authController = {
                 });
             }
 
-            const { token, username } = await authService.loginUser(email, password);
+            const userData = await authService.loginUser(email, password);
             res.json({
                 success: true,
-                token,
-                username,
+                token: userData.token,
+                user: userData.user,
                 message: 'Đăng nhập thành công'
             });
         } catch (error) {
