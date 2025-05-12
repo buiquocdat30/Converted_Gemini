@@ -18,7 +18,10 @@ const Navbar = () => {
     menuRef.current.classList.toggle("nav-menu-visible");
     e.target.classList.toggle("open");
   };
-
+  const handleLogout = () => {
+    onLogout();
+    navigate("/login");
+  };
   return (
     <div className="navbar">
       <div
@@ -85,7 +88,7 @@ const Navbar = () => {
                 <Link to="/tu-truyen" className="dropdown-link">
                   📚 Tủ truyện
                 </Link>
-                <button onClick={onLogout} className="dropdown-logout">
+                <button onClick={handleLogout} className="dropdown-logout">
                   🚪 Đăng xuất
                 </button>
               </div>
@@ -96,13 +99,7 @@ const Navbar = () => {
             <button className="login-button">🔐 Đăng nhập</button>
           </Link>
         )}
-        {/* {open && (
-          <div>
-            {console.log("Navbar: Rendering LoginSignup, open =", open)}
-            <LoginSignup onLogin={handleLogin} />
-            <button onClick={() => setOpen(false)}>Close</button>
-          </div>
-        )} */}
+
       </div>
     </div>
   );

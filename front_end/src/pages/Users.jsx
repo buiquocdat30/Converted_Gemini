@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeLowVision } from "@fortawesome/free-solid-svg-icons";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
 
 // Placeholder components cho nội dung bên phải
@@ -20,15 +22,61 @@ const ProfileSettings = () => {
     `http://localhost:8000/data/upload/avatar/${userData.avatar}`
   );
   const defaultAvatar = "https://www.w3schools.com/howto/img_avatar.png";
-  const [dob, setDob] = useState(userData.birthdate || "");
-  const [currentPassword, setCurrentPassword] = useState("");
+  
+  // Hàm chuyển đổi từ DateTime sang dd/mm/yyyy
+  const formatDateToDisplay = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Hàm chuyển đổi từ dd/mm/yyyy sang DateTime
+  const formatDateToDateTime = (dateString) => {
+    if (!dateString) return "";
+    const [day, month, year] = dateString.split('/');
+    return new Date(year, month - 1, day).toISOString();
+  };
+
+  const [dob, setDob] = useState(formatDateToDisplay(userData.birthdate) || "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Hàm xử lý khi người dùng nhập ngày tháng
+  const handleDobChange = (e) => {
+    let value = e.target.value;
+    
+    // Chỉ cho phép nhập số và dấu /
+    value = value.replace(/[^\d/]/g, '');
+    
+    // Tự động thêm dấu / sau khi nhập đủ 2 số cho ngày hoặc tháng
+    if (value.length === 2 && !value.includes('/')) {
+      value = value + '/';
+    } else if (value.length === 5 && value.split('/').length === 2) {
+      value = value + '/';
+    }
+    
+    // Giới hạn độ dài tối đa là 10 ký tự (dd/mm/yyyy)
+    if (value.length <= 10) {
+      setDob(value);
+    }
+  };
+
+  // Hàm kiểm tra định dạng ngày tháng
+  const isValidDateFormat = (dateStr) => {
+    if (!dateStr) return true;
+    const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+    return regex.test(dateStr);
+  };
 
   useEffect(() => {
     setUsername(userData.username || "");
-    setDob(userData.birthdate || "");
+    setDob(formatDateToDisplay(userData.birthdate) || "");
     setAvatar(`http://localhost:8000/data/upload/avatar/${userData.avatar}`);
   }, [userData]);
 
@@ -66,10 +114,17 @@ const ProfileSettings = () => {
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    
+    // Kiểm tra định dạng ngày tháng trước khi gửi
+    if (dob && !isValidDateFormat(dob)) {
+      setMessage("Định dạng ngày tháng không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy");
+      return;
+    }
+
     try {
       await updateUserProfile({
         username,
-        birthdate: dob,
+        birthdate: formatDateToDateTime(dob),
       });
       setMessage("Cập nhật thông tin thành công!");
     } catch (error) {
@@ -87,13 +142,16 @@ const ProfileSettings = () => {
       return;
     }
 
+    if (!newPassword) {
+      setMessage("Vui lòng nhập mật khẩu mới!");
+      return;
+    }
+
     try {
       await updateUserProfile({
-        currentPassword,
         newPassword,
       });
       setMessage("Đổi mật khẩu thành công!");
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
     } catch (error) {
@@ -145,12 +203,14 @@ const ProfileSettings = () => {
         <div className="form-group">
           <label htmlFor="dob">Cập nhật ngày sinh</label>
           <input
-            type="date"
+            type="text"
             id="dob"
             value={dob}
-            onChange={(e) => setDob(e.target.value)}
+            onChange={handleDobChange}
+            placeholder="dd/mm/yyyy"
             disabled={loading}
           />
+          <small>Nhập theo định dạng: dd/mm/yyyy (ví dụ: 31/12/1995)</small>
         </div>
 
         <button className="use-btn" type="submit" disabled={loading}>
@@ -163,37 +223,40 @@ const ProfileSettings = () => {
       <h3>Đổi Mật Khẩu</h3>
       <form onSubmit={handleChangePassword} className="password-form">
         <div className="form-group">
-          <label htmlFor="current-password">Mật khẩu hiện tại:</label>
-          <input
-            type="password"
-            id="current-password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
           <label htmlFor="new-password">Mật khẩu mới:</label>
-          <input
-            type="password"
-            id="new-password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
+          <div className="password-input-container">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              id="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+            <FontAwesomeIcon
+              className="show-icon"
+              icon={showNewPassword ? faEyeLowVision : faEye}
+              onClick={() => setShowNewPassword((prev) => !prev)}
+            />
+          </div>
         </div>
         <div className="form-group">
           <label htmlFor="confirm-new-password">Xác nhận mật khẩu mới:</label>
-          <input
-            type="password"
-            id="confirm-new-password"
-            value={confirmNewPassword}
-            onChange={(e) => setConfirmNewPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
+          <div className="password-input-container">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              id="confirm-new-password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+            <FontAwesomeIcon
+              className="show-icon"
+              icon={showConfirmPassword ? faEyeLowVision : faEye}
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+            />
+          </div>
         </div>
         <button className="use-btn" type="submit" disabled={loading}>
           {loading ? "Đang xử lý..." : "Đổi mật khẩu"}

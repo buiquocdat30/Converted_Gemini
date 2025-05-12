@@ -9,6 +9,9 @@ router.get("/profile", authMiddleware, userController.getCurrentUserProfile);
 // Update current user profile
 router.put("/profile", authMiddleware, userController.updateCurrentUserProfile);
 
+// Change password
+router.put("/change-password", authMiddleware, userController.updateCurrentUserProfile);
+
 // Create a new user
 router.post("/", userController.createUser);
 

@@ -21,21 +21,19 @@ class UserController {
       const userId = req.user.id; // Lấy từ authMiddleware
       const userData = req.body;
 
-      // Nếu có thay đổi mật khẩu
-      if (userData.currentPassword && userData.newPassword) {
+      // Nếu có newPassword thì đổi mật khẩu
+      if (userData.newPassword) {
         // Xử lý đổi mật khẩu
         const result = await userService.changePassword(
           userId,
-          userData.currentPassword,
           userData.newPassword
         );
         if (!result) {
           return res
             .status(400)
-            .json({ message: "Current password is incorrect" });
+            .json({ message: "Không thể đổi mật khẩu" });
         }
-        // Xóa các trường mật khẩu khỏi userData
-        delete userData.currentPassword;
+        // Xóa trường mật khẩu khỏi userData
         delete userData.newPassword;
       }
 
