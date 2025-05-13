@@ -44,12 +44,15 @@ app.use("/auth", authRoute);
 //coverte file
 app.use("/converte", converteRoute);
 
-//quản lý user
-app.use("/user", userRoute);
 
 // Quản lý tài nguyên của user
 app.use("/user/keys", userApiKeyRoute); // API keys của user
 app.use("/user/library", userLibraryRoute); // Thư viện truyện của user
+
+//quản lý user
+app.use("/user", userRoute);
+
+
 
 //quản lý admin-panel
 app.use("/admin/providers", providerRoutes);

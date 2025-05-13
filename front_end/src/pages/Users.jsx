@@ -254,57 +254,12 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  const [stories, setStories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { userData } = useContext(AuthContext);
-
-  // Hàm lấy danh sách truyện từ API
-  const fetchStories = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('http://localhost:8000/user/library', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      console.log("response.data", response.data);
-      setStories(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Lỗi khi tải danh sách truyện: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { stories, loading, error, fetchStories, handleEdit } = useContext(AuthContext);
 
   // Gọi API khi component được mount
   useEffect(() => {
     fetchStories();
   }, []);
-
-  // Hàm cập nhật thông tin truyện
-  const handleEdit = async (storyId, field, value) => {
-    try {
-      await axios.put(`http://localhost:8000/user/library/${storyId}`, 
-        { [field]: value },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      );
-      
-      // Cập nhật state sau khi API call thành công
-      setStories(prevStories =>
-        prevStories.map(story =>
-          story.id === storyId ? { ...story, [field]: value } : story
-        )
-      );
-    } catch (err) {
-      setError('Lỗi khi cập nhật truyện: ' + (err.response?.data?.error || err.message));
-    }
-  };
 
   if (loading) return <div>Đang tải danh sách truyện...</div>;
   if (error) return <div className="error-message">{error}</div>;

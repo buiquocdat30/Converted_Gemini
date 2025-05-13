@@ -3,16 +3,21 @@ const prisma = require("../config/prismaConfig");
 const userLibraryService = {
     // Lấy tất cả truyện của user
     getAllStories: async (userId) => {
+
+
+        // return await prisma.user.findMany({
+        //     where: { id: userId },
+        //     include: {
+        //       libraryStories: true
+        //     }
+        //   });
+
         return await prisma.userLibraryStory.findMany({
             where: { 
                 userId: userId 
             },
             include: {
-                chapters: {
-                    include: {
-                        translation: true
-                    }
-                }
+                chapters: true
             }
         });
     },
