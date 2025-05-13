@@ -4,7 +4,9 @@ const userLibraryService = {
     // Lấy tất cả truyện của user
     getAllStories: async (userId) => {
         return await prisma.userLibraryStory.findMany({
-            where: { userId },
+            where: { 
+                userId: userId 
+            },
             include: {
                 chapters: {
                     include: {
@@ -19,8 +21,8 @@ const userLibraryService = {
     getStoryById: async (id, userId) => {
         return await prisma.userLibraryStory.findFirst({
             where: {
-                id,
-                userId
+                id: id,
+                userId: userId
             },
             include: {
                 chapters: {
@@ -35,7 +37,11 @@ const userLibraryService = {
     // Tạo truyện mới
     createStory: async (data) => {
         return await prisma.userLibraryStory.create({
-            data
+            data: {
+                ...data,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
         });
     },
 
@@ -43,8 +49,8 @@ const userLibraryService = {
     updateStory: async (id, userId, data) => {
         return await prisma.userLibraryStory.updateMany({
             where: {
-                id,
-                userId
+                id: id,
+                userId: userId
             },
             data: {
                 ...data,
@@ -57,8 +63,8 @@ const userLibraryService = {
     deleteStory: async (id, userId) => {
         return await prisma.userLibraryStory.deleteMany({
             where: {
-                id,
-                userId
+                id: id,
+                userId: userId
             }
         });
     },
@@ -69,7 +75,7 @@ const userLibraryService = {
             where: {
                 story: {
                     id: storyId,
-                    userId
+                    userId: userId
                 }
             },
             include: {
@@ -85,7 +91,11 @@ const userLibraryService = {
     // Thêm chương mới
     addChapter: async (data) => {
         return await prisma.userLibraryChapter.create({
-            data
+            data: {
+                ...data,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
         });
     },
 
@@ -93,10 +103,10 @@ const userLibraryService = {
     updateChapter: async (storyId, chapterNumber, userId, data) => {
         return await prisma.userLibraryChapter.updateMany({
             where: {
-                storyId,
+                storyId: storyId,
                 chapterNumber: parseInt(chapterNumber),
                 story: {
-                    userId
+                    userId: userId
                 }
             },
             data: {
@@ -110,10 +120,10 @@ const userLibraryService = {
     deleteChapter: async (storyId, chapterNumber, userId) => {
         return await prisma.userLibraryChapter.deleteMany({
             where: {
-                storyId,
+                storyId: storyId,
                 chapterNumber: parseInt(chapterNumber),
                 story: {
-                    userId
+                    userId: userId
                 }
             }
         });

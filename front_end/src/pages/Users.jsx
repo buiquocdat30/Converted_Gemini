@@ -268,6 +268,7 @@ const TranslatedStories = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
+      console.log("response.data", response.data);
       setStories(response.data);
       setError(null);
     } catch (err) {
