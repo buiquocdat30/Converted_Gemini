@@ -12,6 +12,8 @@ router.put("/profile", authMiddleware, userController.updateCurrentUserProfile);
 // Change password
 router.put("/change-password", authMiddleware, userController.updateCurrentUserProfile);
 
+
+//các hàm quản lý user cho admin panel
 // Create a new user
 router.post("/", userController.createUser);
 
