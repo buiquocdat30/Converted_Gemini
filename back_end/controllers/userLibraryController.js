@@ -4,8 +4,15 @@ const userLibraryController = {
     // Lấy tất cả truyện của user
     getAllStories: async (req, res) => {
         try {
-            const userId = req.user.id;
+            const userId = req.user.id; // Lấy userId từ middleware
+            console.log('getAllStories - User ID:', userId);
+            
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
+
             const stories = await userLibraryService.getAllStories(userId);
+            console.log('getAllStories - Found stories:', stories);
             res.json(stories);
         } catch (error) {
             console.error('Error getting stories:', error);
@@ -18,8 +25,15 @@ const userLibraryController = {
         try {
             const { id } = req.params;
             const userId = req.user.id;
+            console.log('getStoryById - Story ID:', id);
+            console.log('getStoryById - User ID:', userId);
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const story = await userLibraryService.getStoryById(id, userId);
+            console.log('getStoryById - Found story:', story);
 
             if (!story) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
@@ -37,12 +51,19 @@ const userLibraryController = {
         try {
             const userId = req.user.id;
             const { name, author } = req.body;
+            console.log('createStory - User ID:', userId);
+            console.log('createStory - Story data:', { name, author });
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const newStory = await userLibraryService.createStory({
                 name,
                 author,
                 userId
             });
+            console.log('createStory - Created story:', newStory);
 
             res.status(201).json(newStory);
         } catch (error) {
@@ -57,11 +78,19 @@ const userLibraryController = {
             const { id } = req.params;
             const userId = req.user.id;
             const { name, author } = req.body;
+            console.log('updateStory - Story ID:', id);
+            console.log('updateStory - User ID:', userId);
+            console.log('updateStory - Update data:', { name, author });
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const updatedStory = await userLibraryService.updateStory(id, userId, {
                 name,
                 author
             });
+            console.log('updateStory - Update result:', updatedStory);
 
             if (updatedStory.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
@@ -79,8 +108,15 @@ const userLibraryController = {
         try {
             const { id } = req.params;
             const userId = req.user.id;
+            console.log('deleteStory - Story ID:', id);
+            console.log('deleteStory - User ID:', userId);
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const deletedStory = await userLibraryService.deleteStory(id, userId);
+            console.log('deleteStory - Delete result:', deletedStory);
 
             if (deletedStory.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
@@ -98,8 +134,15 @@ const userLibraryController = {
         try {
             const { storyId } = req.params;
             const userId = req.user.id;
+            console.log('getChapters - Story ID:', storyId);
+            console.log('getChapters - User ID:', userId);
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const chapters = await userLibraryService.getChapters(storyId, userId);
+            console.log('getChapters - Found chapters:', chapters);
             res.json(chapters);
         } catch (error) {
             console.error('Error getting chapters:', error);
@@ -113,9 +156,17 @@ const userLibraryController = {
             const { storyId } = req.params;
             const { chapterNumber, rawText } = req.body;
             const userId = req.user.id;
+            console.log('addChapter - Story ID:', storyId);
+            console.log('addChapter - User ID:', userId);
+            console.log('addChapter - Chapter data:', { chapterNumber, rawText });
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             // Kiểm tra truyện tồn tại và thuộc về user
             const story = await userLibraryService.getStoryById(storyId, userId);
+            console.log('addChapter - Found story:', story);
 
             if (!story) {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
@@ -126,6 +177,7 @@ const userLibraryController = {
                 chapterNumber,
                 rawText
             });
+            console.log('addChapter - Created chapter:', newChapter);
 
             res.status(201).json(newChapter);
         } catch (error) {
@@ -140,6 +192,14 @@ const userLibraryController = {
             const { storyId, chapterNumber } = req.params;
             const { rawText } = req.body;
             const userId = req.user.id;
+            console.log('updateChapter - Story ID:', storyId);
+            console.log('updateChapter - Chapter number:', chapterNumber);
+            console.log('updateChapter - User ID:', userId);
+            console.log('updateChapter - Update data:', { rawText });
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const updatedChapter = await userLibraryService.updateChapter(
                 storyId,
@@ -147,6 +207,7 @@ const userLibraryController = {
                 userId,
                 { rawText }
             );
+            console.log('updateChapter - Update result:', updatedChapter);
 
             if (updatedChapter.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy chương' });
@@ -164,12 +225,20 @@ const userLibraryController = {
         try {
             const { storyId, chapterNumber } = req.params;
             const userId = req.user.id;
+            console.log('deleteChapter - Story ID:', storyId);
+            console.log('deleteChapter - Chapter number:', chapterNumber);
+            console.log('deleteChapter - User ID:', userId);
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
 
             const deletedChapter = await userLibraryService.deleteChapter(
                 storyId,
                 chapterNumber,
                 userId
             );
+            console.log('deleteChapter - Delete result:', deletedChapter);
 
             if (deletedChapter.count === 0) {
                 return res.status(404).json({ error: 'Không tìm thấy chương' });
