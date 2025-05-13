@@ -254,71 +254,99 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  // Dữ liệu mẫu, bạn sẽ fetch từ API
-  const [stories, setStories] = useState([
-    {
-      id: 1,
-      name: "Truyện A đã dịch",
-      author: "Tác giả X",
-      chapters: 100,
-      lastUpdated: "2025-05-01",
-    },
-    {
-      id: 2,
-      name: "Truyện B đã dịch",
-      author: "Tác giả Y",
-      chapters: 50,
-      lastUpdated: "2025-04-20",
-    },
-  ]);
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { userData } = useContext(AuthContext);
 
-  const handleEdit = (storyId, field, value) => {
-    setStories((prevStories) =>
-      prevStories.map((story) =>
-        story.id === storyId ? { ...story, [field]: value } : story
-      )
-    );
-    // Thêm logic gọi API để lưu thay đổi ở đây
-    console.log(`Updating story ${storyId}: ${field} = ${value}`);
+  // Hàm lấy danh sách truyện từ API
+  const fetchStories = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:8000/user/library', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setStories(response.data);
+      setError(null);
+    } catch (err) {
+      setError('Lỗi khi tải danh sách truyện: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Gọi API khi component được mount
+  useEffect(() => {
+    fetchStories();
+  }, []);
+
+  // Hàm cập nhật thông tin truyện
+  const handleEdit = async (storyId, field, value) => {
+    try {
+      await axios.put(`http://localhost:8000/user/library/${storyId}`, 
+        { [field]: value },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      
+      // Cập nhật state sau khi API call thành công
+      setStories(prevStories =>
+        prevStories.map(story =>
+          story.id === storyId ? { ...story, [field]: value } : story
+        )
+      );
+    } catch (err) {
+      setError('Lỗi khi cập nhật truyện: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  if (loading) return <div>Đang tải danh sách truyện...</div>;
+  if (error) return <div className="error-message">{error}</div>;
 
   return (
     <div className="translated-stories">
       <h2>Truyện Đã Dịch</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Tên truyện (cho phép sửa)</th>
-            <th>Tên tác giả (cho phép sửa)</th>
-            <th>Tổng số chương</th>
-            <th>Cập nhật lần cuối</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stories.map((story) => (
-            <tr key={story.id}>
-              <td>
-                <input
-                  type="text"
-                  value={story.name}
-                  onChange={(e) => handleEdit(story.id, "name", e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={story.author}
-                  onChange={(e) =>
-                    handleEdit(story.id, "author", e.target.value)
-                  }
-                />
-              </td>
-              <td>{story.chapters}</td>
-              <td>{story.lastUpdated}</td>
+      {stories.length === 0 ? (
+        <p>Chưa có truyện nào trong thư viện</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Tên truyện (cho phép sửa)</th>
+              <th>Tên tác giả (cho phép sửa)</th>
+              <th>Tổng số chương</th>
+              <th>Cập nhật lần cuối</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {stories.map((story) => (
+              <tr key={story.id}>
+                <td>
+                  <input
+                    type="text"
+                    value={story.name}
+                    onChange={(e) => handleEdit(story.id, "name", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={story.author}
+                    onChange={(e) => handleEdit(story.id, "author", e.target.value)}
+                  />
+                </td>
+                <td>{story.chapters?.length || 0}</td>
+                <td>{new Date(story.updatedAt).toLocaleDateString('vi-VN')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };
@@ -596,8 +624,9 @@ const Users = () => {
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light"
   );
+  const bgImage=`http://localhost:8000/data/upload/background/${userData.backgroundImage}`
   const [backgroundImage, setBackgroundImage] = useState(
-    () => localStorage.getItem("backgroundImage") || ""
+    () => bgImage || localStorage.getItem("backgroundImage") || ""
   );
 
   useEffect(() => {

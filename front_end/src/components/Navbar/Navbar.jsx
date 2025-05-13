@@ -22,6 +22,7 @@ const Navbar = () => {
   const handleLogout = () => {
     onLogout();
     navigate("/");
+    document.body.style.backgroundImage = "";
     console.log("User logged out");
     alert("Đăng xuất thành công!");
   };
@@ -108,6 +109,7 @@ const Navbar = () => {
                   👋 Xin chào, {userData.username}!
                 </p>
                 <Link to="/user">Trang cá nhân</Link>
+                {menu === "home" ? <hr /> : <></>}
                 <Link to="/tu-truyen" className="dropdown-link">
                   📚 Tủ truyện
                 </Link>
