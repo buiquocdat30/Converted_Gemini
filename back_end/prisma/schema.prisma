@@ -36,6 +36,7 @@ model UserLibraryStory {
   id        String               @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   author    String
+  storyAvatar String?
   user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String               @db.ObjectId
   chapters  UserLibraryChapter[]

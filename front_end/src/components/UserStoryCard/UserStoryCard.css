@@ -1,0 +1,264 @@
+.user-story-card {
+    border: 1px solid #ccc;
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-story-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stories-info {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.stories-info-avatar {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.stories-info-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+    background-image: url(../../assets/default_avatar.jpg);
+}
+
+.stories-info-avatar input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.stories-info-body {
+    flex: 1;
+    min-width: 0; /* Để tránh overflow */
+}
+
+.stories-info-body input {
+    width: 100%;
+    padding: 8px;
+    margin: 4px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.stories-name h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.2em;
+    color: #333;
+    word-wrap: break-word;
+}
+
+.stories-author p,
+.stories-total-chapters p,
+.stories-update-time p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.stories-update-time,
+.stories-update-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+}
+
+.btn-delete-stories,
+.btn-update-stories {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+}
+
+.btn-delete-stories {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-delete-stories:hover {
+    background-color: #c82333;
+}
+
+.btn-update-stories {
+    background-color: #32744f;
+    color: white;
+}
+
+.btn-update-stories:hover {
+    background-color: #064409;
+}
+
+/* Dark theme styles */
+.dark .user-story-card {
+    background: #2c2c2c;
+    border-color: #444;
+}
+
+.dark .stories-name h3 {
+    color: #e0e0e0;
+}
+
+.dark .stories-author p,
+.dark .stories-total-chapters p,
+.dark .stories-update-time p {
+    color: #aaa;
+}
+
+.dark .stories-info-body input,
+.dark .stories-info-avatar input {
+    background-color: #333;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+.dark .stories-info-body input::placeholder,
+.dark .stories-info-avatar input::placeholder {
+    color: #888;
+}
+
+/* CSS cho phần grid truyện */
+.stories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.user-story-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-story-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stories-info {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.stories-info-avatar {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.stories-info-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.stories-info-body {
+  flex: 1;
+}
+
+.stories-name h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.stories-author p,
+.stories-total-chapters p,
+.stories-update-time p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.stories-update-btn {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-update-stories,
+.btn-delete-stories {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.btn-update-stories {
+  background-color: #32744f;
+  color: white;
+}
+
+.btn-update-stories:hover {
+  background-color: #064409;
+}
+
+.btn-delete-stories {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete-stories:hover {
+  background-color: #c82333;
+}
+
+/* Dark theme styles */
+.dark .user-story-card {
+  background: #2c2c2c;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.dark .stories-name h3 {
+  color: #e0e0e0;
+}
+
+.dark .stories-author p,
+.dark .stories-total-chapters p,
+.dark .stories-update-time p {
+  color: #aaa;
+}
+
+.dark .btn-update-stories {
+  background-color: #32744f;
+}
+
+.dark .btn-update-stories:hover {
+  background-color: #064409;
+}
+
+.dark .btn-delete-stories {
+  background-color: #dc3545;
+}
+
+.dark .btn-delete-stories:hover {
+  background-color: #c82333;
+}
+

@@ -7,6 +7,8 @@
     /* Hiệu ứng chuyển đổi mượt mà */
     margin: 10px auto;
     border-radius: 15px;
+    width: 100%;
+    max-width: 1400px; /* Thêm max-width để giới hạn độ rộng tối đa */
 }
 
 /* Light Theme (mặc định nếu không có class dark) */
@@ -157,7 +159,7 @@ body.dark .users-page,
 /* General Sidebar styles */
 .users-sidebar {
     width: 280px;
-    /* Tăng chiều rộng sidebar */
+    min-width: 280px; /* Thêm min-width để đảm bảo sidebar không bị co lại */
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -242,18 +244,17 @@ body.dark .users-page,
 
 /* General Content styles */
 .users-content {
-    flex-grow: 1;
+    flex: 1;
     padding: 30px;
-    /* Tăng padding cho content */
     overflow-y: auto;
-    /* Cho phép cuộn nếu nội dung dài */
     border-top-right-radius: 15px;
     border-bottom-right-radius: 15px;
+    min-width: 0; /* Thêm min-width để tránh content bị tràn */
 }
 
 .users-content h2 {
     margin-top: 0;
-    margin-bottom: 25px;
+
     /* Tăng khoảng cách dưới h2 */
     font-size: 1.8em;
     /* Tăng kích thước h2 */
@@ -578,4 +579,237 @@ input[type="file"] {
 
 .show-icon:hover {
   color: #333;
+}
+
+/* CSS cho phần Tủ truyện */
+.truyen-content {
+    padding: 20px;
+    width: 100%;
+    min-width: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.tab {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+  border-radius: 5px 5px 0 0;
+  position: relative;
+}
+
+.tab:hover {
+  background-color: #f0f0f0;
+}
+
+.tab.active {
+  color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #007bff;
+  transition: all 0.3s ease;
+}
+
+.tab-content {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.tab-pane {
+  display: none;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.tab-pane.active {
+  display: block;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Dark theme styles */
+.dark .tab {
+  color: #ccc;
+}
+
+.dark .tab:hover {
+  background-color: #2c2c2c;
+}
+
+.dark .tab.active {
+  color: #4dabf7;
+  background-color: #1a1a1a;
+}
+
+.dark .tab.active::after {
+  background-color: #4dabf7;
+}
+
+.dark .tab-content {
+  background-color: #1a1a1a;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Điều chỉnh table trong tab content */
+.tab-content table {
+    width: 100%;
+    table-layout: fixed; /* Thêm table-layout để đảm bảo độ rộng cột cố định */
+}
+
+.tab-content table th,
+.tab-content table td {
+    padding: 12px;
+    text-align: left;
+    word-wrap: break-word; /* Cho phép text wrap trong cell */
+}
+
+/* Điều chỉnh input trong table */
+.tab-content table input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* CSS cho phần grid truyện */
+.stories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.user-story-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-story-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stories-info {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.stories-info-avatar {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.stories-info-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.stories-info-body {
+  flex: 1;
+}
+
+.stories-name h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.stories-author p,
+.stories-total-chapters p,
+.stories-update-time p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.stories-update-btn {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-update-stories,
+.btn-delete-stories {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.btn-update-stories {
+  background-color: #32744f;
+  color: white;
+}
+
+.btn-update-stories:hover {
+  background-color: #064409;
+}
+
+.btn-delete-stories {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete-stories:hover {
+  background-color: #c82333;
+}
+
+/* Dark theme styles */
+.dark .user-story-card {
+  background: #2c2c2c;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.dark .stories-name h3 {
+  color: #e0e0e0;
+}
+
+.dark .stories-author p,
+.dark .stories-total-chapters p,
+.dark .stories-update-time p {
+  color: #aaa;
+}
+
+.dark .btn-update-stories {
+  background-color: #32744f;
+}
+
+.dark .btn-update-stories:hover {
+  background-color: #064409;
+}
+
+.dark .btn-delete-stories {
+  background-color: #dc3545;
+}
+
+.dark .btn-delete-stories:hover {
+  background-color: #c82333;
 }

@@ -77,7 +77,7 @@ const userLibraryController = {
         try {
             const { id } = req.params;
             const userId = req.user.id;
-            const { name, author } = req.body;
+            const { name, author,avatar } = req.body;
             console.log('updateStory - Story ID:', id);
             console.log('updateStory - User ID:', userId);
             console.log('updateStory - Update data:', { name, author });
@@ -88,7 +88,8 @@ const userLibraryController = {
 
             const updatedStory = await userLibraryService.updateStory(id, userId, {
                 name,
-                author
+                author,
+                avatar
             });
             console.log('updateStory - Update result:', updatedStory);
 
