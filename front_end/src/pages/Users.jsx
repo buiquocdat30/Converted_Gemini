@@ -255,7 +255,8 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  const { stories, loading, error, fetchStories, handleEditStories } = useContext(AuthContext);
+  const { stories, loading, error, fetchStories, handleEditStories } =
+    useContext(AuthContext);
   const [storiesList, setStoriesList] = useState([]);
 
   useEffect(() => {
@@ -270,15 +271,17 @@ const TranslatedStories = () => {
 
   const handleDeleteStory = (storyId) => {
     // Xử lý xóa truyện
-    setStoriesList(prevStories => prevStories.filter(story => story.id !== storyId));
+    setStoriesList((prevStories) =>
+      prevStories.filter((story) => story.id !== storyId)
+    );
     // Thêm logic gọi API để xóa truyện ở đây
   };
 
   const handleUpdateStory = (storyId, field, value) => {
     handleEditStories(storyId, field, value);
     // Cập nhật state local sau khi API call thành công
-    setStoriesList(prevStories =>
-      prevStories.map(story =>
+    setStoriesList((prevStories) =>
+      prevStories.map((story) =>
         story.id === storyId ? { ...story, [field]: value } : story
       )
     );
@@ -355,7 +358,9 @@ const TranslatingStories = () => {
                 <input
                   type="text"
                   value={story.author}
-                  onChange={(e) => handleEdit(story.id, "author", e.target.value)}
+                  onChange={(e) =>
+                    handleEdit(story.id, "author", e.target.value)
+                  }
                 />
               </td>
               <td>{story.chapters}</td>
@@ -579,26 +584,52 @@ const Users = () => {
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light"
   );
-  const bgImage=`http://localhost:8000/data/upload/background/${userData.backgroundImage}`
-  const [backgroundImage, setBackgroundImage] = useState(
-    () => bgImage || localStorage.getItem("backgroundImage") || ""
-  );
+  const [backgroundImage, setBackgroundImage] = useState(() => {
+    // Kiểm tra localStorage trước
+    const savedBg = localStorage.getItem("backgroundImage");
+    if (savedBg) return savedBg;
 
+    // Nếu có userData và backgroundImage, tạo URL
+    if (userData.backgroundImage) {
+      return `http://localhost:8000/data/upload/background/${userData.backgroundImage}`;
+    }
+
+    // Nếu không có cả hai, trả về chuỗi rỗng
+    return "";
+  });
+
+  // Effect để cập nhật background khi userData thay đổi
+  useEffect(() => {
+    if (userData.backgroundImage) {
+      const bgImage = `http://localhost:8000/data/upload/background/${userData.backgroundImage}`;
+      setBackgroundImage(bgImage);
+    }
+  }, [userData.backgroundImage]);
+
+  // Effect để áp dụng background vào body
+  useEffect(() => {
+    if (backgroundImage) {
+      document.body.style.backgroundImage = `url(${backgroundImage})`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+      document.body.style.backgroundAttachment = "fixed";
+      localStorage.setItem("backgroundImage", backgroundImage);
+    } else {
+      // Chỉ xóa background nếu user không đăng nhập
+      if (!userData.id) {
+        document.body.style.backgroundImage = "";
+        localStorage.removeItem("backgroundImage");
+      }
+    }
+  }, [backgroundImage, userData.id]);
+
+  // Effect để áp dụng theme
   useEffect(() => {
     document.body.className = theme;
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    document.body.style.backgroundImage = backgroundImage
-      ? `url(${backgroundImage})`
-      : "";
-    document.body.style.backgroundSize = "cover";
-    document.body.style.backgroundPosition = "center";
-    document.body.style.backgroundAttachment = "fixed";
-    localStorage.setItem("backgroundImage", backgroundImage);
-  }, [backgroundImage]);
-
+  // Effect để cập nhật username và avatar khi userData thay đổi
   useEffect(() => {
     setUsername(userData.username || "");
     setAvatar(`http://localhost:8000/data/upload/avatar/${userData.avatar}`);
@@ -619,10 +650,14 @@ const Users = () => {
   const renderTabContent = () => {
     return (
       <div className="tab-content">
-        <div className={`tab-pane ${activeTab === 'translated' ? 'active' : ''}`}>
+        <div
+          className={`tab-pane ${activeTab === "translated" ? "active" : ""}`}
+        >
           <TranslatedStories />
         </div>
-        <div className={`tab-pane ${activeTab === 'translating' ? 'active' : ''}`}>
+        <div
+          className={`tab-pane ${activeTab === "translating" ? "active" : ""}`}
+        >
           <TranslatingStories />
         </div>
       </div>
@@ -637,15 +672,15 @@ const Users = () => {
         return (
           <div className="truyen-content">
             <div className="tabs">
-              <button 
-                className={`tab ${activeTab === 'translated' ? 'active' : ''}`}
-                onClick={() => setActiveTab('translated')}
+              <button
+                className={`tab ${activeTab === "translated" ? "active" : ""}`}
+                onClick={() => setActiveTab("translated")}
               >
                 Truyện đã dịch
               </button>
-              <button 
-                className={`tab ${activeTab === 'translating' ? 'active' : ''}`}
-                onClick={() => setActiveTab('translating')}
+              <button
+                className={`tab ${activeTab === "translating" ? "active" : ""}`}
+                onClick={() => setActiveTab("translating")}
               >
                 Truyện đang dịch
               </button>
