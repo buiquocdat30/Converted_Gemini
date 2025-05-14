@@ -237,7 +237,7 @@ export const AuthProvider = ({ children }) => {
 
   const onLogin = (userData) => {
     if (!userData) return;
-    
+
     setIsLoggedIn(true);
     setUserData({
       id: userData.id || "",
@@ -269,7 +269,6 @@ export const AuthProvider = ({ children }) => {
       createdAt: "",
       updatedAt: "",
     });
-    
   };
 
   // Hàm lấy danh sách truyện từ API
@@ -277,16 +276,19 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem("auth-token");
-      const response = await axios.get('http://localhost:8000/user/library', {
+      const response = await axios.get("http://localhost:8000/user/library", {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       setStories(response.data);
       setError(null);
     } catch (err) {
       console.error("Lỗi khi tải danh sách truyện:", err);
-      setError('Lỗi khi tải danh sách truyện: ' + (err.response?.data?.error || err.message));
+      setError(
+        "Lỗi khi tải danh sách truyện: " +
+          (err.response?.data?.error || err.message)
+      );
     } finally {
       setLoading(false);
     }
@@ -296,48 +298,67 @@ export const AuthProvider = ({ children }) => {
   const handleEditStories = async (storyId, field, value) => {
     try {
       const token = localStorage.getItem("auth-token");
-      await axios.put(`http://localhost:8000/user/library/${storyId}`, 
+      const response = await axios.put(
+        `http://localhost:8000/user/library/${storyId}`,
         { [field]: value },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      
+
       // Cập nhật state sau khi API call thành công
-      setStories(prevStories =>
-        prevStories.map(story =>
+      setStories((prevStories) =>
+        prevStories.map((story) =>
           story.id === storyId ? { ...story, [field]: value } : story
         )
       );
+
+      // Cập nhật userData nếu cần
+      if (field === "storyAvatar") {
+        setUserData((prev) => ({
+          ...prev,
+          libraryStories: prev.libraryStories.map((story) =>
+            story.id === storyId ? { ...story, [field]: value } : story
+          ),
+        }));
+      }
+
+      return response.data;
     } catch (err) {
       console.error("Lỗi khi cập nhật truyện:", err);
-      setError('Lỗi khi cập nhật truyện: ' + (err.response?.data?.error || err.message));
+      setError(
+        "Lỗi khi cập nhật truyện: " + (err.response?.data?.error || err.message)
+      );
+      throw err;
     }
   };
-   // Hàm xoá thông tin truyện xoá mềm trước
-   const handleDeleteStories = async (storyId) => {
+  // Hàm xoá thông tin truyện xoá mềm trước
+  const handleDeleteStories = async (storyId) => {
     try {
       const token = localStorage.getItem("auth-token");
-      await axios.put(`http://localhost:8000/user/library/${storyId}`, 
+      await axios.put(
+        `http://localhost:8000/user/library/${storyId}`,
         { [field]: value },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      
+
       // Cập nhật state sau khi API call thành công
-      setStories(prevStories =>
-        prevStories.map(story =>
+      setStories((prevStories) =>
+        prevStories.map((story) =>
           story.id === storyId ? { ...story, [field]: value } : story
         )
       );
     } catch (err) {
       console.error("Lỗi khi cập nhật truyện:", err);
-      setError('Lỗi khi cập nhật truyện: ' + (err.response?.data?.error || err.message));
+      setError(
+        "Lỗi khi cập nhật truyện: " + (err.response?.data?.error || err.message)
+      );
     }
   };
 
