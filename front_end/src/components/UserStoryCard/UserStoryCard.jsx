@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import './UserStoryCard.css';
-import axios from 'axios';
-import defaultAvatar from '../../assets/default_avatar.jpg';
+import React, { useState } from "react";
+import "./UserStoryCard.css";
+import axios from "axios";
+import defaultAvatar from "../../assets/default_avatar.jpg";
 
 const UserStoryCard = ({ story, onDelete, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -12,7 +12,6 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
   });
   const [previewAvatar, setPreviewAvatar] = useState(story.storyAvatar);
   const [selectedFile, setSelectedFile] = useState(null);
-  
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -27,7 +26,7 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Bạn có chắc chắn muốn xoá truyện này không?')) {
+    if (window.confirm("Bạn có chắc chắn muốn xoá truyện này không?")) {
       onDelete(story.id);
     }
   };
@@ -42,33 +41,41 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
   };
 
   const handleSave = async () => {
-    // Nếu có file ảnh mới, upload ảnh trước
-    if (selectedFile) {
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-      try {
-        console.log('formData',formData);
-        const response = await axios.post('http://localhost:8000/upload/image/storyAvatar', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+    try {
+      // Nếu có file ảnh mới, upload ảnh trước
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("image", selectedFile);
+        console.log("formData", formData);
+        const response = await axios.post(
+          "http://localhost:8000/upload/image/storyAvatar",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
+            },
           }
-        });
+        );
+        const storyAvatar = `http://localhost:8000/data/upload/${response.data.filePath}`;
+        console.log("storyAvatar", storyAvatar);
         // Cập nhật storyAvatar với đường dẫn mới
-        onUpdate(story.id, 'storyAvatar', response.data.filePath);
-      } catch (error) {
-        console.error('Lỗi khi upload ảnh:', error);
-        return;
+        await onUpdate(story.id, "storyAvatar", storyAvatar);
       }
-    }
 
-    // Cập nhật các thông tin khác
-    Object.entries(editedStory).forEach(([field, value]) => {
-      if (field !== 'storyAvatar') { // Không cập nhật storyAvatar ở đây vì đã xử lý ở trên
-        onUpdate(story.id, field, value);
+      // Cập nhật các thông tin khác
+      for (const [field, value] of Object.entries(editedStory)) {
+        if (field !== "storyAvatar") {
+          // Không cập nhật storyAvatar ở đây vì đã xử lý ở trên
+          await onUpdate(story.id, field, value);
+        }
       }
-    });
-    setIsEditing(false);
+
+      setIsEditing(false);
+      setSelectedFile(null); // Reset selected file
+    } catch (error) {
+      console.error("Lỗi khi cập nhật thông tin:", error);
+    }
   };
 
   return (
@@ -78,7 +85,7 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
         <div className="stories-info-avatar">
           {isEditing ? (
             <div className="avatar-upload">
-              <img src={previewAvatar||null} className="avatar-preview" />
+              <img src={previewAvatar || null} className="avatar-preview" />
               <input
                 type="file"
                 name="storyAvatar"
@@ -88,7 +95,7 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
               />
             </div>
           ) : (
-            <img src={story.storyAvatar||defaultAvatar} />
+            <img src={story.storyAvatar || defaultAvatar} />
           )}
         </div>
 
