@@ -4,6 +4,7 @@ import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeLowVision } from "@fortawesome/free-solid-svg-icons";
+import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
 
 // Placeholder components cho nội dung bên phải
@@ -254,12 +255,34 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  const { stories, loading, error, fetchStories, handleEdit } = useContext(AuthContext);
+  const { stories, loading, error, fetchStories } = useContext(AuthContext);
+  const [storiesList, setStoriesList] = useState([]);
 
-  // Gọi API khi component được mount
   useEffect(() => {
     fetchStories();
   }, []);
+
+  useEffect(() => {
+    if (stories) {
+      setStoriesList(stories);
+    }
+  }, [stories]);
+
+  const handleDelete = (storyId) => {
+    // Xử lý xóa truyện
+    setStoriesList(prevStories => prevStories.filter(story => story.id !== storyId));
+    // Thêm logic gọi API để xóa truyện ở đây
+  };
+
+  const handleUpdate = (storyId, updatedStory) => {
+    // Xử lý cập nhật truyện
+    setStoriesList(prevStories =>
+      prevStories.map(story =>
+        story.id === storyId ? { ...story, ...updatedStory } : story
+      )
+    );
+    // Thêm logic gọi API để cập nhật truyện ở đây
+  };
 
   if (loading) return <div>Đang tải danh sách truyện...</div>;
   if (error) return <div className="error-message">{error}</div>;
@@ -267,41 +290,19 @@ const TranslatedStories = () => {
   return (
     <div className="translated-stories">
       <h2>Truyện Đã Dịch</h2>
-      {stories.length === 0 ? (
+      {storiesList.length === 0 ? (
         <p>Chưa có truyện nào trong thư viện</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Tên truyện (cho phép sửa)</th>
-              <th>Tên tác giả (cho phép sửa)</th>
-              <th>Tổng số chương</th>
-              <th>Cập nhật lần cuối</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stories.map((story) => (
-              <tr key={story.id}>
-                <td>
-                  <input
-                    type="text"
-                    value={story.name}
-                    onChange={(e) => handleEdit(story.id, "name", e.target.value)}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={story.author}
-                    onChange={(e) => handleEdit(story.id, "author", e.target.value)}
-                  />
-                </td>
-                <td>{story.chapters?.length || 0}</td>
-                <td>{new Date(story.updatedAt).toLocaleDateString('vi-VN')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="stories-grid">
+          {storiesList.map((story) => (
+            <UserStoryCard
+              key={story.id}
+              story={story}
+              onDelete={handleDelete}
+              onUpdate={handleUpdate}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -354,9 +355,7 @@ const TranslatingStories = () => {
                 <input
                   type="text"
                   value={story.author}
-                  onChange={(e) =>
-                    handleEdit(story.id, "author", e.target.value)
-                  }
+                  onChange={(e) => handleEdit(story.id, "author", e.target.value)}
                 />
               </td>
               <td>{story.chapters}</td>
@@ -566,9 +565,9 @@ const InterfaceSettings = ({
 };
 
 const Users = () => {
-  const [activeMenu, setActiveMenu] = useState("profile"); // 'profile', 'translated', 'translating', 'keys', 'interface'
+  const [activeMenu, setActiveMenu] = useState("profile");
+  const [activeTab, setActiveTab] = useState("translated");
   const navigate = useNavigate();
-  const [isTruyenDropdownOpen, setIsTruyenDropdownOpen] = useState(false);
   const { userData, onLogout } = useContext(AuthContext);
   const [username, setUsername] = useState(userData.username || "");
   const [avatar, setAvatar] = useState(
@@ -586,38 +585,30 @@ const Users = () => {
   );
 
   useEffect(() => {
-    // Áp dụng theme cho body hoặc một container cha của toàn bộ app
-    document.body.className = theme; // Ví dụ: <body class="light"> hoặc <body class="dark">
-    localStorage.setItem("theme", theme); // Lưu lựa chọn theme
+    document.body.className = theme;
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
   useEffect(() => {
-    // Áp dụng background cho body hoặc một container cha
     document.body.style.backgroundImage = backgroundImage
       ? `url(${backgroundImage})`
       : "";
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundPosition = "center";
-    document.body.style.backgroundAttachment = "fixed"; // tùy chọn
-    localStorage.setItem("backgroundImage", backgroundImage); // Lưu lựa chọn background
+    document.body.style.backgroundAttachment = "fixed";
+    localStorage.setItem("backgroundImage", backgroundImage);
   }, [backgroundImage]);
+
   useEffect(() => {
     setUsername(userData.username || "");
     setAvatar(`http://localhost:8000/data/upload/avatar/${userData.avatar}`);
   }, [userData]);
+
   const handleMenuClick = (menuItem) => {
     setActiveMenu(menuItem);
-    if (menuItem !== "translated" && menuItem !== "translating") {
-      setIsTruyenDropdownOpen(false); // Đóng dropdown nếu không phải mục con của "Tủ truyện"
-    }
-  };
-
-  const toggleTruyenDropdown = () => {
-    setIsTruyenDropdownOpen(!isTruyenDropdownOpen);
   };
 
   const handleLogout = () => {
-    // Logic đăng xuất
     onLogout();
     navigate("/");
     document.body.style.backgroundImage = "";
@@ -625,14 +616,43 @@ const Users = () => {
     alert("Đăng xuất thành công!");
   };
 
+  const renderTabContent = () => {
+    return (
+      <div className="tab-content">
+        <div className={`tab-pane ${activeTab === 'translated' ? 'active' : ''}`}>
+          <TranslatedStories />
+        </div>
+        <div className={`tab-pane ${activeTab === 'translating' ? 'active' : ''}`}>
+          <TranslatingStories />
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeMenu) {
       case "profile":
         return <ProfileSettings />;
-      case "translated":
-        return <TranslatedStories />;
-      case "translating":
-        return <TranslatingStories />;
+      case "truyen":
+        return (
+          <div className="truyen-content">
+            <div className="tabs">
+              <button 
+                className={`tab ${activeTab === 'translated' ? 'active' : ''}`}
+                onClick={() => setActiveTab('translated')}
+              >
+                Truyện đã dịch
+              </button>
+              <button 
+                className={`tab ${activeTab === 'translating' ? 'active' : ''}`}
+                onClick={() => setActiveTab('translating')}
+              >
+                Truyện đang dịch
+              </button>
+            </div>
+            {renderTabContent()}
+          </div>
+        );
       case "keys":
         return <KeyManagement />;
       case "interface":
@@ -645,14 +665,12 @@ const Users = () => {
           />
         );
       default:
-        return <ProfileSettings />; // Mặc định hiển thị trang cá nhân
+        return <ProfileSettings />;
     }
   };
 
   return (
     <div className={`users-page ${theme}`}>
-      {" "}
-      {/* Thêm class theme vào đây nếu muốn styleเฉพาะ trang */}
       <div className="users-sidebar">
         <div
           className="user-info-menu"
@@ -667,33 +685,11 @@ const Users = () => {
         >
           👤 Trang cá nhân
         </div>
-        <div className="menu-item-dropdown">
-          <div
-            className={`menu-item ${isTruyenDropdownOpen ? "open" : ""}`}
-            onClick={toggleTruyenDropdown}
-          >
-            📚 Tủ truyện cá nhân {isTruyenDropdownOpen ? "▲" : "▼"}
-          </div>
-          {isTruyenDropdownOpen && (
-            <div className="dropdown-content">
-              <div
-                className={`menu-item sub-item ${
-                  activeMenu === "translated" ? "active" : ""
-                }`}
-                onClick={() => handleMenuClick("translated")}
-              >
-                📖✅ Truyện đã dịch
-              </div>
-              <div
-                className={`menu-item sub-item ${
-                  activeMenu === "translating" ? "active" : ""
-                }`}
-                onClick={() => handleMenuClick("translating")}
-              >
-                ⏳ Truyện đang dịch
-              </div>
-            </div>
-          )}
+        <div
+          className={`menu-item ${activeMenu === "truyen" ? "active" : ""}`}
+          onClick={() => handleMenuClick("truyen")}
+        >
+          📚 Tủ truyện cá nhân
         </div>
         <div
           className={`menu-item ${activeMenu === "keys" ? "active" : ""}`}
