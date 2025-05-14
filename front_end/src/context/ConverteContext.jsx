@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  //lấy thông tin user
   const fetchUserData = async (token) => {
     try {
       setLoading(true);
@@ -212,6 +213,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  //xóa API key
   const removeApiKey = async (keyId) => {
     try {
       setLoading(true);
@@ -251,6 +253,7 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  //đăng xuất
   const onLogout = () => {
     localStorage.removeItem("auth-token");
     setIsLoggedIn(false);
@@ -290,7 +293,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Hàm cập nhật thông tin truyện
-  const handleEdit = async (storyId, field, value) => {
+  const handleEditStories = async (storyId, field, value) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      await axios.put(`http://localhost:8000/user/library/${storyId}`, 
+        { [field]: value },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Cập nhật state sau khi API call thành công
+      setStories(prevStories =>
+        prevStories.map(story =>
+          story.id === storyId ? { ...story, [field]: value } : story
+        )
+      );
+    } catch (err) {
+      console.error("Lỗi khi cập nhật truyện:", err);
+      setError('Lỗi khi cập nhật truyện: ' + (err.response?.data?.error || err.message));
+    }
+  };
+   // Hàm xoá thông tin truyện xoá mềm trước
+   const handleDeleteStories = async (storyId) => {
     try {
       const token = localStorage.getItem("auth-token");
       await axios.put(`http://localhost:8000/user/library/${storyId}`, 
@@ -332,7 +359,7 @@ export const AuthProvider = ({ children }) => {
         removeApiKey,
         stories,
         fetchStories,
-        handleEdit,
+        handleEditStories,
       }}
     >
       {children}
