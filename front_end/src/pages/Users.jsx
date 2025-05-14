@@ -255,7 +255,7 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  const { stories, loading, error, fetchStories } = useContext(AuthContext);
+  const { stories, loading, error, fetchStories, handleEditStories } = useContext(AuthContext);
   const [storiesList, setStoriesList] = useState([]);
 
   useEffect(() => {
@@ -268,20 +268,20 @@ const TranslatedStories = () => {
     }
   }, [stories]);
 
-  const handleDelete = (storyId) => {
+  const handleDeleteStory = (storyId) => {
     // Xử lý xóa truyện
     setStoriesList(prevStories => prevStories.filter(story => story.id !== storyId));
     // Thêm logic gọi API để xóa truyện ở đây
   };
 
-  const handleUpdate = (storyId, updatedStory) => {
-    // Xử lý cập nhật truyện
+  const handleUpdateStory = (storyId, field, value) => {
+    handleEditStories(storyId, field, value);
+    // Cập nhật state local sau khi API call thành công
     setStoriesList(prevStories =>
       prevStories.map(story =>
-        story.id === storyId ? { ...story, ...updatedStory } : story
+        story.id === storyId ? { ...story, [field]: value } : story
       )
     );
-    // Thêm logic gọi API để cập nhật truyện ở đây
   };
 
   if (loading) return <div>Đang tải danh sách truyện...</div>;
@@ -298,8 +298,8 @@ const TranslatedStories = () => {
             <UserStoryCard
               key={story.id}
               story={story}
-              onDelete={handleDelete}
-              onUpdate={handleUpdate}
+              onDelete={handleDeleteStory}
+              onUpdate={handleUpdateStory}
             />
           ))}
         </div>

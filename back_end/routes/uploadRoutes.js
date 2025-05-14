@@ -1,0 +1,1 @@
+router.post('/image/:type', authMiddleware, upload.single('image'), uploadController.handleImageUpload); 
