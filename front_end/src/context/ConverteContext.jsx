@@ -355,11 +355,11 @@ export const AuthProvider = ({ children }) => {
       if (response.status === 200) {
         // Cập nhật lại danh sách truyện
         fetchStories();
-        toast.success('Đã ẩn truyện thành công');
+        toast.success('Đã xoá truyện thành công');
       }
     } catch (error) {
       console.error('Error hiding story:', error);
-      toast.error('Lỗi khi ẩn truyện');
+      toast.error('Lỗi khi xoá truyện');
     }
   };
 
