@@ -3,21 +3,23 @@ const prisma = require("../config/prismaConfig");
 const userLibraryService = {
     // Lấy tất cả truyện của user
     getAllStories: async (userId) => {
-
-
-        // return await prisma.user.findMany({
-        //     where: { id: userId },
-        //     include: {
-        //       libraryStories: true
-        //     }
-        //   });
-
         return await prisma.userLibraryStory.findMany({
             where: { 
-                userId: userId 
+                userId: userId,
+                isHidden: false // Chỉ lấy các truyện không bị ẩn
             },
             include: {
-                chapters: true
+                chapters: {
+                    select: {
+                        id: true,
+                        chapterNumber: true,
+                        chapterName: true,
+                        isHidden: true
+                    }
+                }
+            },
+            orderBy: {
+                updatedAt: 'desc'
             }
         });
     },
@@ -64,14 +66,38 @@ const userLibraryService = {
         });
     },
 
-    // Xóa truyện
-    deleteStory: async (id, userId) => {
-        return await prisma.userLibraryStory.deleteMany({
-            where: {
-                id: id,
-                userId: userId
-            }
-        });
+    // Ẩn truyện (xóa mềm)
+    hideStory: async (storyId, userId) => {
+        try {
+            return await prisma.userLibraryStory.updateMany({
+                where: {
+                    id: storyId,
+                    userId: userId
+                },
+                data: {
+                    isHidden: true,
+                    updatedAt: new Date()
+                }
+            });
+        } catch (error) {
+            console.error('Error in hideStory service:', error);
+            throw error;
+        }
+    },
+
+    // Xóa truyện vĩnh viễn (xóa cứng)
+    deleteStory: async (storyId, userId) => {
+        try {
+            return await prisma.userLibraryStory.deleteMany({
+                where: {
+                    id: storyId,
+                    userId: userId
+                }
+            });
+        } catch (error) {
+            console.error('Error in deleteStory service:', error);
+            throw error;
+        }
     },
 
     // Lấy danh sách chương

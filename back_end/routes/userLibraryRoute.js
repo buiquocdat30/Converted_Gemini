@@ -23,6 +23,7 @@ router.get('/', userLibraryController.getAllStories);
 router.post('/', userLibraryController.createStory);
 router.get('/:id', userLibraryController.getStoryById);
 router.put('/:id', userLibraryController.updateStory);
-router.delete('/:id', userLibraryController.deleteStory);
+router.patch('/:id/hide', userLibraryController.hideStory);//xoá mềm
+router.delete('/:id', userLibraryController.deleteStory);//xoá cứng
 
 module.exports = router; 

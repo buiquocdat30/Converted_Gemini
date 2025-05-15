@@ -255,7 +255,7 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  const { stories, loading, error, fetchStories, handleEditStories } =
+  const { stories, loading, error, fetchStories, editStories, hideStories, deleteStories } =
     useContext(AuthContext);
   const [storiesList, setStoriesList] = useState([]);
 
@@ -269,16 +269,30 @@ const TranslatedStories = () => {
     }
   }, [stories]);
 
-  const handleDeleteStory = (storyId) => {
-    // Xử lý xóa truyện
-    setStoriesList((prevStories) =>
-      prevStories.filter((story) => story.id !== storyId)
-    );
-    // Thêm logic gọi API để xóa truyện ở đây
+  //xoá mềm
+  const handleHideStory = async (storyId) => {
+
+      await hideStories(storyId);
+      // Cập nhật state local sau khi ẩn thành công
+      setStoriesList(prevStories => 
+        prevStories.filter(story => story.id !== storyId)
+      );
+    
+  };
+
+  //xoá cứng dùng trong thùng rác
+  const handleDeleteStory = async (storyId) => {
+    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+      await deleteStories(storyId);
+      // Cập nhật state local sau khi xóa thành công
+      setStoriesList(prevStories => 
+        prevStories.filter(story => story.id !== storyId)
+      );
+    }
   };
 
   const handleUpdateStory = (storyId, field, value) => {
-    handleEditStories(storyId, field, value);
+    editStories(storyId, field, value);
     // Cập nhật state local sau khi API call thành công
     setStoriesList((prevStories) =>
       prevStories.map((story) =>
@@ -301,7 +315,8 @@ const TranslatedStories = () => {
             <UserStoryCard
               key={story.id}
               story={story}
-              onDelete={handleDeleteStory}
+              onHide={() => handleHideStory(story.id)}//xoá mềm
+              onDelete={() => handleDeleteStory(story.id)}//xoá cứng
               onUpdate={handleUpdateStory}
             />
           ))}
@@ -573,7 +588,7 @@ const Users = () => {
   const [activeMenu, setActiveMenu] = useState("profile");
   const [activeTab, setActiveTab] = useState("translated");
   const navigate = useNavigate();
-  const { userData, onLogout } = useContext(AuthContext);
+  const { userData, onLogout, userStories, handleEditStories, handleDeleteStories, hideStory, deleteStory } = useContext(AuthContext);
   const [username, setUsername] = useState(userData.username || "");
   const [avatar, setAvatar] = useState(
     `http://localhost:8000/data/upload/avatar/${userData.avatar}`
@@ -645,6 +660,18 @@ const Users = () => {
     document.body.style.backgroundImage = "";
     console.log("User logged out");
     alert("Đăng xuất thành công!");
+  };
+
+  const handleHideStory = async (storyId) => {
+    if (window.confirm('Bạn có chắc muốn ẩn truyện này?')) {
+      await hideStory(storyId);
+    }
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+      await deleteStory(storyId);
+    }
   };
 
   const renderTabContent = () => {
