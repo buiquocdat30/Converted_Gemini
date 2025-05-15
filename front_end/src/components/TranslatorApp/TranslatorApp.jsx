@@ -99,7 +99,7 @@ const TranslatorApp = ({
   };
 
   return (
-    <div className="wrapper">
+    <div className="translator-app-wrapper">
       <h2
         className="translator-app-title"
         onClick={() => (window.location.href = "/")}

@@ -1,6 +1,12 @@
-.translator-app {
-    display: flex;
-    flex-direction: column;
+.translator-app-wrapper {
+    /* display: flex;
+    flex-direction: column; */
+    max-width: 1240px;
+    width: 100%;
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
 }
 
 .translator-app-title {
