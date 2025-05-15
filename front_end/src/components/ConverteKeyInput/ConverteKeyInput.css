@@ -53,10 +53,10 @@
 }
 
 /* Icon mắt */
-.show-icon {
+.api-input-wrapper .show-icon {
     position: absolute;
     right: 10px;
-    top: 72%;
+    top: 64%;
     transform: translateY(-50%);
     cursor: pointer;
     color: #444;
