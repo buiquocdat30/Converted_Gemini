@@ -104,7 +104,33 @@ const userLibraryController = {
         }
     },
 
-    // Xóa truyện
+    // Ẩn truyện (xóa mềm)
+    hideStory: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const userId = req.user.id;
+            console.log('hideStory - Story ID:', id);
+            console.log('hideStory - User ID:', userId);
+
+            if (!userId) {
+                return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
+            }
+
+            const hiddenStory = await userLibraryService.hideStory(id, userId);
+            console.log('hideStory - Hide result:', hiddenStory);
+
+            if (hiddenStory.count === 0) {
+                return res.status(404).json({ error: 'Không tìm thấy truyện' });
+            }
+
+            res.json({ message: 'Đã ẩn truyện thành công' });
+        } catch (error) {
+            console.error('Error hiding story:', error);
+            res.status(500).json({ error: 'Lỗi khi ẩn truyện' });
+        }
+    },
+
+    // Xóa truyện vĩnh viễn (xóa cứng)
     deleteStory: async (req, res) => {
         try {
             const { id } = req.params;
@@ -123,7 +149,7 @@ const userLibraryController = {
                 return res.status(404).json({ error: 'Không tìm thấy truyện' });
             }
 
-            res.json({ message: 'Xóa truyện thành công' });
+            res.json({ message: 'Đã xóa truyện vĩnh viễn' });
         } catch (error) {
             console.error('Error deleting story:', error);
             res.status(500).json({ error: 'Lỗi khi xóa truyện' });

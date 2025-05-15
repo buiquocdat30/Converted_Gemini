@@ -3,7 +3,7 @@ import "./UserStoryCard.css";
 import axios from "axios";
 import defaultAvatar from "../../assets/default_avatar.jpg";
 
-const UserStoryCard = ({ story, onDelete, onUpdate }) => {
+const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedStory, setEditedStory] = useState({
     storyAvatar: story.storyAvatar,
@@ -12,7 +12,6 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
   });
   const [previewAvatar, setPreviewAvatar] = useState(story.storyAvatar);
   const [selectedFile, setSelectedFile] = useState(null);
-
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -25,9 +24,10 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
     }
   };
 
+  //xoá mềm dùng trong tủ truyện
   const handleDelete = () => {
     if (window.confirm("Bạn có chắc chắn muốn xoá truyện này không?")) {
-      onDelete(story.id);
+      onHide(story.id);
     }
   };
 
@@ -125,14 +125,14 @@ const UserStoryCard = ({ story, onDelete, onUpdate }) => {
             )}
           </div>
           <div className="stories-total-chapters">
-            <p>Tổng chương: {story.totalChapters}</p>
+            <p>Tổng chương: {story.chapters ? story.chapters.filter(chapter => !chapter.isHidden).length : 0}</p>
           </div>
         </div>
       </div>
 
       {/* Thời gian cập nhật */}
       <div className="stories-update-time">
-        <p>Cập nhật lần cuối: {story.lastUpdated}</p>
+        <p>Cập nhật lần cuối: {new Date(story.updatedAt).toLocaleString('vi-VN')}</p>
       </div>
 
       {/* Nút chức năng */}
