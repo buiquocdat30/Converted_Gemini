@@ -376,7 +376,7 @@ const TranslatingStories = () => {
 
   const handleStoryClick = (storyId) => {
     // Chuyển hướng đến trang Translate với storyId
-    navigate(`/translate?storyId=${storyId}&tab=translating`);
+    navigate(`/translate?storyId=${storyId}`);
   };
 
   if (loading) return <div>Đang tải danh sách truyện...</div>;

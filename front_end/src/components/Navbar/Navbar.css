@@ -6,6 +6,12 @@
     align-items: center;
     background: #fff;
     border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.dark .navbar {
+    background: #1a1a1a;
+    box-shadow: 0 1px 3px -2px rgba(255, 255, 255, 0.1);
 }
 
 .nav-logo {
@@ -20,6 +26,10 @@
     font-size: 38px;
 }
 
+.dark .nav-logo p {
+    color: #e0e0e0;
+}
+
 .nav-menu {
     display: flex;
     align-items: center;
@@ -28,7 +38,7 @@
     color: #626262;
     font-size: 20px;
     font-weight: 500;
-
+    transition: all 0.3s ease;
 }
 
 .nav-menu li {
@@ -38,12 +48,29 @@
     justify-self: center;
     gap: 3px;
     cursor: pointer;
-
+    position: relative;
+    padding: 10px 0;
 }
 
 .nav-menu li a {
     color: rgb(104, 146, 119);
     padding: 20px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-menu li a:hover {
+    color: #32744f;
+    transform: translateY(-2px);
+}
+
+.dark .nav-menu li a {
+    color: #a8c4b5;
+}
+
+.dark .nav-menu li a:hover {
+    color: #4dabf7;
 }
 
 .nav-menu hr {
@@ -53,14 +80,31 @@
     margin: 5px;
     border-radius: 10px;
     background: #32744f;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
 }
 
-hr:active {
-    transform: translateY(-5px);
-    /* Nhích lên 5px */
-    box-shadow: 0px 4px 10px rgba(104, 65, 65, 0.5);
-    /* Hiệu ứng bóng */
+.dark .nav-menu hr {
+    background: #4dabf7;
+}
+
+.nav-menu li:hover hr {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+}
+
+.nav-menu li.active hr {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 2px 8px rgba(50, 116, 79, 0.3);
+}
+
+.dark .nav-menu li.active hr {
+    box-shadow: 0 2px 8px rgba(77, 171, 247, 0.3);
 }
 
 .nav-login {
@@ -90,6 +134,12 @@ menu người dùng sau khi đã đăng nhập */
     object-fit: cover;
     border: 2px solid #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.dark .user-avatar {
+    border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .username-text {
@@ -112,11 +162,9 @@ menu người dùng sau khi đã đăng nhập */
     border-radius: 20px;
 }
 
-
-
-
-
-
+.dark .user-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
 
 /* Khu vực user-menu */
 .user-dropdown {
@@ -124,7 +172,7 @@ menu người dùng sau khi đã đăng nhập */
     visibility: hidden;
     transform: translateY(-10px);
     /* THÊM: trượt nhẹ từ trên xuống */
-    transition: opacity 1s ease, visibility 1s ease, transform 1s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
     /* THÊM: hiệu ứng trượt */
     position: absolute;
     top: 120%;
@@ -136,6 +184,12 @@ menu người dùng sau khi đã đăng nhập */
     padding: 10px 15px;
     z-index: 999;
     min-width: 160px;
+}
+
+.dark .user-dropdown {
+    background-color: #2c2c2c;
+    border: 1px solid #444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .user-dropdown.show {
@@ -155,6 +209,11 @@ menu người dùng sau khi đã đăng nhập */
 .dropdown-greeting {
     margin: 0 0 10px 0;
     font-weight: 600;
+    color: #333;
+}
+
+.dark .dropdown-greeting {
+    color: #e0e0e0;
 }
 
 .dropdown-link {
@@ -162,6 +221,11 @@ menu người dùng sau khi đã đăng nhập */
     text-decoration: none;
     color: #007bff;
     margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.dark .dropdown-link {
+    color: #4dabf7;
 }
 
 .dropdown-link:hover {
@@ -175,6 +239,7 @@ menu người dùng sau khi đã đăng nhập */
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .dropdown-logout:hover {
@@ -188,8 +253,14 @@ menu người dùng sau khi đã đăng nhập */
     border: none;
     border-radius: 15px;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
+.login-button:hover {
+    background-color: #218838;
+}
+
+/* Responsive styles */
 @media(max-width:1280px) {
     .navbar {
         padding: 12px 50px;
@@ -270,17 +341,27 @@ menu người dùng sau khi đã đăng nhập */
         background: white;
         justify-content: center;
         top: 50px;
+        padding: 20px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+    }
 
+    .dark .nav-menu {
+        background: #2c2c2c;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
 
     .nav-menu-visible {
         display: flex;
+        opacity: 1;
+        transform: translateY(0);
     }
 
     .nav-dropdown.open {
         transform: rotate(90deg);
     }
-
 }
 
 @media(max-width:500px) {
@@ -301,9 +382,8 @@ menu người dùng sau khi đã đăng nhập */
     }
 
     .nav-menu {
-        height: auto;
         top: 50px;
-
+        padding: 15px 0;
     }
 
     .nav-login-cart {

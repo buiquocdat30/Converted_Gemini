@@ -2,7 +2,16 @@
 
 .chapter-list {
   font-family: Arial, sans-serif;
-  padding: 15px;
+  padding: 20px;
+  background-color: #fff;
+  color: #333;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.dark .chapter-list {
+  background-color: #1f1f1f;
+  color: #ffffff;
 }
 
 .chapter-list h3 {
@@ -59,12 +68,40 @@
   font-size: 16px;
 }
 
-
-
 .chapter-item {
   display: flex;
   flex-direction: column;
   width: 100%;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  transition: all 0.3s ease;
+}
+
+.dark .chapter-item {
+  background-color: #2a2a2a;
+}
+
+.chapter-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .chapter-item:hover {
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+
+.chapter-title {
+  font-size: 1.1em;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.dark .chapter-title {
+  color: #fff;
 }
 
 .chapter-header {
@@ -204,8 +241,6 @@
 
 }
 
-
-
 .chapter-list .stop-translate-button:hover:enabled,
 .chapter-list .translate-all-button:hover:enabled {
   background-color: #45a049;
@@ -217,8 +252,6 @@
   cursor: not-allowed;
 
 }
-
-
 
 .progress-bar-container {
   width: 100%;
@@ -232,4 +265,72 @@
   height: 100%;
   background-color: #4caf50;
   transition: width 0.3s ease;
+}
+
+.chapter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.chapter-actions button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.translate-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.translate-btn:hover {
+  background-color: #218838;
+}
+
+.dark .translate-btn {
+  background-color: #2ecc71;
+}
+
+.dark .translate-btn:hover {
+  background-color: #27ae60;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .chapter-list {
+    padding: 10px;
+  }
+
+  .chapter-item {
+    padding: 10px;
+  }
+
+  .chapter-actions {
+    flex-direction: column;
+  }
+
+  .chapter-actions button {
+    width: 100%;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .chapter-list {
+    padding: 5px;
+  }
+
+  .chapter-title {
+    font-size: 1em;
+  }
+
+  .pagination button {
+    padding: 6px 12px;
+  }
 }

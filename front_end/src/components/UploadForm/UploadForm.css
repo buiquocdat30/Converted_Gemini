@@ -173,3 +173,129 @@
   width: 18px;
   height: 18px;
 }
+
+.upload-form {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.dark .upload-form {
+  background-color: #1f1f1f;
+  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.dark .form-group label {
+  color: #fff;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.dark .form-group input,
+.dark .form-group textarea {
+  background-color: #2a2a2a;
+  color: #fff;
+  border-color: #444;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+}
+
+.dark .form-group input:focus,
+.dark .form-group textarea:focus {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.25);
+}
+
+.upload-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+  background-color: #218838;
+}
+
+.dark .upload-btn {
+  background-color: #2ecc71;
+}
+
+.dark .upload-btn:hover {
+  background-color: #27ae60;
+}
+
+.upload-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.dark .upload-btn:disabled {
+  background-color: #444;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .upload-form {
+    padding: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 8px;
+  }
+
+  .upload-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .upload-form {
+    padding: 10px;
+  }
+
+  .form-group label {
+    font-size: 0.9em;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 6px;
+  }
+}
