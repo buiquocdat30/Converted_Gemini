@@ -19,10 +19,7 @@ const Translate = () => {
 
   useEffect(() => {
     const storyId = searchParams.get("storyId");
-    const tab = searchParams.get("tab");
-    
-    if (storyId && tab === "translating") {
-      setActiveTab("translating");
+    if (storyId) {
       loadTranslatingStory(storyId);
     }
   }, [searchParams]);
@@ -62,6 +59,17 @@ const Translate = () => {
       setChapters(formattedChapters);
     } catch (error) {
       console.error("❌ Lỗi khi tải truyện đang dịch:", error);
+    }
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    // Nếu chuyển sang tab "new", xóa storyId khỏi URL
+    if (tab === "new") {
+      const newUrl = window.location.pathname;
+      window.history.pushState({}, "", newUrl);
+      setCurrentStory(null);
+      setChapters([]);
     }
   };
 
@@ -200,7 +208,7 @@ const Translate = () => {
       <div className="translate-tabs">
         <button
           className={`tab-button ${activeTab === "new" ? "active" : ""}`}
-          onClick={() => setActiveTab("new")}
+          onClick={() => handleTabChange("new")}
         >
           Dịch truyện mới
         </button>
@@ -208,7 +216,7 @@ const Translate = () => {
           className={`tab-button ${
             activeTab === "translating" ? "active" : ""
           }`}
-          onClick={() => setActiveTab("translating")}
+          onClick={() => handleTabChange("translating")}
         >
           Truyện đang dịch
         </button>

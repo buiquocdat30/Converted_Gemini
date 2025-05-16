@@ -1,10 +1,9 @@
 // Navbar.js
 import React, { useState, useRef, useContext, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import { AuthContext } from "../../context/ConverteContext";
 import "./Navbar.css";
 import logo from "../../assets/icon.png";
-import { AuthContext } from "../../context/ConverteContext";
 
 const Navbar = () => {
   const { isLoggedIn, onLogout, userData, menu, setMenu, loading } =

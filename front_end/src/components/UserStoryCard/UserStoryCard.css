@@ -217,4 +217,157 @@
     background: #45a049;
 }
 
+.story-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.dark .story-card {
+  background-color: #1f1f1f;
+  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.story-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark .story-card:hover {
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+}
+
+.story-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.story-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+  object-fit: cover;
+}
+
+.story-title {
+  font-size: 1.2em;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.dark .story-title {
+  color: #fff;
+}
+
+.story-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.story-info span {
+  font-size: 0.9em;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.dark .story-info span {
+  color: #aaa;
+}
+
+.story-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.story-actions button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #218838;
+}
+
+.dark .edit-btn {
+  background-color: #2ecc71;
+}
+
+.dark .edit-btn:hover {
+  background-color: #27ae60;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+.dark .delete-btn {
+  background-color: #e74c3c;
+}
+
+.dark .delete-btn:hover {
+  background-color: #c0392b;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .story-card {
+    padding: 10px;
+  }
+
+  .story-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .story-avatar {
+    margin-bottom: 10px;
+  }
+
+  .story-actions {
+    flex-direction: column;
+  }
+
+  .story-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .story-card {
+    padding: 8px;
+  }
+
+  .story-title {
+    font-size: 1.1em;
+  }
+
+  .story-info {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
 
