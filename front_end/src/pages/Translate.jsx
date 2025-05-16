@@ -1,19 +1,69 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import UploadForm from "../components/UploadForm/UploadForm";
 import TranslatorApp from "../components/TranslatorApp/TranslatorApp";
 import StoryInfoForm from "../components/StoryInfoForm/StoryInfoForm";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 import "../pages/pageCSS/Translate.css";
 
 const Translate = () => {
-  const { isLoggedIn } = useContext(AuthContext);
+  const { isLoggedIn, stories, fetchStories } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
   const [chapters, setChapters] = useState([]);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("gemini-2.0-flash");
   const [currentStory, setCurrentStory] = useState(null);
   const [fileName, setFileName] = useState("");
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const storyId = searchParams.get("storyId");
+    const tab = searchParams.get("tab");
+    
+    if (storyId && tab === "translating") {
+      setActiveTab("translating");
+      loadTranslatingStory(storyId);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchStories();
+    }
+  }, [isLoggedIn]);
+
+  const loadTranslatingStory = async (storyId) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      console.log("🔍 Đang tải truyện với ID:", storyId);
+      const response = await axios.get(
+        `http://localhost:8000/user/library/${storyId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const story = response.data;
+      console.log("📚 Dữ liệu truyện nhận được:", story);
+      setCurrentStory(story);
+
+      // Chuyển đổi dữ liệu chương từ UserLibraryChapter sang định dạng phù hợp
+      const formattedChapters = story.chapters.map(chapter => ({
+        title: chapter.chapterName,
+        content: chapter.rawText,
+        translated: chapter.translation?.currentText || "",
+        translatedTitle: chapter.chapterName,
+        chapterNumber: chapter.chapterNumber
+      }));
+      console.log("📝 Chương đã được format:", formattedChapters);
+      setChapters(formattedChapters);
+    } catch (error) {
+      console.error("❌ Lỗi khi tải truyện đang dịch:", error);
+    }
+  };
 
   const handleParsedChapters = (parsedChapters, key, model, file) => {
     console.log("✔️ Nhận được từ UploadForm:", { parsedChapters, key, model });
@@ -23,10 +73,31 @@ const Translate = () => {
     setFileName(file.name);
   };
 
-  const handleUpdateChapterContent = (index, newContent) => {
-    setChapters((prev) =>
-      prev.map((ch, i) => (i === index ? { ...ch, content: newContent } : ch))
-    );
+  const handleUpdateChapterContent = async (index, newContent) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      const chapter = chapters[index];
+      
+      // Cập nhật nội dung chương trong database
+      await axios.put(
+        `http://localhost:8000/user/library/chapter/${chapter.id}/translation`,
+        {
+          currentText: newContent
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Cập nhật state local
+      setChapters((prev) =>
+        prev.map((ch, i) => (i === index ? { ...ch, translated: newContent } : ch))
+      );
+    } catch (error) {
+      console.error("Lỗi khi cập nhật nội dung chương:", error);
+    }
   };
 
   const handleSaveStory = async (storyInfo) => {
@@ -60,6 +131,9 @@ const Translate = () => {
   const handleUpdateStory = async (storyInfo) => {
     try {
       const token = localStorage.getItem("auth-token");
+      console.log("🔄 Đang cập nhật truyện:", currentStory.id);
+      console.log("📋 Thông tin cập nhật:", storyInfo);
+      
       const response = await axios.put(
         `http://localhost:8000/user/library/${currentStory.id}`,
         storyInfo,
@@ -69,10 +143,11 @@ const Translate = () => {
           },
         }
       );
+      console.log("✅ Cập nhật thành công:", response.data);
       setCurrentStory(response.data);
       return response.data;
     } catch (error) {
-      console.error("Lỗi khi cập nhật truyện:", error);
+      console.error("❌ Lỗi khi cập nhật truyện:", error);
       throw error;
     }
   };
@@ -143,8 +218,15 @@ const Translate = () => {
           renderTranslatorContent()
         ) : (
           <div className="translating-stories">
-            {/* TODO: Thêm danh sách truyện đang dịch và chức năng load truyện */}
-            <p>Danh sách truyện đang dịch sẽ được hiển thị ở đây</p>
+            {currentStory ? (
+              <>
+                {console.log("📚 Truyện hiện tại:", currentStory)}
+                {console.log("📝 Danh sách chương:", chapters)}
+                {renderTranslatorContent()}
+              </>
+            ) : (
+              <p>Vui lòng chọn một truyện để tiếp tục dịch</p>
+            )}
           </div>
         )}
       </div>

@@ -265,19 +265,19 @@ const TranslatedStories = () => {
 
   useEffect(() => {
     if (stories) {
-      setStoriesList(stories);
+      // Lọc các truyện đã dịch xong (isComplete == true)
+      const translatedStories = stories.filter(story => story.isComplete);
+      setStoriesList(translatedStories);
     }
   }, [stories]);
 
   //xoá mềm
   const handleHideStory = async (storyId) => {
-
-      await hideStories(storyId);
-      // Cập nhật state local sau khi ẩn thành công
-      setStoriesList(prevStories => 
-        prevStories.filter(story => story.id !== storyId)
-      );
-    
+    await hideStories(storyId);
+    // Cập nhật state local sau khi ẩn thành công
+    setStoriesList(prevStories => 
+      prevStories.filter(story => story.id !== storyId)
+    );
   };
 
   //xoá cứng dùng trong thùng rác
@@ -315,8 +315,8 @@ const TranslatedStories = () => {
             <UserStoryCard
               key={story.id}
               story={story}
-              onHide={() => handleHideStory(story.id)}//xoá mềm
-              onDelete={() => handleDeleteStory(story.id)}//xoá cứng
+              onHide={() => handleHideStory(story.id)}
+              onDelete={() => handleDeleteStory(story.id)}
               onUpdate={handleUpdateStory}
             />
           ))}
@@ -327,63 +327,80 @@ const TranslatedStories = () => {
 };
 
 const TranslatingStories = () => {
-  // Dữ liệu mẫu
-  const [stories, setStories] = useState([
-    {
-      id: 1,
-      name: "Truyện C đang dịch",
-      author: "Tác giả Z",
-      chapters: 20,
-      lastUpdated: "2025-05-06",
-    },
-  ]);
+  const { stories, loading, error, fetchStories, editStories, hideStories, deleteStories } =
+    useContext(AuthContext);
+  const [storiesList, setStoriesList] = useState([]);
+  const navigate = useNavigate();
 
-  const handleEdit = (storyId, field, value) => {
-    setStories((prevStories) =>
+  useEffect(() => {
+    fetchStories();
+  }, []);
+
+  useEffect(() => {
+    if (stories) {
+      // Lọc các truyện đang dịch (isComplete == false)
+      const translatingStories = stories.filter(story => !story.isComplete);
+      setStoriesList(translatingStories);
+    }
+  }, [stories]);
+
+  //xoá mềm
+  const handleHideStory = async (storyId) => {
+    await hideStories(storyId);
+    // Cập nhật state local sau khi ẩn thành công
+    setStoriesList(prevStories => 
+      prevStories.filter(story => story.id !== storyId)
+    );
+  };
+
+  //xoá cứng dùng trong thùng rác
+  const handleDeleteStory = async (storyId) => {
+    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+      await deleteStories(storyId);
+      // Cập nhật state local sau khi xóa thành công
+      setStoriesList(prevStories => 
+        prevStories.filter(story => story.id !== storyId)
+      );
+    }
+  };
+
+  const handleUpdateStory = (storyId, field, value) => {
+    editStories(storyId, field, value);
+    // Cập nhật state local sau khi API call thành công
+    setStoriesList((prevStories) =>
       prevStories.map((story) =>
         story.id === storyId ? { ...story, [field]: value } : story
       )
     );
-    // Thêm logic gọi API để lưu thay đổi ở đây
-    console.log(`Updating story ${storyId}: ${field} = ${value}`);
   };
+
+  const handleStoryClick = (storyId) => {
+    // Chuyển hướng đến trang Translate với storyId
+    navigate(`/translate?storyId=${storyId}&tab=translating`);
+  };
+
+  if (loading) return <div>Đang tải danh sách truyện...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+
   return (
     <div className="translating-stories">
       <h2>Truyện Đang Dịch</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Tên truyện (cho phép sửa)</th>
-            <th>Tên tác giả (cho phép sửa)</th>
-            <th>Tổng số chương</th>
-            <th>Cập nhật lần cuối</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stories.map((story) => (
-            <tr key={story.id}>
-              <td>
-                <input
-                  type="text"
-                  value={story.name}
-                  onChange={(e) => handleEdit(story.id, "name", e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={story.author}
-                  onChange={(e) =>
-                    handleEdit(story.id, "author", e.target.value)
-                  }
-                />
-              </td>
-              <td>{story.chapters}</td>
-              <td>{story.lastUpdated}</td>
-            </tr>
+      {storiesList.length === 0 ? (
+        <p>Chưa có truyện nào đang dịch</p>
+      ) : (
+        <div className="stories-grid">
+          {storiesList.map((story) => (
+            <div key={story.id} onClick={() => handleStoryClick(story.id)}>
+              <UserStoryCard
+                story={story}
+                onHide={() => handleHideStory(story.id)}
+                onDelete={() => handleDeleteStory(story.id)}
+                onUpdate={handleUpdateStory}
+              />
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      )}
     </div>
   );
 };
