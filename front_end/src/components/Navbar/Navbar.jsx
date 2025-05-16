@@ -107,8 +107,9 @@ const Navbar = () => {
                 <p className="dropdown-greeting">
                   👋 Xin chào, {userData.username}!
                 </p>
-                <Link to="/user">Trang cá nhân</Link>
-                {menu === "home" ? <hr /> : <></>}
+                <Link to="/user" className="dropdown-link">
+                👤 Trang cá nhân</Link>
+                
                 <Link to="/tu-truyen" className="dropdown-link">
                   📚 Tủ truyện
                 </Link>

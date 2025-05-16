@@ -6,7 +6,7 @@ import footer_logo from "../../assets/icon.png";
 const Footer = () => {
   return (
     <div className="footer">
-      <div className="footer_decription">
+      <div className="footer_decripstion">
         <p>
           Truyện dịch là nền tảng mở trực tuyến để dịch thuật, chuyển đổi các
           truyện từ tiếng nước ngoài sang tiếng Việt một cách nhanh chóng và

@@ -79,7 +79,7 @@
   gap: 10px;
 }
 
-.converter-btn>button {
+.converter-btn>.btn-submit {
   width: 100%;
   padding: 10px 20px;
   font-size: 16px;
@@ -93,12 +93,9 @@
   transition: background-color 0.3s ease;
 }
 
-.converte>button:hover {
-  background-color: #163328;
+.converter-btn>.btn-submit:hover {
+  background-color: #064409;
 }
-
-
-
 
 /* chọn model AI */
 .tip-title {

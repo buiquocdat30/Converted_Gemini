@@ -3,6 +3,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    color: #689277;
     gap: 20px;
     padding: 20px;
     background: #fff;
@@ -15,7 +16,9 @@
     background: #1a1a1a;
     box-shadow: 0 -1px 3px -2px rgba(255, 255, 255, 0.1);
 }
-
+.footer_decripstion{
+    color: #689277;
+}
 .footer-logo {
     display: flex;
     align-items: center;
@@ -81,9 +84,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
     width: 100%;
-    margin-bottom: 30px;
     color: #1a1a1a;
     font-size: 14px;
 }

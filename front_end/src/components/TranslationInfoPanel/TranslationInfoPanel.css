@@ -6,6 +6,10 @@
   align-items: last baseline;
 }
 
+.dark .tip-container {
+  background-color: #1a1a1a;
+  color: #a8c4b5;
+}
 
 .tip-body {
   text-align: left;

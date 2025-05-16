@@ -8,6 +8,7 @@ import {
   faEye,
   faEyeLowVision,
 } from "@fortawesome/free-solid-svg-icons";
+import { faFacebook, faGoogle, faXTwitter  } from "@fortawesome/free-brands-svg-icons";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/ConverteContext";
 import "./pageCSS/LoginSignup.css"; // Giữ lại file CSS này
@@ -126,7 +127,7 @@ const LoginSignup = () => {
   return (
     <div className="loginsignup">
       <div className="loginsignup-container">
-        <h1>{state}</h1>
+        <h1>{state==="Login"?"Đăng nhập":"Đăng ký"}</h1>
         <div className="loginsignup-fields-container">
           {state === "Sign Up" ? (
             <div className="loginsignup-fields">
@@ -178,18 +179,19 @@ const LoginSignup = () => {
             state === "Login" ? login() : signup();
           }}
         >
-          Continue
+          {state==="Login"?"Đăng nhập":"Đăng ký"}
         </button>
+        <div className="loginsignup-aside">
         {state === "Sign Up" ? (
           <p className="loginsignup-login">
-            Already have an account?{" "}
+            Đã có tài khoản?{" "}
             <span
               className="click-span"
               onClick={() => {
                 setState("Login");
               }}
             >
-              Login here
+              Đăng nhập tại đây
             </span>
           </p>
         ) : (
@@ -201,29 +203,30 @@ const LoginSignup = () => {
                 setState("Sign Up");
               }}
             >
-              Click here
+              Đăng ký tại đây
             </span>
           </p>
         )}
 
         <div className="loginsignup-agree">
           <input type="checkbox" name="" id="" />
-          <p>By continuing, i agree the terms of use & privacy policy.</p>
+          <p>Bằng cách tiếp tục, tôi đồng ý với điều khoản sử dụng và chính sách bảo mật.</p>
         </div>
 
         <p className="loginsignup-login">
-          Fast Signup With Your Favourite Social Profile
-        </p>
+            Fast Signup With Your Favourite Social Profile
+          </p>
         <div className="loginsignup-social-icon">
           <div className="loginsignup-icons-container">
-            {/* <img src={facebook_icon } alt="" /> */}
+            <FontAwesomeIcon icon={faFacebook} />
           </div>
           <div className="loginsignup-icons-container">
-            {/* <img src={google_icon } alt="" /> */}
+          <FontAwesomeIcon icon={faGoogle} />
           </div>
           <div className="loginsignup-icons-container">
-            {/* <img src={x_icon } alt="" /> */}
+          <FontAwesomeIcon icon={faXTwitter} />
           </div>
+        </div>
         </div>
       </div>
     </div>

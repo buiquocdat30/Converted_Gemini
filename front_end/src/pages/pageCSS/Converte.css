@@ -6,15 +6,16 @@
   background-color: #f8f9fa;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #689277;
 }
 
 .dark .converter-page {
   background-color: #1a1a1a;
-  color: #e0e0e0;
+  color: #a8c4b5;
 }
 
 .converter-title {
-  color: #343a40;
+  color: #689277;
   margin-bottom: 20px;
   text-align: center;
 }
@@ -34,8 +35,13 @@
   box-sizing: border-box;
 }
 
+.dark .upload-input{
+  background-color: #1a1a1a;
+  color: #a8c4b5;
+}
+
 .convert-button {
-  background-color: #199638;
+  background-color: #32744f;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -46,7 +52,7 @@
 }
 
 .check-button:hover {
-  background-color: #32744f;
+  background-color: #064409;
 }
 
 .loading-message {
@@ -90,57 +96,3 @@
   gap: 20px;
   margin-bottom: 20px;
 }
-
-/* .comparison-panel {
-    flex: 1;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    padding: 15px;
-    background-color: #fff;
-  }
-  
-  .comparison-panel h5 {
-    color: #28a745;
-    margin-top: 0;
-    margin-bottom: 10px;
-  }
-  
-  .comparison-panel textarea {
-    width: 100%;
-    min-height: 250px;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    box-sizing: border-box;
-    font-family: monospace;
-    font-size: 14px;
-  }
-  
-  .comparison-controls {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .comparison-controls button {
-    padding: 8px 16px;
-    margin: 0 5px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-  
-  .comparison-controls button:first-child {
-    background-color: #6c757d;
-    color: #fff;
-  }
-  
-  .comparison-controls button:last-child {
-    background-color: #007bff;
-    color: #fff;
-  }
-  
-  .comparison-controls button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  } */

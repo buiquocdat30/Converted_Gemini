@@ -10,13 +10,13 @@ const Home = () => {
       <h1 className="home-title">📖 Hướng Dẫn Sử Dụng</h1>
 
       <div className="step">
-        <h2>📝 Bước 1: Đọc hướng dẫn</h2>
+        <h2>📝 Đọc hướng dẫn</h2>
         <p>Hãy đọc kỹ hướng dẫn trước khi bắt đầu sử dụng công cụ.</p>
         <p className="link">📺 Xem video hướng dẫn</p>
       </div>
 
       <div className="step">
-        <h2>📂 Bước 2: Nhập và kiểm tra File</h2>
+        <h2>📂 Nhập và kiểm tra File</h2>
         <p>
           Hệ thống chỉ hỗ trợ định đạng có sẵn phù hợp hệ thống, nếu không sẽ
           không tiến hành dịch được:
@@ -30,7 +30,7 @@ const Home = () => {
         </div>
       </div>
       <div className="step">
-        <h2>📂 Bước 3: Nhập thêm từ điển</h2>
+        <h2>📂 Nhập thêm từ điển</h2>
         <p>
           Hệ thống sẽ thêm các từ trong từ điển vào trong phần dịch phù hợp với
           định dạng dịch
@@ -45,7 +45,7 @@ const Home = () => {
       </div>
 
       <div className="step">
-        <h2>📂 Bước 4: Nhập File</h2>
+        <h2>📂 Nhập File</h2>
         <p>Hệ thống hỗ trợ các định dạng sau:</p>
         <ul>
           <li>📜 TXT (Văn bản thuần)</li>
@@ -61,7 +61,7 @@ const Home = () => {
       </div>
 
       <div className="step">
-        <h2>⚙️ Bước 5: Cài đặt AI</h2>
+        <h2>⚙️ Cài đặt AI</h2>
         <p>Tùy chỉnh các thông số để phù hợp với nhu cầu:</p>
         <ul>
           <li>🤖 Chọn Model AI</li>
@@ -76,7 +76,7 @@ const Home = () => {
       </div>
 
       <div className="step">
-        <h2>📤 Bước 4: Xuất File</h2>
+        <h2>📤 Xuất File</h2>
         <p>Bắt đầu dịch và tải file dưới định dạng:</p>
         <ul>
           <li>📥 EPUB (Sách điện tử)</li>
