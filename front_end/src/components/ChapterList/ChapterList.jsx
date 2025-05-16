@@ -163,7 +163,7 @@ const ChapterList = ({
                 <div className="chapter-header">
                   <p>Chương {idx + 1}:</p>
                   <strong>
-                    {isTranslated ? ch.translatedTitle : ch.title}
+                    {ch.chapterName}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>

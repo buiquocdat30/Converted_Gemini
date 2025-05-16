@@ -19,12 +19,10 @@ const TranslateViewer = ({
 
   useEffect(() => {
     const chapter = chapters[currentIndex];
-    const newContent = chapter?.translated || chapter?.content || "";
+    // Nếu chương đã có bản dịch thì hiển thị bản dịch, nếu chưa thì hiển thị rawText
+    const newContent = chapter?.translated || chapter?.rawText || "";
     console.log(`📌 Nội dung chương: ${newContent}`);
-    const title =
-      chapter?.translatedTitle ||
-      chapter?.title ||
-      `Chương ${currentIndex + 1}`;
+    const title = chapter?.chapterName || `Chương ${currentIndex + 1}`;
 
     console.log(`📌 Nội dung tiêu đề chương: ${currentIndex + 1}: ${title}`);
 
@@ -32,7 +30,7 @@ const TranslateViewer = ({
     setHistoryIndex(0);
     setIsEditing(false);
     if (selectedChapterIndex !== null) {
-      currentIndex(selectedChapterIndex); // nếu bạn có state riêng
+      currentIndex(selectedChapterIndex);
     } else {
       currentIndex;
     }
@@ -68,32 +66,11 @@ const TranslateViewer = ({
     alert("📋 Đã sao chép nội dung chương!");
   };
 
-  // const handleExport = (type) => {
-  //   const chapter = chapters[currentIndex];
-  //   const title =
-  //     chapter?.translatedTitle ||
-  //     chapter?.title ||
-  //     `Chương ${currentIndex + 1}`;
-  //   console.log(title);
-  //   const fullText =
-  //     `${title}\n\n` +
-  //     chapters
-  //       .map((ch, i) =>
-  //         i === currentIndex
-  //           ? currentContent
-  //           : ch.translated || ch.content || ""
-  //       )
-  //       .join("\n\n");
-
-  //   const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
-  //   saveAs(blob, type === "epub" ? "translated.epub" : "translated.txt");
-  // };
-
   const handleExport = (type) => {
     // Lọc ra các chương đã dịch
     const translatedChapters = chapters
       .map((ch, i) => ({
-        title: ch.translatedTitle || ch.title || `Chương ${i + 1}`,
+        title: ch.chapterName || `Chương ${i + 1}`,
         content: ch.translated?.trim(),
       }))
       .filter((ch) => ch.content); // Chỉ lấy chương có nội dung dịch
@@ -182,10 +159,7 @@ const TranslateViewer = ({
         <h3 className="viewr-content-title">
           {(() => {
             const chapter = chapters[currentIndex];
-            const displayTitle =
-              chapter?.translatedTitle ||
-              chapter?.title ||
-              `Chương ${currentIndex + 1}`;
+            const displayTitle = chapter?.chapterName || `Chương ${currentIndex + 1}`;
             console.log("📌 Tiêu đề chương đang hiển thị:", displayTitle);
             return displayTitle;
           })()}
