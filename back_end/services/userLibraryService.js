@@ -26,19 +26,44 @@ const userLibraryService = {
 
     // Lấy truyện theo ID
     getStoryById: async (id, userId) => {
-        return await prisma.userLibraryStory.findFirst({
-            where: {
-                id: id,
-                userId: userId
-            },
-            include: {
-                chapters: {
-                    include: {
-                        translation: true
+        try {
+            const story = await prisma.userLibraryStory.findFirst({
+                where: {
+                    id: id,
+                    userId: userId
+                },
+                include: {
+                    chapters: {
+                        include: {
+                            translation: true
+                        }
                     }
                 }
+            });
+
+            // Nếu tìm thấy story, chuyển đổi các trường DateTime
+            if (story) {
+                return {
+                    ...story,
+                    createdAt: story.createdAt ? new Date(story.createdAt) : null,
+                    updatedAt: story.updatedAt ? new Date(story.updatedAt) : null,
+                    chapters: story.chapters.map(chapter => ({
+                        ...chapter,
+                        createdAt: chapter.createdAt ? new Date(chapter.createdAt) : null,
+                        updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt) : null,
+                        translation: chapter.translation ? {
+                            ...chapter.translation,
+                            createdAt: chapter.translation.createdAt ? new Date(chapter.translation.createdAt) : null,
+                            updatedAt: chapter.translation.updatedAt ? new Date(chapter.translation.updatedAt) : null
+                        } : null
+                    }))
+                };
             }
-        });
+            return null;
+        } catch (error) {
+            console.error('Error in getStoryById:', error);
+            throw error;
+        }
     },
 
     // Tạo truyện mới
@@ -102,21 +127,43 @@ const userLibraryService = {
 
     // Lấy danh sách chương
     getChapters: async (storyId, userId) => {
-        return await prisma.userLibraryChapter.findMany({
-            where: {
-                story: {
-                    id: storyId,
-                    userId: userId
+        try {
+            const chapters = await prisma.userLibraryChapter.findMany({
+                where: {
+                    story: {
+                        id: storyId,
+                        userId: userId
+                    }
+                },
+                include: {
+                    translation: true,
+                    versions: true
+                },
+                orderBy: {
+                    chapterNumber: 'asc'
                 }
-            },
-            include: {
-                translation: true,
-                versions: true
-            },
-            orderBy: {
-                chapterNumber: 'asc'
-            }
-        });
+            });
+
+            // Chuyển đổi các trường DateTime
+            return chapters.map(chapter => ({
+                ...chapter,
+                createdAt: chapter.createdAt ? new Date(chapter.createdAt) : null,
+                updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt) : null,
+                translation: chapter.translation ? {
+                    ...chapter.translation,
+                    createdAt: chapter.translation.createdAt ? new Date(chapter.translation.createdAt) : null,
+                    updatedAt: chapter.translation.updatedAt ? new Date(chapter.translation.updatedAt) : null
+                } : null,
+                versions: chapter.versions.map(version => ({
+                    ...version,
+                    createdAt: version.createdAt ? new Date(version.createdAt) : null,
+                    updatedAt: version.updatedAt ? new Date(version.updatedAt) : null
+                }))
+            }));
+        } catch (error) {
+            console.error('Error in getChapters:', error);
+            throw error;
+        }
     },
 
     // Thêm chương mới
