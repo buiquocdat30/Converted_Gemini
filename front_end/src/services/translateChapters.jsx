@@ -1,7 +1,7 @@
 //hàm dịch toàn bộ chương
 import axios from "axios";
 
-export const translateChapters = async ({
+export const translateAllChapters = async ({
   chaptersToTranslate,
   chapters,
   apiKey,
@@ -13,60 +13,88 @@ export const translateChapters = async ({
   onTranslationResult,
   isStopped,
 }) => {
-  try {
-    console.log("isStopped:", isStopped);
-    const res = await axios.post("http://localhost:8000/translate", {
-      chapters: chaptersToTranslate,
-      key: apiKey || "",
-      model: model,
-    });
+  const totalChapters = chaptersToTranslate.length;
+  let translatedCount = 0;
 
-    const translatedChapters = res?.data?.chapters;
+  for (let i = 0; i < totalChapters; i++) {
+    if (isStopped) {
+      console.log("🛑 Dừng dịch theo yêu cầu người dùng");
+      break;
+    }
 
-    if (Array.isArray(translatedChapters)) {
-      const newResults = {};
-      const newErrors = {};
+    const chapter = chaptersToTranslate[i];
+    const originalIndex = chapter.originalIndex;
 
-      for (let idx = 0; idx < translatedChapters.length; idx++) {
-        if (isStopped) {
-          console.log("isStopped:", isStopped);
-          console.warn("⏹️ Dừng dịch theo yêu cầu người dùng.");
-          alert("🛑 Đã dừng quá trình dịch.");
-          break;
-        }
+    try {
+      console.log(`📖 Đang dịch chương ${i + 1}/${totalChapters}`);
+      
+      // Format dữ liệu gửi đi
+      const requestData = {
+        chapters: [{
+          title: chapter.chapterName || `Chương ${originalIndex + 1}`,
+          content: chapter.rawText || chapter.content,
+          chapterNumber: chapter.chapterNumber || originalIndex + 1
+        }],
+        key: apiKey || "",
+        model: model,
+      };
 
-        const chapter = translatedChapters[idx];
-        const realIndex = chaptersToTranslate[idx].originalIndex;
-        const translated = chapter.translated || "";
-        const translatedTitle = chapter.translatedTitle || "";
+      console.log('Request data:', requestData);
+      
+      const res = await axios.post("http://localhost:8000/translate", requestData);
+      console.log("Response data:", res.data);
 
-        newResults[realIndex] = { translated, translatedTitle };
-        newErrors[realIndex] = null;
+      const translated = res?.data?.chapters?.[0]?.translated || "";
+      const translatedTitle = res?.data?.chapters?.[0]?.translatedTitle || "";
 
-        console.log("kết quả dịch toàn bộ chương á", newResults);
-        onTranslationResult(realIndex, translated, translatedTitle);
+      console.log("📌 Dịch chương:", {
+        index: originalIndex,
+        title: translatedTitle,
+        content: translated
+      });
 
-        setTranslatedCount((prevCount) => {
-          const newCount = prevCount + 1;
-          const percent = Math.floor((newCount / chapters.length) * 100);
-          setTotalProgress(percent);
-          return newCount;
-        });
+      // Cập nhật kết quả dịch
+      setResults((prev) => ({
+        ...prev,
+        [originalIndex]: {
+          translated,
+          translatedTitle,
+          chapterName: translatedTitle || chapter.chapterName
+        },
+      }));
+
+      // Gọi callback với kết quả dịch
+      onTranslationResult(originalIndex, translated, translatedTitle);
+
+      translatedCount++;
+      setTranslatedCount(translatedCount);
+
+      // Cập nhật tiến độ
+      const progress = Math.floor((translatedCount / totalChapters) * 100);
+      setTotalProgress(progress);
+
+      // Xóa thông báo lỗi nếu có
+      setErrorMessages((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[originalIndex];
+        return newErrors;
+      });
+
+    } catch (error) {
+      console.error(`❌ Lỗi khi dịch chương ${originalIndex + 1}:`, error);
+      console.error("Error response:", error.response?.data);
+
+      let errorMessage = `❌ Lỗi khi dịch chương ${originalIndex + 1}: ${chapter.chapterName || `Chương ${originalIndex + 1}`}`;
+      if (error.response?.data?.message) {
+        errorMessage += " - " + error.response.data.message;
       }
 
-      setResults((prev) => ({ ...prev, ...newResults }));
-      setErrorMessages((prev) => ({
-        ...prev,
-        ...newErrors,
-        general: null,
-      }));
+      setErrorMessages((prev) => ({ ...prev, [originalIndex]: errorMessage }));
     }
-  } catch (error) {
-    console.error("❌ Lỗi khi dịch chương:", error);
-    setErrorMessages((prev) => ({
-      ...prev,
-      general: "❌ Lỗi khi dịch tất cả các chương.",
-    }));
-    alert("❌ Lỗi khi dịch tất cả các chương.");
+
+    // Thêm delay để tránh quá tải server
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
+
+  return translatedCount;
 };

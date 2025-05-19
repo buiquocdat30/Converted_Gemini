@@ -157,7 +157,8 @@ const TranslateViewer = ({
         <h3 className="viewr-content-title">
           {(() => {
             const chapter = chapters[currentIndex];
-            const displayTitle = chapter?.chapterName || `Chương ${currentIndex + 1}`;
+            const translatedTitle = chapter?.translatedTitle;
+            const displayTitle = translatedTitle || chapter?.chapterName || `Chương ${currentIndex + 1}`;
             console.log("📌 Tiêu đề chương đang hiển thị:", displayTitle);
             return displayTitle;
           })()}

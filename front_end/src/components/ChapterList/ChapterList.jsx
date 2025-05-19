@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { translateChapters } from "../../services/translateChapters";
+import { translateAllChapters } from "../../services/translateChapters";
 import { translateSingleChapter } from "../../services/translateSingleChapter";
 import "./ChapterList.css";
 
@@ -34,7 +34,10 @@ const ChapterList = ({
   const startIdx = (currentPage - 1) * chaptersPerPage;
   const endIdx = startIdx + chaptersPerPage;
   const currentChapters = chapters.slice(startIdx, endIdx);
-  const [jumpIndex, setJumpIndex] = useState("");
+  
+  // Tách riêng state cho nhảy trang và nhảy chương
+  const [jumpToPage, setJumpToPage] = useState("");
+  const [jumpToChapter, setJumpToChapter] = useState("");
 
   //đếm chương
   const canTranslate = (index) => {
@@ -53,10 +56,10 @@ const ChapterList = ({
 
   // Hàm dịch tất cả các chương
   const translateAll = async () => {
-    setIsTranslateAllDisabled(true); // ✅ Disable ngay khi bắt đầu
+    setIsTranslateAllDisabled(true);
     console.time("⏱️ Thời gian dịch toàn bộ");
 
-    setIsTranslatingAll(true); // ✅ Bắt đầu loading
+    setIsTranslatingAll(true);
     const maxChapters = apiKey ? chapters.length : 2;
 
     if (!apiKey) {
@@ -74,18 +77,18 @@ const ChapterList = ({
     const chaptersToTranslate = chapters
       .map((chapter, index) => ({ ...chapter, originalIndex: index }))
       .filter((_, index) => !results[index])
-      .slice(0, maxChapters - translatedCount); // chỉ dịch thêm nếu chưa đủ
+      .slice(0, maxChapters - translatedCount);
 
     if (chaptersToTranslate.length === 0) {
       alert("Tất cả các chương đã được dịch.");
       setTotalProgress(100);
       setIsTranslateAllDisabled(true);
-      setIsTranslatingAll(false); // ✅ Dừng loading
+      setIsTranslatingAll(false);
       return;
     }
 
     try {
-      await translateChapters({
+      await translateAllChapters({
         chaptersToTranslate,
         chapters,
         apiKey,
@@ -133,23 +136,87 @@ const ChapterList = ({
     });
   };
 
-  // hàm nhảy tới chương
-  const handleJumpToChapter = (type) => {
-    const num = parseInt(jumpIndex);
-    if (isNaN(num)) return;
-
-    if (type === "chapter" && num >= 1 && num <= chapters.length) {
-      // 👉 Nếu nhảy tới chương hợp lệ
-      const targetIndex = num - 1;
-      const newPage = Math.ceil(num / chaptersPerPage);
-      setCurrentPage(newPage);
-      onSelectChapter(targetIndex);
-    } else if (type === "page" && num >= 1 && num <= totalPages) {
-      // 👉 Nếu nhảy tới trang hợp lệ
-      setCurrentPage(num);
+  // Hàm nhảy tới trang
+  const handleJumpToPage = () => {
+    const num = parseInt(jumpToPage);
+    if (isNaN(num)) {
+      alert("❌ Vui lòng nhập số trang hợp lệ!");
+      return;
     }
 
-    setJumpIndex(""); // ✅ Reset input sau khi nhảy
+    if (num < 1 || num > totalPages) {
+      alert(`❌ Số trang phải từ 1 đến ${totalPages}!`);
+      return;
+    }
+
+    setCurrentPage(num);
+    setJumpToPage(""); // Reset input sau khi nhảy
+  };
+
+  // Hàm nhảy tới chương
+  const handleJumpToChapter = () => {
+    const num = parseInt(jumpToChapter);
+    if (isNaN(num)) {
+      alert("❌ Vui lòng nhập số chương hợp lệ!");
+      return;
+    }
+
+    if (num < 1 || num > chapters.length) {
+      alert(`❌ Số chương phải từ 1 đến ${chapters.length}!`);
+      return;
+    }
+
+    const targetIndex = num - 1;
+    const newPage = Math.ceil(num / chaptersPerPage);
+    setCurrentPage(newPage);
+    onSelectChapter(targetIndex);
+    setJumpToChapter(""); // Reset input sau khi nhảy
+  };
+
+  // Hàm xử lý khi nhập giá trị vào input nhảy trang
+  const handlePageInputChange = (e) => {
+    const value = e.target.value;
+    const num = parseInt(value);
+    
+    if (value === "") {
+      setJumpToPage("");
+      return;
+    }
+
+    if (isNaN(num)) {
+      return;
+    }
+
+    if (num >= 1 && num <= totalPages) {
+      setJumpToPage(value);
+    }
+  };
+
+  // Hàm xử lý khi nhập giá trị vào input nhảy chương
+  const handleChapterInputChange = (e) => {
+    const value = e.target.value;
+    const num = parseInt(value);
+    
+    if (value === "") {
+      setJumpToChapter("");
+      return;
+    }
+
+    if (isNaN(num)) {
+      return;
+    }
+
+    if (num >= 1 && num <= chapters.length) {
+      setJumpToChapter(value);
+    }
+  };
+
+  // Hàm xử lý khi chọn chương
+  const handleSelectChapter = (index, page) => {
+    if (page) {
+      setCurrentPage(page);
+    }
+    onSelectChapter?.(index);
   };
 
   return (
@@ -159,23 +226,24 @@ const ChapterList = ({
         {currentChapters.map((ch, idxOnPage) => {
           const idx = startIdx + idxOnPage;
           const isTranslated = !!results[idx];
+          const translatedTitle = results[idx]?.translatedTitle;
           return (
             <li key={idx}>
               <div 
                 className={`chapter-item ${idx === currentIndex ? 'selected' : ''}`} 
-                onClick={() => onSelectChapter(idx)}
+                onClick={() => handleSelectChapter(idx)}
               >
                 <div className="chapter-header">
                   <p>Chương {ch.chapterNumber || idx + 1}:</p>
                   <strong>
-                    {ch.chapterName || `Chương ${idx + 1}`}
+                    {translatedTitle || ch.chapterName || `Chương ${idx + 1}`}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>
                   )}
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // Ngăn sự kiện click lan ra ngoài
+                      e.stopPropagation();
                       translate(idx);
                     }}
                     disabled={
@@ -264,17 +332,18 @@ const ChapterList = ({
           type="number"
           min={1}
           max={totalPages}
-          placeholder="Nhập"
-          value={jumpIndex}
-          onChange={(e) => setJumpIndex(e.target.value)}
+          placeholder={`Nhập (1-${totalPages})`}
+          value={jumpToPage}
+          onChange={handlePageInputChange}
           onKeyDown={(e) => {
-            if (e.key === "Enter") handleJumpToChapter("page");
+            if (e.key === "Enter") handleJumpToPage();
           }}
         />
-        <button onClick={() => handleJumpToChapter("page")}>
+        <button onClick={handleJumpToPage}>
           ➡️ Đi tới trang
         </button>
       </div>
+
       {/* nhảy tới chương */}
       <div className="jump-to-chapter">
         <label>🔍 Nhảy tới chương:</label>
@@ -282,14 +351,14 @@ const ChapterList = ({
           type="number"
           min={1}
           max={chapters.length}
-          placeholder="Nhập"
-          value={jumpIndex}
-          onChange={(e) => setJumpIndex(e.target.value)}
+          placeholder={`Nhập (1-${chapters.length})`}
+          value={jumpToChapter}
+          onChange={handleChapterInputChange}
           onKeyDown={(e) => {
-            if (e.key === "Enter") handleJumpToChapter("chapter");
+            if (e.key === "Enter") handleJumpToChapter();
           }}
         />
-        <button onClick={() => handleJumpToChapter("chapter")}>
+        <button onClick={handleJumpToChapter}>
           ➡️ Đi tới chương
         </button>
       </div>
