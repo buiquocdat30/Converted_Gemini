@@ -2,8 +2,9 @@ import React, { useState, useRef, useContext } from "react";
 // import "../css/App.css";
 import "./UploadForm.css";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
-import { AuthContext } from "../../context/ConverteContext"; 
+import { AuthContext } from "../../context/ConverteContext";
 import TranslationInfoPanel from "../TranslationInfoPanel/TranslationInfoPanel.jsx";
+import axios from "axios";
 
 import {
   handleEpubFile,
@@ -41,14 +42,29 @@ const models = [
 ];
 
 const UploadForm = ({ onFileParsed }) => {
-  const { isLoggedIn, username,setUsername, onLogin, onLogout, setMenu, menu} = useContext(AuthContext);
+  const {
+    isLoggedIn,
+    username,
+    setUsername,
+    onLogin,
+    onLogout,
+    setMenu,
+    menu,
+  } = useContext(AuthContext);
   const [selectedFile, setSelectedFile] = useState(null);
   const [apiKey, setApiKey] = useState([]);
   const [showGuide, setShowGuide] = useState(false);
   const [chapters, setChapters] = useState([]);
-  const [loading, setLoading] = useState(false); // Thêm trạng thái loading
-  const [error, setError] = useState(""); // Thêm trạng thái error
-  const [success, setSuccess] = useState(""); //thêm trạng thái thành công
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isCreatingStory, setIsCreatingStory] = useState(false);
+  const [showStoryInfoModal, setShowStoryInfoModal] = useState(false);
+  const [storyInfo, setStoryInfo] = useState({
+    name: "",
+    author: "Không biết",
+    storyAvatar: "/default-avatar.jpg",
+  });
 
   //khu vực panel review file
   const [books, setBooks] = useState(""); //tên truyện
@@ -65,11 +81,15 @@ const UploadForm = ({ onFileParsed }) => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    console.log("đây là file.name: ", file);
+    console.log("📁 File được chọn:", file);
+    console.log("📝 Tên file:", file.name);
+
     setBooks(file.name.replace(/\.[^/.]+$/, ""));
     const allowedTypes = ["application/epub+zip", "text/plain"];
+    console.log("🔍 Kiểm tra định dạng file:", file.type);
 
     if (!allowedTypes.includes(file.type)) {
+      console.warn("⚠️ Định dạng file không hợp lệ:", file.type);
       alert("❗ Chỉ chấp nhận file .epub hoặc .txt");
       return;
     }
@@ -79,82 +99,152 @@ const UploadForm = ({ onFileParsed }) => {
     setError("");
     setChapters([]);
 
+    // Chỉ đọc file và lưu vào state
     const reader = new FileReader();
+    console.log("📖 Bắt đầu đọc file...");
 
     reader.onload = async () => {
+      console.log("📖 Đọc file thành công");
       const result = reader.result;
-
-      if (file.type === "application/epub+zip") {
-        await handleEpubFile(
-          result,
-          (chapters) => {
-            // Format dữ liệu chapters
-            const formattedChapters = chapters.map((chapter, index) => ({
-              chapterName: chapter.title || `Chương ${index + 1}`,
-              rawText: chapter.content,
-              translated: "",
-              chapterNumber: index + 1
-            }));
-            setChapters(formattedChapters);
-          },
-          setError,
-          setSuccess,
-          setChapterCount,
-          setTotalWords,
-          setAverageWords,
-          setBooks,
-          setAuthor
-        );
-      } else {
-        handleTxtFile(
-          result,
-          (chapters) => {
-            // Format dữ liệu chapters
-            const formattedChapters = chapters.map((chapter, index) => ({
-              chapterName: chapter.title || `Chương ${index + 1}`,
-              rawText: chapter.content,
-              translated: "",
-              chapterNumber: index + 1
-            }));
-            setChapters(formattedChapters);
-          },
-          setError,
-          setSuccess,
-          fileInputRef,
-          setSelectedFile,
-          file,
-          setChapterCount,
-          setTotalWords,
-          setAverageWords,
-          setBooks,
-          setAuthor
-        );
-      }
-
       setLoading(false);
+      console.log("✅ Hoàn thành xử lý file");
     };
 
     if (file.type === "application/epub+zip") {
+      console.log("📚 Đọc file EPUB dưới dạng ArrayBuffer");
       reader.readAsArrayBuffer(file);
     } else {
+      console.log("📝 Đọc file TXT dưới dạng Text");
       reader.readAsText(file);
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    console.log("🚀 Bắt đầu xử lý submit form");
+    console.log("📁 File đã chọn:", selectedFile);
+    console.log("🔑 Trạng thái đăng nhập:", isLoggedIn);
+
     if (!selectedFile) {
+      console.warn("⚠️ Chưa chọn file");
       alert("📂 Vui lòng chọn tệp trước!");
       return;
     }
 
-    if (!chapters || chapters.length === 0) {
-      alert("⏳ File đang xử lý hoặc chưa có nội dung chương.");
-      return;
+    if (isLoggedIn) {
+      console.log("👤 Người dùng đã đăng nhập, chuẩn bị tạo truyện mới");
+      const defaultStoryInfo = {
+        name: `Truyện mới - ${new Date().toLocaleString("vi-VN")}`,
+        author: "Không biết",
+        storyAvatar: "/default-avatar.jpg",
+      };
+      console.log("📝 Thông tin truyện mặc định:", defaultStoryInfo);
+      setStoryInfo(defaultStoryInfo);
+      setShowStoryInfoModal(true);
+    } else {
+      console.log(
+        "👥 Người dùng chưa đăng nhập, chuyển sang chế độ dịch thông thường"
+      );
+      onFileParsed([], apiKey, selectedModel);
     }
-
-    onFileParsed(chapters, apiKey, selectedModel);
-    console.log("onFileParsed/ chapters:", chapters);
   };
+
+  const handleCreateStory = async () => {
+    console.log("🚀 Bắt đầu tạo truyện mới");
+    console.log("📝 Thông tin truyện:", storyInfo);
+    console.log("📁 File:", selectedFile);
+
+    try {
+      setIsCreatingStory(true);
+      const token = localStorage.getItem("auth-token");
+      console.log("🔑 Token:", token ? "Đã có token" : "Không có token");
+
+      // Tạo FormData để gửi file
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("storyInfo", JSON.stringify(storyInfo));
+
+      console.log("📤 Đang gửi request tạo truyện...");
+      const response = await axios.post(
+        "http://localhost:8000/user/library",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("✅ Tạo truyện thành công:", response.data);
+      setSuccess("✅ Tạo truyện thành công! Đang chuyển hướng...");
+      setShowStoryInfoModal(false);
+
+      console.log("⏳ Đợi 2 giây trước khi chuyển trang...");
+      setTimeout(() => {
+        console.log(
+          "🔄 Chuyển hướng đến trang Translate với storyId:",
+          response.data.id
+        );
+        window.location.href = `/translate?storyId=${response.data.id}`;
+      }, 2000);
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo truyện mới:", error);
+      console.error("Chi tiết lỗi:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      setError("Có lỗi xảy ra khi tạo truyện mới. Vui lòng thử lại.");
+    } finally {
+      setIsCreatingStory(false);
+      console.log("🏁 Kết thúc quá trình tạo truyện");
+    }
+  };
+
+  const StoryInfoModal = () => (
+    <div className="modal">
+      <div className="modal-content">
+        <h3>📝 Thông tin truyện</h3>
+        <div className="form-group">
+          <label>Tên truyện:</label>
+          <input
+            type="text"
+            value={storyInfo.name}
+            onChange={(e) =>
+              setStoryInfo({ ...storyInfo, name: e.target.value })
+            }
+            placeholder="Nhập tên truyện"
+          />
+        </div>
+        <div className="form-group">
+          <label>Tác giả:</label>
+          <input
+            type="text"
+            value={storyInfo.author}
+            onChange={(e) =>
+              setStoryInfo({ ...storyInfo, author: e.target.value })
+            }
+            placeholder="Nhập tên tác giả"
+          />
+        </div>
+        <div className="modal-buttons">
+          <button
+            onClick={handleCreateStory}
+            disabled={isCreatingStory}
+            className="btn-submit"
+          >
+            {isCreatingStory ? "Đang tạo..." : "Tạo truyện"}
+          </button>
+          <button
+            onClick={() => setShowStoryInfoModal(false)}
+            className="btn-cancel"
+          >
+            Hủy
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   //hàm kiểm tra xem có đúng định dạng file
   const handleCheckFileFormat = async () => {
@@ -181,7 +271,6 @@ const UploadForm = ({ onFileParsed }) => {
   };
 
   return (
-    
     <div className="wrapper">
       <h2>📘 Gemini Converte</h2>
       <ConverteKeyInput apiKey={apiKey} setApiKey={setApiKey} />
@@ -207,7 +296,7 @@ const UploadForm = ({ onFileParsed }) => {
       {loading && <p>⏳ Đang xử lý tệp...</p>}{" "}
       {/* Hiển thị thông báo khi đang tải lên */}
       {error && <p style={{ color: "red" }}>{error}</p>}{" "}
-      {/* Hiển thị thông báo lỗi nếu có */}
+      {/* Hiển thị thông báo thành công */}
       {success && <p style={{ color: "red" }}>{success}</p>}{" "}
       {/* Hướng dẫn định dạng gile */}
       <div className="chapter-guide">
@@ -302,6 +391,13 @@ const UploadForm = ({ onFileParsed }) => {
             <p>Lưu ý: Tránh tiết lộ key, bảo mật cần thiết!!!</p>
             <button onClick={() => setShowGuide(false)}>Đã hiểu</button>
           </div>
+        </div>
+      )}
+      {showStoryInfoModal && <StoryInfoModal />}
+      {isCreatingStory && (
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+          <p>Đang tạo truyện mới...</p>
         </div>
       )}
     </div>
