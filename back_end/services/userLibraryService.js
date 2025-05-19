@@ -45,16 +45,16 @@ const userLibraryService = {
             if (story) {
                 return {
                     ...story,
-                    createdAt: story.createdAt ? new Date(story.createdAt) : null,
-                    updatedAt: story.updatedAt ? new Date(story.updatedAt) : null,
+                    createdAt: story.createdAt ? new Date(story.createdAt).toISOString() : null,
+                    updatedAt: story.updatedAt ? new Date(story.updatedAt).toISOString() : null,
                     chapters: story.chapters.map(chapter => ({
                         ...chapter,
-                        createdAt: chapter.createdAt ? new Date(chapter.createdAt) : null,
-                        updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt) : null,
+                        createdAt: chapter.createdAt ? new Date(chapter.createdAt).toISOString() : null,
+                        updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt).toISOString() : null,
                         translation: chapter.translation ? {
                             ...chapter.translation,
-                            createdAt: chapter.translation.createdAt ? new Date(chapter.translation.createdAt) : null,
-                            updatedAt: chapter.translation.updatedAt ? new Date(chapter.translation.updatedAt) : null
+                            createdAt: chapter.translation.createdAt ? new Date(chapter.translation.createdAt).toISOString() : null,
+                            updatedAt: chapter.translation.updatedAt ? new Date(chapter.translation.updatedAt).toISOString() : null
                         } : null
                     }))
                 };
