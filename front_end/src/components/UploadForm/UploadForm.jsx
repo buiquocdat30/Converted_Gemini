@@ -41,7 +41,7 @@ const models = [
 ];
 
 const UploadForm = ({ onFileParsed }) => {
-  const { isLoggedIn, username,setUsername, onLogin, onLogout, setMenu, menu } = useContext(AuthContext);
+  const { isLoggedIn, username,setUsername, onLogin, onLogout, setMenu, menu} = useContext(AuthContext);
   const [selectedFile, setSelectedFile] = useState(null);
   const [apiKey, setApiKey] = useState([]);
   const [showGuide, setShowGuide] = useState(false);
@@ -87,7 +87,16 @@ const UploadForm = ({ onFileParsed }) => {
       if (file.type === "application/epub+zip") {
         await handleEpubFile(
           result,
-          setChapters,
+          (chapters) => {
+            // Format dữ liệu chapters
+            const formattedChapters = chapters.map((chapter, index) => ({
+              chapterName: chapter.title || `Chương ${index + 1}`,
+              rawText: chapter.content,
+              translated: "",
+              chapterNumber: index + 1
+            }));
+            setChapters(formattedChapters);
+          },
           setError,
           setSuccess,
           setChapterCount,
@@ -99,7 +108,16 @@ const UploadForm = ({ onFileParsed }) => {
       } else {
         handleTxtFile(
           result,
-          setChapters,
+          (chapters) => {
+            // Format dữ liệu chapters
+            const formattedChapters = chapters.map((chapter, index) => ({
+              chapterName: chapter.title || `Chương ${index + 1}`,
+              rawText: chapter.content,
+              translated: "",
+              chapterNumber: index + 1
+            }));
+            setChapters(formattedChapters);
+          },
           setError,
           setSuccess,
           fileInputRef,

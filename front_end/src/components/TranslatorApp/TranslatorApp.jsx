@@ -144,17 +144,16 @@ const TranslatorApp = ({
             model={model}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={(idx) => setCurrentIndex(idx)}
-            // 👈 truyền hàm chọn chương
             onSelectJumbChapter={handleSelectJumbChapter}
+            currentIndex={currentIndex}
           />
         </div>
         <div className="translate-viewer-container">
           <TranslateViewer
-            // chapters={translatedChapters}
             chapters={mergedChapters}
             onUpdateChapter={handleEditChapter}
-            currentIndex={currentIndex} // 👈 truyền index xuống
-            onChangeIndex={(idx) => setCurrentIndex(idx)} // 👈 để TranslateViewer chuyển chương
+            currentIndex={currentIndex}
+            onChangeIndex={(idx) => setCurrentIndex(idx)}
             selectedChapterIndex={selectedChapterIndex}
           />
         </div>
