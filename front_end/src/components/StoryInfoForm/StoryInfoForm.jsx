@@ -57,7 +57,7 @@ const StoryInfoForm = ({
       // Nếu không có tên truyện, tạo tên mặc định
       if (!finalStoryInfo.name) {
         const date = new Date().toLocaleDateString("vi-VN");
-        finalStoryInfo.name = `${fileName} - ${date}`;
+        finalStoryInfo.name = `Truyện mới - ${date}`;
       }
 
       // Nếu không có tác giả, đặt mặc định

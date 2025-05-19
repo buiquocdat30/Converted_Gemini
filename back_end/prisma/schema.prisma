@@ -71,7 +71,8 @@ model UserTranslatedChapter {
   id          String             @id @default(auto()) @map("_id") @db.ObjectId
   chapter     UserLibraryChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   chapterId   String             @db.ObjectId
-  currentText String // Nội dung bản dịch hiện tại
+  translatedTitle String    //Tiêu đề chương đã dịch hiện tại
+  translatedContent String // Nội dung bản dịch hiện tại
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 

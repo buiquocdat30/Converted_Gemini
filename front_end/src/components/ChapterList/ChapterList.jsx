@@ -227,6 +227,8 @@ const ChapterList = ({
           const idx = startIdx + idxOnPage;
           const isTranslated = !!results[idx];
           const translatedTitle = results[idx]?.translatedTitle;
+          console.log('translatedTitle',translatedTitle)
+          console.log('ch.title',ch.translatedTitle)
           return (
             <li key={idx}>
               <div 
@@ -236,7 +238,7 @@ const ChapterList = ({
                 <div className="chapter-header">
                   <p>Chương {ch.chapterNumber || idx + 1}:</p>
                   <strong>
-                    {translatedTitle || ch.chapterName || `Chương ${idx + 1}`}
+                    { ch.translatedTitle ||ch.title||ch.chapterName  || `Chương ${idx + 1}`}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>

@@ -5,10 +5,11 @@ import StoryInfoForm from "../components/StoryInfoForm/StoryInfoForm";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
+import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "../pages/pageCSS/Translate.css";
 
 const Translate = () => {
-  const { isLoggedIn, stories, fetchStories } = useContext(AuthContext);
+  const { isLoggedIn, stories, fetchStories, editStories, hideStories, deleteStories } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
   const [chapters, setChapters] = useState([]);
   const [apiKey, setApiKey] = useState("");
@@ -16,6 +17,7 @@ const Translate = () => {
   const [currentStory, setCurrentStory] = useState(null);
   const [fileName, setFileName] = useState("");
   const [searchParams] = useSearchParams();
+  const [translatingStories, setTranslatingStories] = useState([]);
 
   useEffect(() => {
     const storyId = searchParams.get("storyId");
@@ -30,10 +32,26 @@ const Translate = () => {
     }
   }, [isLoggedIn]);
 
-  const loadTranslatingStory = async (storyId) => {
+  useEffect(() => {
+    if (stories) {
+      // Lọc các truyện đang dịch (isComplete == false)
+      const translatingStories = stories.filter(story => !story.isComplete);
+      setTranslatingStories(translatingStories);
+    }
+  }, [stories]);
+
+const loadTranslatingStory = async (storyId) => {
     try {
       const token = localStorage.getItem("auth-token");
+      if (!token) {
+        console.error("❌ Không tìm thấy token xác thực");
+        alert("Vui lòng đăng nhập lại để tiếp tục");
+        return;
+      }
+
       console.log("🔍 Đang tải truyện với ID:", storyId);
+      console.log("🔑 Token:", token);
+
       const response = await axios.get(
         `http://localhost:8000/user/library/${storyId}`,
         {
@@ -43,22 +61,54 @@ const Translate = () => {
         }
       );
 
+      if (!response.data) {
+        console.error("❌ Không nhận được dữ liệu truyện");
+        alert("Không thể tải thông tin truyện. Vui lòng thử lại sau.");
+        return;
+      }
+
       const story = response.data;
       console.log("📚 Dữ liệu truyện nhận được:", story);
+
+      if (!story.chapters || !Array.isArray(story.chapters)) {
+        console.error("❌ Dữ liệu chương không hợp lệ:", story.chapters);
+        alert("Dữ liệu chương không hợp lệ. Vui lòng thử lại sau.");
+        return;
+      }
+
       setCurrentStory(story);
 
       // Chuyển đổi dữ liệu chương từ UserLibraryChapter sang định dạng phù hợp
       const formattedChapters = story.chapters.map(chapter => ({
-        title: chapter.chapterName,
+        id: chapter.id,
+        chapterName: chapter.chapterName, // Giữ nguyên tên chương gốc
+        title: chapter.chapterName, // Thêm trường title để tương thích
         content: chapter.rawText,
-        translated: chapter.translation?.currentText || "",
-        translatedTitle: chapter.chapterName,
+        translated: chapter.translation?.translatedContent || "",
+        translatedTitle: chapter.translation?.translatedTitle || chapter.chapterName,
         chapterNumber: chapter.chapterNumber
       }));
+
       console.log("📝 Chương đã được format:", formattedChapters);
       setChapters(formattedChapters);
     } catch (error) {
       console.error("❌ Lỗi khi tải truyện đang dịch:", error);
+      console.error("Chi tiết lỗi:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = "Không thể tải thông tin truyện. ";
+      if (error.response?.status === 401) {
+        errorMessage += "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+      } else if (error.response?.status === 404) {
+        errorMessage += "Không tìm thấy truyện.";
+      } else if (error.response?.status === 500) {
+        errorMessage += "Lỗi server. Vui lòng thử lại sau.";
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -136,7 +186,7 @@ const Translate = () => {
     }
   };
 
-  const handleUpdateStory = async (storyInfo) => {
+  const handleUpdateStoryInfo = async (storyInfo) => {
     try {
       const token = localStorage.getItem("auth-token");
       console.log("🔄 Đang cập nhật truyện:", currentStory.id);
@@ -160,6 +210,39 @@ const Translate = () => {
     }
   };
 
+  const handleUpdateStoryField = (storyId, field, value) => {
+    editStories(storyId, field, value);
+    // Cập nhật state local sau khi API call thành công
+    setTranslatingStories((prevStories) =>
+      prevStories.map((story) =>
+        story.id === storyId ? { ...story, [field]: value } : story
+      )
+    );
+  };
+
+  const handleHideStory = async (storyId) => {
+    await hideStories(storyId);
+    // Cập nhật state local sau khi ẩn thành công
+    setTranslatingStories(prevStories => 
+      prevStories.filter(story => story.id !== storyId)
+    );
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+      await deleteStories(storyId);
+      // Cập nhật state local sau khi xóa thành công
+      setTranslatingStories(prevStories => 
+        prevStories.filter(story => story.id !== storyId)
+      );
+    }
+  };
+
+  const handleStoryClick = (storyId) => {
+    setActiveTab("translating"); // Set tab translating active
+    loadTranslatingStory(storyId);
+  };
+
   const renderTranslatorContent = () => {
     if (chapters.length === 0) {
       return <UploadForm onFileParsed={handleParsedChapters} />;
@@ -176,7 +259,7 @@ const Translate = () => {
         />
         <StoryInfoForm
           story={currentStory}
-          onSave={activeTab === "new" ? handleSaveStory : handleUpdateStory}
+          onSave={activeTab === "new" ? handleSaveStory : handleUpdateStoryInfo}
           isEditing={activeTab === "translating"}
           fileName={fileName}
           onStorySaved={(storyInfo) => setCurrentStory(storyInfo)}
@@ -227,13 +310,24 @@ const Translate = () => {
         ) : (
           <div className="translating-stories">
             {currentStory ? (
-              <>
-                {console.log("📚 Truyện hiện tại:", currentStory)}
-                {console.log("📝 Danh sách chương:", chapters)}
-                {renderTranslatorContent()}
-              </>
+              renderTranslatorContent()
             ) : (
-              <p>Vui lòng chọn một truyện để tiếp tục dịch</p>
+              <div className="stories-grid">
+                {translatingStories.length === 0 ? (
+                  <p>Chưa có truyện nào đang dịch</p>
+                ) : (
+                  translatingStories.map((story) => (
+                    <div key={story.id} onClick={() => handleStoryClick(story.id)}>
+                      <UserStoryCard
+                        story={story}
+                        onHide={() => handleHideStory(story.id)}
+                        onDelete={() => handleDeleteStory(story.id)}
+                        onUpdate={handleUpdateStoryField}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
         )}

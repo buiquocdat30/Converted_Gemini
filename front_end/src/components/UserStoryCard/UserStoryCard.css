@@ -132,12 +132,12 @@
 }
 
 .btn-delete-stories {
-    background-color: #dc3545;
+    background-color: #32744f;
     color: white;
 }
 
 .btn-delete-stories:hover {
-    background-color: #c82333;
+    background-color: #064409;
 }
 
 .btn-update-stories {
@@ -188,8 +188,8 @@
 }
 
 .avatar-preview {
-    width: 100%;
-    height: 200px;
+    width: 100px;
+    height: 100px;
     object-fit: cover;
     border-radius: 8px;
     border: 2px dashed #ccc;
