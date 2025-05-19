@@ -38,26 +38,40 @@ export const translateSingleChapter = async ({
   }, 200); // mỗi 200ms tăng 5%
 
   try {
-    console.log('chapter:',chapter)
-    console.log('apiKey:',apiKey)
-    console.log('model:',model)
+    console.log('chapter:', chapter)
+    console.log('apiKey:', apiKey)
+    console.log('model:', model)
     
-    const res = await axios.post("http://localhost:8000/translate", {
-      chapters: [chapter],
+    // Format dữ liệu gửi đi
+    const requestData = {
+      chapters: [{
+        title: chapter.chapterName || `Chương ${index + 1}`,
+        content: chapter.rawText || chapter.content,
+        chapterNumber: chapter.chapterNumber || index + 1
+      }],
       key: apiKey || "",
       model: model,
-    });
+    };
 
-    console.log("in tạm chapers:", res.data.chapters);
+    console.log('Request data:', requestData);
+    
+    const res = await axios.post("http://localhost:8000/translate", requestData);
+
+    console.log("Response data:", res.data);
 
     const translated = res?.data?.chapters?.[0]?.translated || "";
     console.log("📌 dịch hiện tại:", translated || "MISSING");
 
     const translatedTitle = res?.data?.chapters?.[0]?.translatedTitle || "";
     console.log("📌 title hiện tại:", translatedTitle || "MISSING");
+    
     setResults((prev) => ({
       ...prev,
-      [index]: { translated, translatedTitle },
+      [index]: { 
+        translated, 
+        translatedTitle,
+        chapterName: translatedTitle || chapter.chapterName
+      },
     }));
 
     onTranslationResult(index, translated, translatedTitle);
@@ -76,8 +90,9 @@ export const translateSingleChapter = async ({
     setTotalProgress(percent);
   } catch (error) {
     console.error("Lỗi khi dịch chương:", error);
+    console.error("Error response:", error.response?.data);
 
-    let errorMessage = "❌ Lỗi khi dịch chương: " + chapter.title;
+    let errorMessage = "❌ Lỗi khi dịch chương: " + (chapter.chapterName || `Chương ${index + 1}`);
     if (error.response?.data?.message) {
       errorMessage += " - " + error.response.data.message;
     }

@@ -11,6 +11,7 @@ const TranslatorApp = ({
   setChapters,
   model,
   onUpdateChapter,
+  onSelectChapter,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -24,6 +25,16 @@ const TranslatorApp = ({
   //hàm chọn chương để Nhảy
   const handleSelectJumbChapter = (index) => {
     setSelectedChapterIndex(index);
+  };
+
+  // Hàm xử lý khi chuyển chương
+  const handleChapterChange = (newIndex) => {
+    setCurrentIndex(newIndex);
+    // Tính toán trang mới dựa trên index
+    const chaptersPerPage = 10;
+    const newPage = Math.floor(newIndex / chaptersPerPage) + 1;
+    // Gọi callback để cập nhật trang trong ChapterList
+    onSelectChapter?.(newIndex, newPage);
   };
 
   // Khi nhận kết quả dịch từ ChapterList
@@ -143,7 +154,7 @@ const TranslatorApp = ({
             apiKey={currentApiKey}
             model={model}
             onTranslationResult={handleTranslationResult}
-            onSelectChapter={(idx) => setCurrentIndex(idx)}
+            onSelectChapter={handleChapterChange}
             onSelectJumbChapter={handleSelectJumbChapter}
             currentIndex={currentIndex}
           />
@@ -153,7 +164,7 @@ const TranslatorApp = ({
             chapters={mergedChapters}
             onUpdateChapter={handleEditChapter}
             currentIndex={currentIndex}
-            onChangeIndex={(idx) => setCurrentIndex(idx)}
+            onChangeIndex={handleChapterChange}
             selectedChapterIndex={selectedChapterIndex}
           />
         </div>
