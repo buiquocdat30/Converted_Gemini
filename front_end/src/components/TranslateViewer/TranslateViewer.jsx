@@ -30,11 +30,9 @@ const TranslateViewer = ({
     setHistoryIndex(0);
     setIsEditing(false);
     if (selectedChapterIndex !== null) {
-      currentIndex(selectedChapterIndex);
-    } else {
-      currentIndex;
+      onChangeIndex(selectedChapterIndex);
     }
-  }, [chapters, currentIndex]);
+  }, [chapters, currentIndex, selectedChapterIndex]);
 
   const handleEdit = () => {
     setIsEditing(true);

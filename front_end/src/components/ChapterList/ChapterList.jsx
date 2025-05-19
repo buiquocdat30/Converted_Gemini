@@ -12,6 +12,8 @@ const ChapterList = ({
   model,
   onTranslationResult,
   onSelectChapter,
+  onSelectJumbChapter,
+  currentIndex = 0,
 }) => {
   const [results, setResults] = useState({});
   const [errorMessages, setErrorMessages] = useState({}); // Thêm trạng thái lỗi
@@ -159,17 +161,23 @@ const ChapterList = ({
           const isTranslated = !!results[idx];
           return (
             <li key={idx}>
-              <div className="chapter-item">
+              <div 
+                className={`chapter-item ${idx === currentIndex ? 'selected' : ''}`} 
+                onClick={() => onSelectChapter(idx)}
+              >
                 <div className="chapter-header">
-                  <p>Chương {idx + 1}:</p>
+                  <p>Chương {ch.chapterNumber || idx + 1}:</p>
                   <strong>
-                    {ch.chapterName}
+                    {ch.chapterName || `Chương ${idx + 1}`}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>
                   )}
                   <button
-                    onClick={() => translate(idx)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Ngăn sự kiện click lan ra ngoài
+                      translate(idx);
+                    }}
                     disabled={
                       isTranslated ||
                       (!apiKey && translatedCount >= 2) ||

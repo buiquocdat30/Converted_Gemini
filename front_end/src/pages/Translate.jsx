@@ -73,12 +73,12 @@ const Translate = () => {
     }
   };
 
-  const handleParsedChapters = (parsedChapters, key, model, file) => {
+  const handleParsedChapters = (parsedChapters, key, model) => {
     console.log("✔️ Nhận được từ UploadForm:", { parsedChapters, key, model });
     setChapters(parsedChapters);
     setApiKey(key);
     setModel(model);
-    setFileName(file.name);
+    //  setFileName(file.name);
   };
 
   const handleUpdateChapterContent = async (index, newContent) => {
