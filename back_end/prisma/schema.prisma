@@ -13,6 +13,13 @@ enum ApiKeyStatus {
   EXHAUSTED
 }
 
+enum ChapterStatus {
+  DRAFT       // Chương mới tạo
+  TRANSLATING // Đang dịch
+  TRANSLATED  // Đã dịch xong
+  REVIEWING   // Đang review
+  PUBLISHED   // Đã xuất bản
+}
 
 //quản lý user
 model User {
@@ -40,6 +47,7 @@ model UserLibraryStory {
   user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String               @db.ObjectId
   chapters  UserLibraryChapter[]
+  totalChapters Int @default(0) //tổng số chương
   isHidden  Boolean               @default(false) // 👉 Thêm trường này để ẩn 
   isComplete Boolean              @default(false) // 👉 Thêm trường này để kiểm tra xem truyện đã hoàn thành hay chưa
   createdAt DateTime             @default(now())
@@ -55,9 +63,9 @@ model UserLibraryChapter {
   chapterName  String
   storyId       String                   @db.ObjectId
   isHidden  Boolean               @default(false) // 👉 Thêm trường này để ẩn chương
-  isTranslated  Boolean  @default(false) // 👉 Thêm trường này kiểm tra chương đã dịch chưa
   chapterNumber Int
   rawText       String
+  status        ChapterStatus @default(DRAFT) //trạng thái chương
   translation   UserTranslatedChapter? // Một chương có thể có hoặc chưa có bản dịch hiện tại
   versions      UserTranslationVersion[]
   createdAt     DateTime                 @default(now())
