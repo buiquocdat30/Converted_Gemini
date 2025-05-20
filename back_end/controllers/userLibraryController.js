@@ -50,18 +50,25 @@ const userLibraryController = {
     createStory: async (req, res) => {
         try {
             const userId = req.user.id;
-            const { name, author } = req.body;
-            console.log('createStory - User ID:', userId);
-            console.log('createStory - Story data:', { name, author });
+            console.log('createStory - Request body:', req.body);
 
             if (!userId) {
                 return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
             }
 
+            const { name, author, fileId } = req.body;
+            console.log('createStory - User ID:', userId);
+            console.log('createStory - Story data:', { name, author, fileId });
+
+            if (!name || !author) {
+                return res.status(400).json({ error: 'Thiếu thông tin truyện (tên hoặc tác giả)' });
+            }
+
             const newStory = await userLibraryService.createStory({
                 name,
                 author,
-                userId
+                userId,
+                fileId // Thêm fileId nếu cần
             });
             console.log('createStory - Created story:', newStory);
 

@@ -50,16 +50,24 @@ const UploadForm = ({ onFileParsed }) => {
     onLogout,
     setMenu,
     menu,
+    uploadFile,
+    processFile,
+    getProcessedFile,
+    createStory,
+    loading,
+    error,
+    setError,
+    apiKey,
+    setApiKey,
+    model,
+    setModel,
   } = useContext(AuthContext);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [apiKey, setApiKey] = useState([]);
   const [showGuide, setShowGuide] = useState(false);
   const [chapters, setChapters] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isCreatingStory, setIsCreatingStory] = useState(false);
   const [showStoryInfoModal, setShowStoryInfoModal] = useState(false);
+  const [success, setSuccess] = useState("");
   const [storyInfo, setStoryInfo] = useState({
     name: "",
     author: "Không biết",
@@ -72,50 +80,47 @@ const UploadForm = ({ onFileParsed }) => {
   const [chapterCount, setChapterCount] = useState(0); //tổng chương
   const [totalWords, setTotalWords] = useState(0); //tổng từ
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
-  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
 
   //selected model
-  const selected = models.find((m) => m.value === selectedModel);
+  const selected = models.find((m) => m.value === model);
 
   const fileInputRef = useRef(null);
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    console.log("📁 File được chọn:", file);
-    console.log("📝 Tên file:", file.name);
-
-    setBooks(file.name.replace(/\.[^/.]+$/, ""));
-    const allowedTypes = ["application/epub+zip", "text/plain"];
-    console.log("🔍 Kiểm tra định dạng file:", file.type);
-
-    if (!allowedTypes.includes(file.type)) {
-      console.warn("⚠️ Định dạng file không hợp lệ:", file.type);
-      alert("❗ Chỉ chấp nhận file .epub hoặc .txt");
+    e.preventDefault();
+    if (!selectedFile) {
+      setError("Vui lòng chọn file để upload");
       return;
     }
 
-    setSelectedFile(file);
-    setLoading(true);
-    setError("");
-    setChapters([]);
+    try {
+      setLoading(true);
+      setError(null);
 
-    // Chỉ đọc file và lưu vào state
-    const reader = new FileReader();
-    console.log("📖 Bắt đầu đọc file...");
+      // Upload file
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const uploadResponse = await uploadFile(formData);
+      const fileId = uploadResponse.fileId;
 
-    reader.onload = async () => {
-      console.log("📖 Đọc file thành công");
-      const result = reader.result;
+      // Process file
+      await processFile(fileId);
+
+      // Get processed file
+      const processedData = await getProcessedFile(fileId);
+      
+      // Parse chapters
+      const parsedChapters = parseChapters(processedData.content);
+      
+      // Call callback with parsed data
+      onFileParsed(parsedChapters, apiKey, model);
+      
+      setSuccess("File đã được xử lý thành công!");
+    } catch (err) {
+      console.error("Lỗi khi xử lý file:", err);
+      setError(err.message || "Có lỗi xảy ra khi xử lý file");
+    } finally {
       setLoading(false);
-      console.log("✅ Hoàn thành xử lý file");
-    };
-
-    if (file.type === "application/epub+zip") {
-      console.log("📚 Đọc file EPUB dưới dạng ArrayBuffer");
-      reader.readAsArrayBuffer(file);
-    } else {
-      console.log("📝 Đọc file TXT dưới dạng Text");
-      reader.readAsText(file);
     }
   };
 
@@ -144,7 +149,7 @@ const UploadForm = ({ onFileParsed }) => {
       console.log(
         "👥 Người dùng chưa đăng nhập, chuyển sang chế độ dịch thông thường"
       );
-      onFileParsed([], apiKey, selectedModel);
+      onFileParsed([], apiKey, model);
     }
   };
 
@@ -155,27 +160,9 @@ const UploadForm = ({ onFileParsed }) => {
 
     try {
       setIsCreatingStory(true);
-      const token = localStorage.getItem("auth-token");
-      console.log("🔑 Token:", token ? "Đã có token" : "Không có token");
-
-      // Tạo FormData để gửi file
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("storyInfo", JSON.stringify(storyInfo));
-
-      console.log("📤 Đang gửi request tạo truyện...");
-      const response = await axios.post(
-        "http://localhost:8000/user/library",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("✅ Tạo truyện thành công:", response.data);
+      const response = await createStory(selectedFile, storyInfo);
+      
+      console.log("✅ Tạo truyện thành công:", response);
       setSuccess("✅ Tạo truyện thành công! Đang chuyển hướng...");
       setShowStoryInfoModal(false);
 
@@ -183,17 +170,12 @@ const UploadForm = ({ onFileParsed }) => {
       setTimeout(() => {
         console.log(
           "🔄 Chuyển hướng đến trang Translate với storyId:",
-          response.data.id
+          response.id
         );
-        window.location.href = `/translate?storyId=${response.data.id}`;
+        window.location.href = `/translate?storyId=${response.id}`;
       }, 2000);
     } catch (error) {
       console.error("❌ Lỗi khi tạo truyện mới:", error);
-      console.error("Chi tiết lỗi:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
       setError("Có lỗi xảy ra khi tạo truyện mới. Vui lòng thử lại.");
     } finally {
       setIsCreatingStory(false);
@@ -287,7 +269,7 @@ const UploadForm = ({ onFileParsed }) => {
           className="converte-file"
           type="file"
           accept=".epub, .txt"
-          onChange={handleFileUpload}
+          onChange={(e) => setSelectedFile(e.target.files[0])}
         />
         {/* <button className="btn-check-file" onClick={handleCheckFileFormat}>
           Kiểm tra File
@@ -350,8 +332,8 @@ const UploadForm = ({ onFileParsed }) => {
                 type="radio"
                 name="modelSelect"
                 value={model.value}
-                checked={selectedModel === model.value}
-                onChange={(e) => setSelectedModel(e.target.value)}
+                checked={model === model.value}
+                onChange={(e) => setModel(e.target.value)}
               />
               {model.label}
             </label>

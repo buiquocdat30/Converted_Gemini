@@ -2,6 +2,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { handleEpubFile, checkFileFormatFromText, handleTxtFile } from "../utils/fileHandlers";
 
 // Định nghĩa API_URL
 const API_URL = "http://localhost:8000";
@@ -9,11 +10,13 @@ const API_URL = "http://localhost:8000";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  // ===== STATE MANAGEMENT =====
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [menu, setMenu] = useState("home");
-  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // User data state
+  // ===== USER STATE & FUNCTIONS =====
   const [userData, setUserData] = useState({
     id: "",
     username: "",
@@ -21,16 +24,13 @@ export const AuthProvider = ({ children }) => {
     avatar: "",
     backgroundImage: "",
     birthdate: "",
-    libraryStories: [], // Truyện trong thư viện
-    userApiKeys: [], // API keys của user
+    libraryStories: [],
+    userApiKeys: [],
     createdAt: "",
     updatedAt: "",
   });
 
-  // Loading state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
+  // User Authentication
   useEffect(() => {
     const token = localStorage.getItem("auth-token");
     if (token) {
@@ -39,14 +39,47 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  //lấy thông tin user
+  const onLogin = (userData) => {
+    if (!userData) return;
+    setIsLoggedIn(true);
+    setUserData({
+      id: userData.id || "",
+      username: userData.username || "",
+      email: userData.email || "",
+      avatar: userData.avatar || "",
+      backgroundImage: userData.backgroundImage || "",
+      birthdate: userData.birthdate || "",
+      libraryStories: userData.libraryStories || [],
+      userApiKeys: userData.userApiKeys || [],
+      createdAt: userData.createdAt || "",
+      updatedAt: userData.updatedAt || "",
+    });
+  };
+
+  const onLogout = () => {
+    localStorage.removeItem("auth-token");
+    setIsLoggedIn(false);
+    setUserData({
+      id: "",
+      username: "",
+      email: "",
+      avatar: "",
+      backgroundImage: "",
+      birthdate: "",
+      libraryStories: [],
+      userApiKeys: [],
+      createdAt: "",
+      updatedAt: "",
+    });
+  };
+
+  // User Profile Management
   const fetchUserData = async (token) => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("response:", response);
       if (response.data) {
         setUserData({
           id: response.data.id,
@@ -61,7 +94,6 @@ export const AuthProvider = ({ children }) => {
           updatedAt: response.data.updatedAt,
         });
       }
-      console.log("userData:", userData);
     } catch (err) {
       console.error("Lỗi khi lấy thông tin user:", err);
       setError(err.message);
@@ -70,16 +102,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Cập nhật thông tin user
   const updateUserProfile = async (updateData) => {
     try {
       setLoading(true);
       const token = localStorage.getItem("auth-token");
 
-      // Kiểm tra xem có phải là cập nhật mật khẩu không
       if (updateData.newPassword) {
-        console.log("updateData:", updateData.newPassword);
-        // Nếu có currentPassword và newPassword thì gọi API đổi mật khẩu
         const response = await axios.put(
           `${API_URL}/user/change-password`,
           updateData,
@@ -90,7 +118,6 @@ export const AuthProvider = ({ children }) => {
         await fetchUserData(token);
         return response.data;
       } else {
-        // Nếu không có password thì gọi API cập nhật thông tin cơ bản
         const response = await axios.put(
           `${API_URL}/user/profile`,
           updateData,
@@ -117,7 +144,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Cập nhật avatar
   const updateAvatar = async (formData) => {
     try {
       setLoading(true);
@@ -134,16 +160,10 @@ export const AuthProvider = ({ children }) => {
       );
 
       if (response.data) {
-        // Log để kiểm tra response
-        console.log("Avatar update response:", response.data);
-
-        // Cập nhật userData với avatar mới
         setUserData((prev) => ({
           ...prev,
           avatar: response.data.filePath || response.data.data.filePath,
         }));
-
-        // Fetch lại toàn bộ thông tin user để đảm bảo dữ liệu đồng bộ
         await fetchUserData(token);
       }
       return response.data;
@@ -156,7 +176,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Cập nhật background
   const updateBackground = async (formData) => {
     try {
       setLoading(true);
@@ -188,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Quản lý API keys
+  // ===== API KEY MANAGEMENT =====
   const addApiKey = async (keyData) => {
     try {
       setLoading(true);
@@ -217,7 +236,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  //xóa API key
   const removeApiKey = async (keyId) => {
     try {
       setLoading(true);
@@ -239,43 +257,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const onLogin = (userData) => {
-    if (!userData) return;
+  // ===== STORY MANAGEMENT =====
+  const [stories, setStories] = useState([]);
 
-    setIsLoggedIn(true);
-    setUserData({
-      id: userData.id || "",
-      username: userData.username || "",
-      email: userData.email || "",
-      avatar: userData.avatar || "",
-      backgroundImage: userData.backgroundImage || "",
-      birthdate: userData.birthdate || "",
-      libraryStories: userData.libraryStories || [],
-      userApiKeys: userData.userApiKeys || [],
-      createdAt: userData.createdAt || "",
-      updatedAt: userData.updatedAt || "",
-    });
-  };
-
-  //đăng xuất
-  const onLogout = () => {
-    localStorage.removeItem("auth-token");
-    setIsLoggedIn(false);
-    setUserData({
-      id: "",
-      username: "",
-      email: "",
-      avatar: "",
-      backgroundImage: "",
-      birthdate: "",
-      libraryStories: [],
-      userApiKeys: [],
-      createdAt: "",
-      updatedAt: "",
-    });
-  };
-
-  // Hàm lấy danh sách truyện từ API
   const fetchStories = async () => {
     try {
       setLoading(true);
@@ -286,10 +270,6 @@ export const AuthProvider = ({ children }) => {
         },
       });
       setStories(response.data);
-      // Log thời gian cập nhật của từng truyện
-      response.data.forEach(story => {
-        console.log(`Story ${story.id} - ${story.name} updated at:`, story.updatedAt);
-      });
       setError(null);
     } catch (err) {
       console.error("Lỗi khi tải danh sách truyện:", err);
@@ -302,7 +282,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Hàm cập nhật thông tin truyện
   const editStories = async (storyId, field, value) => {
     try {
       const token = localStorage.getItem("auth-token");
@@ -316,14 +295,12 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      // Cập nhật state sau khi API call thành công
       setStories((prevStories) =>
         prevStories.map((story) =>
           story.id === storyId ? { ...story, [field]: value } : story
         )
       );
 
-      // Cập nhật userData nếu cần
       if (field === "storyAvatar") {
         setUserData((prev) => ({
           ...prev,
@@ -343,78 +320,261 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Ẩn truyện (xóa mềm)
   const hideStories = async (storyId) => {
     try {
       const token = localStorage.getItem("auth-token");
-      const response = await axios.patch(`${API_URL}/user/library/${storyId}/hide`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const response = await axios.patch(
+        `${API_URL}/user/library/${storyId}/hide`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
       if (response.status === 200) {
-        // Cập nhật lại danh sách truyện
         fetchStories();
-        toast.success('Đã xoá truyện thành công');
+        toast.success("Đã xoá truyện thành công");
       }
     } catch (error) {
-      console.error('Error hiding story:', error);
-      toast.error('Lỗi khi xoá truyện');
+      console.error("Error hiding story:", error);
+      toast.error("Lỗi khi xoá truyện");
     }
   };
 
-  // Xóa truyện vĩnh viễn (xóa cứng)
   const deleteStories = async (storyId) => {
     try {
       const token = localStorage.getItem("auth-token");
       const response = await axios.delete(`${API_URL}/user-library/${storyId}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 200) {
-        // Cập nhật state sau khi API call thành công
-        setStories(prevStories =>
-          prevStories.filter(story => story.id !== storyId)
+        setStories((prevStories) =>
+          prevStories.filter((story) => story.id !== storyId)
         );
-
-        // Cập nhật userData nếu cần
-        setUserData(prev => ({
+        setUserData((prev) => ({
           ...prev,
-          libraryStories: prev.libraryStories.filter(story => story.id !== storyId)
+          libraryStories: prev.libraryStories.filter(
+            (story) => story.id !== storyId
+          ),
         }));
-
-        toast.success('Đã xóa truyện vĩnh viễn');
+        toast.success("Đã xóa truyện vĩnh viễn");
       }
     } catch (error) {
-      console.error('Error deleting story:', error);
-      toast.error('Lỗi khi xóa truyện');
+      console.error("Error deleting story:", error);
+      toast.error("Lỗi khi xóa truyện");
     }
   };
 
+  // ===== FILE MANAGEMENT =====
+  const uploadFile = async (file) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth-token");
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
 
-  //quản lý các chương truyện
+      // Đọc file bằng FileReader
+      const reader = new FileReader();
+      const fileContent = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+
+      let chapters = [];
+      const setChaptersCallback = (chaps) => {
+        chapters = chaps;
+      };
+
+      // Xử lý file dựa vào định dạng
+      const fileExt = file.name.split('.').pop().toLowerCase();
+      if (fileExt === 'epub') {
+        await handleEpubFile(
+          fileContent,
+          setChaptersCallback,
+          (error) => { throw new Error(error); },
+          () => {}, // setSuccess
+          () => {}, // setChapterCount
+          () => {}, // setTotalWords
+          () => {}, // setAverageWords
+          () => {}, // setBooks
+          () => {}  // setAuthor
+        );
+      } else if (fileExt === 'txt') {
+        handleTxtFile(
+          fileContent,
+          setChaptersCallback,
+          (error) => { throw new Error(error); },
+          () => {}, // setSuccess
+          { current: null }, // fileInputRef
+          () => {}, // setSelectedFile
+          file,
+          () => {}, // setChapterCount
+          () => {}, // setTotalWords
+          () => {}, // setAverageWords
+          () => {}, // setBooks
+          () => {}  // setAuthor
+        );
+      } else {
+        throw new Error('Định dạng file không được hỗ trợ');
+      }
+
+      if (!chapters || chapters.length === 0) {
+        throw new Error('Không thể đọc được nội dung chương từ file');
+      }
+
+      // Gửi chapters lên server
+      const response = await axios.post(
+        `${API_URL}/upload`,
+        {
+          fileName: file.name,
+          chapters: chapters
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        }
+      );
+
+      return { ...response.data, chapters };
+    } catch (err) {
+      console.error("Lỗi khi upload file:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processFile = async (fileId) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth-token");
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      const response = await axios.post(
+        `${API_URL}/process/file/${fileId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi xử lý file:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getProcessedFile = async (fileId) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth-token");
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      const response = await axios.get(
+        `${API_URL}/process/file/${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi lấy thông tin file đã xử lý:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createStory = async (file, storyInfo) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth-token");
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      // Upload và xử lý file trước
+      const uploadResult = await uploadFile(file);
+      const { chapters } = uploadResult;
+
+      // Tạo truyện với thông tin chapters
+      const response = await axios.post(
+        `${API_URL}/user/library`,
+        {
+          ...storyInfo,
+          chapters: chapters
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi tạo truyện mới:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
+        // State
         isLoggedIn,
+        menu,
+        loading,
+        error,
+        userData,
+        stories,
+
+        // User Functions
         onLogin,
         onLogout,
         setMenu,
-        menu,
-        userData,
-        loading,
-        error,
         updateUserProfile,
         updateAvatar,
         updateBackground,
+
+        // API Key Functions
         addApiKey,
         removeApiKey,
-        stories,
+
+        // Story Functions
         fetchStories,
         editStories,
         deleteStories,
         hideStories,
+        createStory,
+
+        // File Functions
+        uploadFile,
+        processFile,
+        getProcessedFile,
       }}
     >
       {children}

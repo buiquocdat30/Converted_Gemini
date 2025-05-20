@@ -19,48 +19,23 @@ const upload = multer({
 
 const handleUpload = async (req, res) => {
   try {
-    const { fileName, fileContent } = req.body;
+    const { fileName, chapters } = req.body;
 
-    if (!fileName || !fileContent) {
-      return res.status(400).json({ error: "Không có dữ liệu file" });
+    if (!fileName || !chapters) {
+      return res.status(400).json({ error: "Thiếu thông tin file hoặc chapters" });
     }
 
+    // Kiểm tra định dạng file
     const ext = path.extname(fileName).toLowerCase();
     if (ext !== ".epub" && ext !== ".txt") {
       return res.status(400).json({ error: "Chỉ hỗ trợ file EPUB hoặc TXT" });
     }
 
-    const tempDir = os.tmpdir(); // thư mục tạm hệ thống
-    const tempFileName = crypto.randomUUID() + ext;
-    const tempFilePath = path.join(tempDir, tempFileName);
-
-    if (!fileContent) {
-      console.log("⚠️ fileContent is empty for", fileName);
-    }
-
-    await fsPromises.writeFile(
-      tempFilePath,
-      fileContent,
-      ext === ".epub" ? "base64" : "utf-8"
-    );
-
-    let chapters = [];
-
-    if (ext === ".epub") {
-      chapters = await readEpub(tempFilePath);
-    } else {
-      chapters = await readTxt(tempFilePath);
-    }
-
-    // Xóa file tạm sau khi xử lý xong
-    await fsPromises.unlink(tempFilePath);
-
+    // Trả về chapters đã xử lý
     res.json({ chapters });
   } catch (err) {
     console.error("❌ Lỗi xử lý upload truyện:", err);
-    res
-      .status(500)
-      .json({ error: err.message || "Đã xảy ra lỗi khi xử lý file" });
+    res.status(500).json({ error: err.message || "Đã xảy ra lỗi khi xử lý file" });
   }
 };
 
