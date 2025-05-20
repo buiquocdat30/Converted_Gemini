@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 // Áp dụng middleware xác thực cho tất cả các routes
 router.use(authMiddleware);
+
 // Debug middleware
 router.use((req, res, next) => {
     console.log('UserLibrary Route - Request path:', req.path);
