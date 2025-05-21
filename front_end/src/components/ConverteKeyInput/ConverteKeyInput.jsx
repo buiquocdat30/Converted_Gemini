@@ -27,7 +27,7 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
         .filter((line) => line.length > 0); // loại dòng trống
 
       if (keys.length > 0) {
-        setApiKey(keys);
+        setApiKey(keys[0]); // Lấy key đầu tiên
       } else {
         alert("❗ File không chứa nội dung hợp lệ.");
       }
@@ -43,8 +43,8 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
           <label className="label">🔑 Nhập Google Gemini API Key </label>
           <input
             type={showKey ? "text" : "password"}
-            value={apiKey}
-            onChange={(e) => setApiKey([e.target.value])}
+            value={apiKey || ""} // Thêm kiểm tra null/undefined
+            onChange={(e) => setApiKey(e.target.value)} // Sửa lại để truyền giá trị trực tiếp
             placeholder="API Key..."
             className="api-input"
           />
