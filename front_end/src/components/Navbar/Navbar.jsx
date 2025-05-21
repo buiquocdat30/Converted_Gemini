@@ -26,7 +26,7 @@ const Navbar = () => {
     navigate("/");
     document.body.style.backgroundImage = "";
     console.log("User logged out");
-    alert("Đăng xuất thành công!");
+    toast.success("Đăng xuất thành công!");
   };
   // Hàm bắt đầu timeout 1s để ẩn
   const startCloseTimer = () => {
@@ -55,8 +55,8 @@ const Navbar = () => {
         <img src={logo} alt="" />
       </div>
 
-      <button 
-        className={`mobile-menu-button ${isMobileMenuOpen ? 'open' : ''}`}
+      <button
+        className={`mobile-menu-button ${isMobileMenuOpen ? "open" : ""}`}
         onClick={toggleMobileMenu}
       >
         <span></span>
@@ -65,37 +65,45 @@ const Navbar = () => {
       </button>
 
       <ul ref={menuRef} className="nav-menu">
-        <li onClick={() => {
-          setMenu("home");
-          setIsMobileMenuOpen(false);
-        }}>
+        <li
+          onClick={() => {
+            setMenu("home");
+            setIsMobileMenuOpen(false);
+          }}
+        >
           <Link style={{ textDecoration: "none" }} to="/">
             Guide
           </Link>
           {menu === "home" ? <hr /> : <></>}
         </li>
-        <li onClick={() => {
-          setMenu("converte");
-          setIsMobileMenuOpen(false);
-        }}>
+        <li
+          onClick={() => {
+            setMenu("converte");
+            setIsMobileMenuOpen(false);
+          }}
+        >
           <Link style={{ textDecoration: "none" }} to="/converte">
             Chuyển đổi
           </Link>
           {menu === "converte" ? <hr /> : <></>}
         </li>
-        <li onClick={() => {
-          setMenu("dictionary");
-          setIsMobileMenuOpen(false);
-        }}>
+        <li
+          onClick={() => {
+            setMenu("dictionary");
+            setIsMobileMenuOpen(false);
+          }}
+        >
           <Link style={{ textDecoration: "none" }} to="/dictionary">
             Từ điển
           </Link>
           {menu === "dictionary" ? <hr /> : <></>}
         </li>
-        <li onClick={() => {
-          setMenu("translate");
-          setIsMobileMenuOpen(false);
-        }}>
+        <li
+          onClick={() => {
+            setMenu("translate");
+            setIsMobileMenuOpen(false);
+          }}
+        >
           <Link style={{ textDecoration: "none" }} to="/translate">
             Dịch
           </Link>

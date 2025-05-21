@@ -30,13 +30,15 @@ const ChapterList = ({
   const chaptersPerPage = 10;
 
   // Sắp xếp chapters theo chapterNumber tăng dần
-  const sortedChapters = [...chapters].sort((a, b) => a.chapterNumber - b.chapterNumber);
+  const sortedChapters = [...chapters].sort(
+    (a, b) => a.chapterNumber - b.chapterNumber
+  );
   const totalPages = Math.ceil(sortedChapters.length / chaptersPerPage);
 
   const startIdx = (currentPage - 1) * chaptersPerPage;
   const endIdx = startIdx + chaptersPerPage;
   const currentChapters = sortedChapters.slice(startIdx, endIdx);
-  
+
   // Tách riêng state cho nhảy trang và nhảy chương
   const [jumpToPage, setJumpToPage] = useState("");
   const [jumpToChapter, setJumpToChapter] = useState("");
@@ -67,7 +69,7 @@ const ChapterList = ({
     if (!apiKey) {
       const remainingFree = 2 - translatedCount;
       if (remainingFree <= 0) {
-        alert(
+        toast.error(
           "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
         );
         setIsTranslateAllDisabled(true);
@@ -82,7 +84,7 @@ const ChapterList = ({
       .slice(0, maxChapters - translatedCount);
 
     if (chaptersToTranslate.length === 0) {
-      alert("Tất cả các chương đã được dịch.");
+      toast.success("Tất cả các chương đã được dịch.");
       setTotalProgress(100);
       setIsTranslateAllDisabled(true);
       setIsTranslatingAll(false);
@@ -108,7 +110,7 @@ const ChapterList = ({
         ...prev,
         general: "❌ Lỗi khi dịch tất cả các chương.",
       }));
-      alert("❌ Lỗi khi dịch tất cả các chương.");
+      toast.error("❌ Lỗi khi dịch tất cả các chương.");
       setIsTranslateAllDisabled(false);
     } finally {
       console.timeEnd("⏱️ Thời gian dịch toàn bộ");
@@ -119,9 +121,9 @@ const ChapterList = ({
 
   // Hàm dịch từng chương
   const translate = (index) => {
-    console.log('chapters',chapters)
-    console.log('apiKey',apiKey)
-    console.log('model',model)
+    console.log("chapters", chapters);
+    console.log("apiKey", apiKey);
+    console.log("model", model);
     translateSingleChapter({
       index,
       chapters,
@@ -142,12 +144,12 @@ const ChapterList = ({
   const handleJumpToPage = () => {
     const num = parseInt(jumpToPage);
     if (isNaN(num)) {
-      alert("❌ Vui lòng nhập số trang hợp lệ!");
+      toast.error("❌ Vui lòng nhập số trang hợp lệ!");
       return;
     }
 
     if (num < 1 || num > totalPages) {
-      alert(`❌ Số trang phải từ 1 đến ${totalPages}!`);
+      toast.error(`❌ Số trang phải từ 1 đến ${totalPages}!`);
       return;
     }
 
@@ -159,12 +161,12 @@ const ChapterList = ({
   const handleJumpToChapter = () => {
     const num = parseInt(jumpToChapter);
     if (isNaN(num)) {
-      alert("❌ Vui lòng nhập số chương hợp lệ!");
+      toast.error("❌ Vui lòng nhập số chương hợp lệ!");
       return;
     }
 
     if (num < 1 || num > chapters.length) {
-      alert(`❌ Số chương phải từ 1 đến ${chapters.length}!`);
+      toast.error(`❌ Số chương phải từ 1 đến ${chapters.length}!`);
       return;
     }
 
@@ -179,7 +181,7 @@ const ChapterList = ({
   const handlePageInputChange = (e) => {
     const value = e.target.value;
     const num = parseInt(value);
-    
+
     if (value === "") {
       setJumpToPage("");
       return;
@@ -198,7 +200,7 @@ const ChapterList = ({
   const handleChapterInputChange = (e) => {
     const value = e.target.value;
     const num = parseInt(value);
-    
+
     if (value === "") {
       setJumpToChapter("");
       return;
@@ -215,7 +217,7 @@ const ChapterList = ({
 
   // Hàm xử lý khi chọn chương
   const handleSelectChapter = (index, page) => {
-    console.log('index của chương',index)
+    console.log("index của chương", index);
     if (page) {
       setCurrentPage(page);
     }
@@ -229,17 +231,22 @@ const ChapterList = ({
         {currentChapters.map((ch, idxOnPage) => {
           const idx = ch.chapterNumber - 1;
           const isTranslated = !!results[idx];
-          
+
           return (
             <li key={ch.chapterNumber}>
-              <div 
-                className={`chapter-item ${idx === currentIndex ? 'selected' : ''}`} 
+              <div
+                className={`chapter-item ${
+                  idx === currentIndex ? "selected" : ""
+                }`}
                 onClick={() => handleSelectChapter(idx)}
               >
                 <div className="chapter-header">
                   <p>Chương {ch.chapterNumber}:</p>
                   <strong>
-                    {ch.translatedTitle || ch.title || ch.chapterName || `Chương ${ch.chapterNumber}`}
+                    {ch.translatedTitle ||
+                      ch.title ||
+                      ch.chapterName ||
+                      `Chương ${ch.chapterNumber}`}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>
@@ -342,9 +349,7 @@ const ChapterList = ({
             if (e.key === "Enter") handleJumpToPage();
           }}
         />
-        <button onClick={handleJumpToPage}>
-          ➡️ Đi tới trang
-        </button>
+        <button onClick={handleJumpToPage}>➡️ Đi tới trang</button>
       </div>
 
       {/* nhảy tới chương */}
@@ -361,9 +366,7 @@ const ChapterList = ({
             if (e.key === "Enter") handleJumpToChapter();
           }}
         />
-        <button onClick={handleJumpToChapter}>
-          ➡️ Đi tới chương
-        </button>
+        <button onClick={handleJumpToChapter}>➡️ Đi tới chương</button>
       </div>
 
       <div className="translate-all-container">

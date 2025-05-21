@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { toast } from "react-hot-toast";
 import "./StoryInfoForm.css";
 
 const StoryInfoForm = ({
@@ -88,10 +89,10 @@ const StoryInfoForm = ({
         onStorySaved(finalStoryInfo);
       }
 
-      alert("Lưu thông tin truyện thành công!");
+      toast.success("Lưu thông tin truyện thành công!");
     } catch (error) {
       console.error("Lỗi khi lưu thông tin truyện:", error);
-      alert("Lỗi khi lưu thông tin truyện: " + error.message);
+      toast.error("Lỗi khi lưu thông tin truyện: " + error.message);
     } finally {
       setIsSaving(false);
     }

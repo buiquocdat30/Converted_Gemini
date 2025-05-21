@@ -9,7 +9,14 @@ import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "../pages/pageCSS/Translate.css";
 
 const Translate = () => {
-  const { isLoggedIn, stories, fetchStories, editStories, hideStories, deleteStories } = useContext(AuthContext);
+  const {
+    isLoggedIn,
+    stories,
+    fetchStories,
+    editStories,
+    hideStories,
+    deleteStories,
+  } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
   const [chapters, setChapters] = useState([]);
   const [apiKey, setApiKey] = useState("");
@@ -35,7 +42,7 @@ const Translate = () => {
   useEffect(() => {
     if (stories) {
       // Lọc các truyện đang dịch (isComplete == false)
-      const translatingStories = stories.filter(story => !story.isComplete);
+      const translatingStories = stories.filter((story) => !story.isComplete);
       setTranslatingStories(translatingStories);
     }
   }, [stories]);
@@ -49,9 +56,6 @@ const Translate = () => {
         alert("Vui lòng đăng nhập lại để tiếp tục");
         return;
       }
-
-      console.log("🔍 Đang tải truyện với ID:", storyId);
-      console.log("🔑 Token:", token);
 
       const response = await axios.get(
         `http://localhost:8000/user/library/${storyId}`,
@@ -70,7 +74,7 @@ const Translate = () => {
 
       const story = response.data;
       console.log("📚 Dữ liệu truyện nhận được:", story);
-      
+
       // Log chi tiết từng chương để debug
       if (story.chapters && Array.isArray(story.chapters)) {
         story.chapters.forEach((chapter, index) => {
@@ -78,7 +82,7 @@ const Translate = () => {
             id: chapter.id,
             chapterName: chapter.chapterName,
             rawText: chapter.rawText,
-            translation: chapter.translation
+            translation: chapter.translation,
           });
         });
       }
@@ -92,13 +96,13 @@ const Translate = () => {
       setCurrentStory(story);
 
       // Chuyển đổi dữ liệu chương từ UserLibraryChapter sang định dạng phù hợp
-      const formattedChapters = story.chapters.map(chapter => {
+      const formattedChapters = story.chapters.map((chapter) => {
         // Log để debug
         console.log("🔄 Đang format chương:", {
           id: chapter.id,
           chapterName: chapter.chapterName,
           rawText: chapter.rawText,
-          translation: chapter.translation
+          translation: chapter.translation,
         });
 
         return {
@@ -106,12 +110,15 @@ const Translate = () => {
           chapterName: chapter.chapterName,
           title: chapter.chapterName,
           // Nếu có bản dịch thì dùng translatedContent, không thì dùng rawText
-          content: chapter.translation ? chapter.translation.translatedContent : chapter.rawText || "",
+          content: chapter.translation
+            ? chapter.translation.translatedContent
+            : chapter.rawText || "",
           translated: chapter.translation?.translatedContent || "",
-          translatedTitle: chapter.translation?.translatedTitle || chapter.chapterName,
+          translatedTitle:
+            chapter.translation?.translatedTitle || chapter.chapterName,
           chapterNumber: chapter.chapterNumber,
           // Thêm rawText để có thể truy cập nội dung gốc khi cần
-          rawText: chapter.rawText || ""
+          rawText: chapter.rawText || "",
         };
       });
 
@@ -122,9 +129,9 @@ const Translate = () => {
       console.error("Chi tiết lỗi:", {
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
       });
-      
+
       let errorMessage = "Không thể tải thông tin truyện. ";
       if (error.response?.status === 401) {
         errorMessage += "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
@@ -133,7 +140,7 @@ const Translate = () => {
       } else if (error.response?.status === 500) {
         errorMessage += "Lỗi server. Vui lòng thử lại sau.";
       }
-      
+
       alert(errorMessage);
     }
   };
@@ -163,12 +170,12 @@ const Translate = () => {
     try {
       const token = localStorage.getItem("auth-token");
       const chapter = chapters[index];
-      
+
       // Cập nhật nội dung chương trong database
       await axios.put(
         `http://localhost:8000/user/library/chapter/${chapter.id}/translation`,
         {
-          currentText: newContent
+          currentText: newContent,
         },
         {
           headers: {
@@ -179,7 +186,9 @@ const Translate = () => {
 
       // Cập nhật state local
       setChapters((prev) =>
-        prev.map((ch, i) => (i === index ? { ...ch, translated: newContent } : ch))
+        prev.map((ch, i) =>
+          i === index ? { ...ch, translated: newContent } : ch
+        )
       );
     } catch (error) {
       console.error("Lỗi khi cập nhật nội dung chương:", error);
@@ -221,7 +230,7 @@ const Translate = () => {
       const token = localStorage.getItem("auth-token");
       console.log("🔄 Đang cập nhật truyện:", currentStory.id);
       console.log("📋 Thông tin cập nhật:", storyInfo);
-      
+
       const response = await axios.put(
         `http://localhost:8000/user/library/${currentStory.id}`,
         storyInfo,
@@ -255,18 +264,22 @@ const Translate = () => {
   const handleHideStory = async (storyId) => {
     await hideStories(storyId);
     // Cập nhật state local sau khi ẩn thành công
-    setTranslatingStories(prevStories => 
-      prevStories.filter(story => story.id !== storyId)
+    setTranslatingStories((prevStories) =>
+      prevStories.filter((story) => story.id !== storyId)
     );
   };
 
   // Xóa truyện vĩnh viễn (xóa cứng)
   const handleDeleteStory = async (storyId) => {
-    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+    if (
+      window.confirm(
+        "Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác."
+      )
+    ) {
       await deleteStories(storyId);
       // Cập nhật state local sau khi xóa thành công
-      setTranslatingStories(prevStories => 
-        prevStories.filter(story => story.id !== storyId)
+      setTranslatingStories((prevStories) =>
+        prevStories.filter((story) => story.id !== storyId)
       );
     }
   };
@@ -352,7 +365,16 @@ const Translate = () => {
                   <p>Chưa có truyện nào đang dịch</p>
                 ) : (
                   translatingStories.map((story) => (
-                    <div key={story.id} onClick={() => handleStoryClick(story.id)}>
+                    <div
+                      key={story.id}
+                      onClick={(e) => {
+                        // Kiểm tra nếu người dùng click trực tiếp vào card
+                        if (e.target === e.currentTarget) {
+                          handleStoryClick(story.id);
+                        }
+                      }}
+                      // onClick={() => handleStoryClick(story.id)}
+                    >
                       <UserStoryCard
                         story={story}
                         onHide={() => handleHideStory(story.id)}

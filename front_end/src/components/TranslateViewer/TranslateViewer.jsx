@@ -21,7 +21,7 @@ const TranslateViewer = ({
     const chapter = chapters[currentIndex];
     // Nếu chương đã có bản dịch thì hiển thị bản dịch, nếu chưa thì hiển thị rawText
     const newContent = chapter?.translated || chapter?.rawText || "";
-    console.log(`📌 Nội dung chương: ${newContent}`);
+    // console.log(`📌 Nội dung chương: ${newContent}`);
     const title = chapter?.chapterName || `Chương ${currentIndex + 1}`;
 
     console.log(`📌 Nội dung tiêu đề chương: ${currentIndex + 1}: ${title}`);
@@ -41,7 +41,7 @@ const TranslateViewer = ({
   const handleSave = () => {
     onUpdateChapter(currentIndex, currentContent);
     setIsEditing(false);
-    alert("💾 Đã lưu nội dung chương!");
+    toast.success("💾 Đã lưu nội dung chương!");
   };
 
   const handleChange = (e) => {
@@ -61,7 +61,7 @@ const TranslateViewer = ({
 
   const handleCopy = () => {
     navigator.clipboard.writeText(currentContent);
-    alert("📋 Đã sao chép nội dung chương!");
+    toast.success("📋 Đã sao chép nội dung chương!");
   };
 
   const handleExport = (type) => {
@@ -74,7 +74,7 @@ const TranslateViewer = ({
       .filter((ch) => ch.content); // Chỉ lấy chương có nội dung dịch
 
     if (translatedChapters.length === 0) {
-      alert("Không có chương nào đã được dịch để xuất.");
+      toast.error("Không có chương nào đã được dịch để xuất.");
       return;
     }
 
@@ -158,7 +158,10 @@ const TranslateViewer = ({
           {(() => {
             const chapter = chapters[currentIndex];
             const translatedTitle = chapter?.translatedTitle;
-            const displayTitle = translatedTitle || chapter?.chapterName || `Chương ${currentIndex + 1}`;
+            const displayTitle =
+              translatedTitle ||
+              chapter?.chapterName ||
+              `Chương ${currentIndex + 1}`;
             console.log("📌 Tiêu đề chương đang hiển thị:", displayTitle);
             return displayTitle;
           })()}
