@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import axios from "axios";
+import { toast } from "react-hot-toast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
@@ -67,14 +67,14 @@ const LoginSignup = () => {
 
         navigate("/user");
         console.log("Đăng nhập thành công");
-        alert("Đăng nhập thành công");
+        toast.success("Đăng nhập thành công");
       } else {
-        alert(responseData.error);
+        toast.error(responseData.error);
         setFormData((prev) => ({ ...prev, password: "" }));
       }
     } catch (error) {
       console.error("Error during login:", error);
-      alert("Something went wrong! Please try again.");
+      toast.error("Đăng nhập thất bại");
     }
   };
 
@@ -114,13 +114,14 @@ const LoginSignup = () => {
         }
 
         navigate("/");
-        alert("Tạo tài khoản thành công");
+        toast.success("Tạo tài khoản thành công");
       } else {
-        alert(responseData.error);
+        toast.error(responseData.error);
+        
       }
     } catch (error) {
       console.error("Error during signup:", error);
-      alert("Something went wrong! Please try again.");
+      toast.error("Đăng ký thất bại");
     }
   };
 

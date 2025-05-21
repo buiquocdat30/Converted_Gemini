@@ -29,11 +29,13 @@ const ChapterList = ({
   const [currentPage, setCurrentPage] = useState(1);
   const chaptersPerPage = 10;
 
-  const totalPages = Math.ceil(chapters.length / chaptersPerPage);
+  // Sắp xếp chapters theo chapterNumber tăng dần
+  const sortedChapters = [...chapters].sort((a, b) => a.chapterNumber - b.chapterNumber);
+  const totalPages = Math.ceil(sortedChapters.length / chaptersPerPage);
 
   const startIdx = (currentPage - 1) * chaptersPerPage;
   const endIdx = startIdx + chaptersPerPage;
-  const currentChapters = chapters.slice(startIdx, endIdx);
+  const currentChapters = sortedChapters.slice(startIdx, endIdx);
   
   // Tách riêng state cho nhảy trang và nhảy chương
   const [jumpToPage, setJumpToPage] = useState("");
@@ -221,24 +223,23 @@ const ChapterList = ({
 
   return (
     <div className="chapter-list">
-      <h3>📚 Danh sách chương ({chapters.length})</h3>
+      <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
       <ul>
         {currentChapters.map((ch, idxOnPage) => {
           const idx = startIdx + idxOnPage;
-          const isTranslated = !!results[idx];
-          const translatedTitle = results[idx]?.translatedTitle;
-          console.log('translatedTitle',translatedTitle)
-          console.log('ch.title',ch.translatedTitle)
+          const isTranslated = !!results[ch.id]; // Sử dụng ch.id thay vì idx
+          const translatedTitle = results[ch.id]?.translatedTitle;
+          
           return (
-            <li key={idx}>
+            <li key={ch.id}>
               <div 
-                className={`chapter-item ${idx === currentIndex ? 'selected' : ''}`} 
-                onClick={() => handleSelectChapter(idx)}
+                className={`chapter-item ${ch.id === currentIndex ? 'selected' : ''}`} 
+                onClick={() => handleSelectChapter(ch.id)}
               >
                 <div className="chapter-header">
-                  <p>Chương {ch.chapterNumber || idx + 1}:</p>
+                  <p>Chương {ch.chapterNumber}:</p>
                   <strong>
-                    { ch.translatedTitle ||ch.title||ch.chapterName  || `Chương ${idx + 1}`}
+                    {ch.translatedTitle || ch.title || ch.chapterName || `Chương ${ch.chapterNumber}`}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>
@@ -246,7 +247,7 @@ const ChapterList = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      translate(idx);
+                      translate(ch.id);
                     }}
                     disabled={
                       isTranslated ||
@@ -261,17 +262,17 @@ const ChapterList = ({
                   </button>
                 </div>
 
-                {errorMessages[idx] && (
+                {errorMessages[ch.id] && (
                   <div className="error-message">
-                    <p>{errorMessages[idx]}</p>
+                    <p>{errorMessages[ch.id]}</p>
                   </div>
                 )}
 
-                {progress[idx] !== undefined && !isTranslatingAll && (
+                {progress[ch.id] !== undefined && !isTranslatingAll && (
                   <div className="chapter-progress-bar-container">
                     <div
                       className="chapter-progress-bar"
-                      style={{ width: `${progress[idx]}%` }}
+                      style={{ width: `${progress[ch.id]}%` }}
                     ></div>
                   </div>
                 )}

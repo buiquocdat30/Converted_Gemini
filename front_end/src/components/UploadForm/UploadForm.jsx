@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 // import "../css/App.css";
 import "./UploadForm.css";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
@@ -82,46 +82,73 @@ const UploadForm = ({ onFileParsed }) => {
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
 
   //selected model
-  const selected = models.find((m) => m.value === model);
+  const [selectedModel, setSelectedModel] = useState(model || "gemini-2.0-flash");
+
+  // Thêm state local để quản lý apiKey
+  const [localApiKey, setLocalApiKey] = useState(apiKey || "");
+
+  // Thêm useEffect để đồng bộ apiKey từ context
+  useEffect(() => {
+    if (apiKey) {
+      setLocalApiKey(apiKey);
+    }
+  }, [apiKey]);
+
+  // Thêm hàm xử lý khi apiKey thay đổi
+  const handleApiKeyChange = (newKey) => {
+    setLocalApiKey(newKey);
+    if (setApiKey) {
+      setApiKey(newKey);
+    }
+  };
 
   const fileInputRef = useRef(null);
 
-  const handleFileUpload = async (e) => {
-    e.preventDefault();
-    if (!selectedFile) {
-      setError("Vui lòng chọn file để upload");
-      return;
-    }
+  // Thêm hàm xử lý khi file được chọn
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    setSelectedFile(file);
+    setBooks(file.name.replace(/\.[^/.]+$/, "")); // Lấy tên file không có phần mở rộng
 
-      // Upload file
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      const uploadResponse = await uploadFile(formData);
-      const fileId = uploadResponse.fileId;
-
-      // Process file
-      await processFile(fileId);
-
-      // Get processed file
-      const processedData = await getProcessedFile(fileId);
-      
-      // Parse chapters
-      const parsedChapters = parseChapters(processedData.content);
-      
-      // Call callback with parsed data
-      onFileParsed(parsedChapters, apiKey, model);
-      
-      setSuccess("File đã được xử lý thành công!");
-    } catch (err) {
-      console.error("Lỗi khi xử lý file:", err);
-      setError(err.message || "Có lỗi xảy ra khi xử lý file");
-    } finally {
-      setLoading(false);
-    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        if (file.name.toLowerCase().endsWith('.epub')) {
+          await handleEpubFile(
+            reader.result,
+            setChapters,
+            setError,
+            setSuccess,
+            setChapterCount,
+            setTotalWords,
+            setAverageWords,
+            setBooks,
+            setAuthor
+          );
+        } else if (file.name.toLowerCase().endsWith('.txt')) {
+          handleTxtFile(
+            reader.result,
+            setChapters,
+            setError,
+            setSuccess,
+            fileInputRef,
+            setSelectedFile,
+            file,
+            setChapterCount,
+            setTotalWords,
+            setAverageWords,
+            setBooks,
+            setAuthor
+          );
+        }
+      } catch (err) {
+        console.error("Lỗi khi xử lý file:", err);
+        setError(err.message);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleSubmit = async () => {
@@ -192,9 +219,13 @@ const UploadForm = ({ onFileParsed }) => {
           <input
             type="text"
             value={storyInfo.name}
-            onChange={(e) =>
-              setStoryInfo({ ...storyInfo, name: e.target.value })
-            }
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setStoryInfo(prev => ({
+                ...prev,
+                name: newValue
+              }));
+            }}
             placeholder="Nhập tên truyện"
           />
         </div>
@@ -203,9 +234,13 @@ const UploadForm = ({ onFileParsed }) => {
           <input
             type="text"
             value={storyInfo.author}
-            onChange={(e) =>
-              setStoryInfo({ ...storyInfo, author: e.target.value })
-            }
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setStoryInfo(prev => ({
+                ...prev,
+                author: newValue
+              }));
+            }}
             placeholder="Nhập tên tác giả"
           />
         </div>
@@ -255,7 +290,10 @@ const UploadForm = ({ onFileParsed }) => {
   return (
     <div className="wrapper">
       <h2>📘 Gemini Converte</h2>
-      <ConverteKeyInput apiKey={apiKey} setApiKey={setApiKey} />
+      <ConverteKeyInput 
+        apiKey={localApiKey} 
+        setApiKey={handleApiKeyChange} 
+      />
       <div className="notify">
         <small>
           {apiKey
@@ -269,7 +307,7 @@ const UploadForm = ({ onFileParsed }) => {
           className="converte-file"
           type="file"
           accept=".epub, .txt"
-          onChange={(e) => setSelectedFile(e.target.files[0])}
+          onChange={handleFileChange}
         />
         {/* <button className="btn-check-file" onClick={handleCheckFileFormat}>
           Kiểm tra File
@@ -326,22 +364,27 @@ const UploadForm = ({ onFileParsed }) => {
       <div className="tip-model-select">
         <label className="tip-label">🤖 Chọn Mô Hình AI:</label>
         <div className="tip-radio-group">
-          {models.map((model) => (
-            <label key={model.value} className="tip-radio-option">
+          {models.map((m) => (
+            <label key={m.value} className="tip-radio-option">
               <input
                 type="radio"
                 name="modelSelect"
-                value={model.value}
-                checked={model === model.value}
-                onChange={(e) => setModel(e.target.value)}
+                value={m.value}
+                checked={selectedModel === m.value}
+                onChange={(e) => {
+                  setSelectedModel(e.target.value);
+                  if (setModel) setModel(e.target.value);
+                }}
               />
-              {model.label}
+              {m.label}
             </label>
           ))}
         </div>
 
-        {selected && (
-          <p className="tip-model-description">{selected.description}</p>
+        {selectedModel && (
+          <p className="tip-model-description">
+            {models.find(m => m.value === selectedModel)?.description}
+          </p>
         )}
       </div>
       <div className="converter-btn">

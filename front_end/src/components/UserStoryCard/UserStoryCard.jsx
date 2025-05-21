@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./UserStoryCard.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import defaultAvatar from "../../assets/default_avatar.jpg";
 
 const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
@@ -29,6 +30,9 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
     if (window.confirm("Bạn có chắc chắn muốn xoá truyện này không?")) {
       onHide(story.id);
     }
+    toast.success("Xoá truyện thành công");
+    navigate("/translate");
+
   };
 
   const handleEditToggle = () => {

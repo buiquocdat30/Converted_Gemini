@@ -1,4 +1,7 @@
 const userLibraryService = require('../services/userLibraryService');
+const { readEpub } = require('../services/epubService');
+const { readTxt } = require('../services/txtServices');
+const path = require('path');
 
 const userLibraryController = {
     // Lấy tất cả truyện của user
@@ -56,26 +59,47 @@ const userLibraryController = {
                 return res.status(400).json({ error: 'Không tìm thấy ID người dùng' });
             }
 
-            const { name, author, fileId } = req.body;
+            const { name, author, chapters, filePath } = req.body;
             console.log('createStory - User ID:', userId);
-            console.log('createStory - Story data:', { name, author, fileId });
+            console.log('createStory - Story data:', { name, author, filePath });
 
             if (!name || !author) {
                 return res.status(400).json({ error: 'Thiếu thông tin truyện (tên hoặc tác giả)' });
             }
 
+            let processedChapters = [];
+            
+            // Xử lý file nếu có
+            if (filePath) {
+                const ext = path.extname(filePath).toLowerCase();
+                try {
+                    if (ext === '.epub') {
+                        processedChapters = await readEpub(filePath);
+                    } else if (ext === '.txt') {
+                        processedChapters = await readTxt(filePath);
+                    }
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    return res.status(400).json({ error: 'Lỗi khi xử lý file: ' + error.message });
+                }
+            } else if (chapters && Array.isArray(chapters)) {
+                // Sử dụng chapters từ request nếu không có file
+                processedChapters = chapters;
+            }
+
+            // Tạo truyện với chapters
             const newStory = await userLibraryService.createStory({
                 name,
                 author,
                 userId,
-                fileId // Thêm fileId nếu cần
+                chapters: processedChapters
             });
-            console.log('createStory - Created story:', newStory);
 
+            console.log('createStory - Created story:', newStory);
             res.status(201).json(newStory);
         } catch (error) {
             console.error('Error creating story:', error);
-            res.status(500).json({ error: 'Lỗi khi tạo truyện mới' });
+            res.status(500).json({ error: 'Lỗi khi tạo truyện mới: ' + error.message });
         }
     },
 

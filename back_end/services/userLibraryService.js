@@ -1,4 +1,6 @@
 const prisma = require("../config/prismaConfig");
+const { readEpub } = require("./epubService");
+const { readTxt } = require("./txtServices");
 
 const userLibraryService = {
     // Lấy tất cả truyện của user
@@ -68,13 +70,49 @@ const userLibraryService = {
 
     // Tạo truyện mới
     createStory: async (data) => {
-        return await prisma.userLibraryStory.create({
-            data: {
-                ...data,
-                createdAt: new Date(),
-                updatedAt: new Date()
+        try {
+            // Tạo truyện mới
+            const story = await prisma.userLibraryStory.create({
+                data: {
+                    name: data.name,
+                    author: data.author,
+                    userId: data.userId,
+                    storyAvatar: data.storyAvatar || "/default-avatar.jpg",
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }
+            });
+
+            // Xử lý chapters nếu có
+            if (data.chapters && Array.isArray(data.chapters)) {
+                // Tạo các chương
+                const chapterPromises = data.chapters.map((chapter, index) => {
+                    return prisma.userLibraryChapter.create({
+                        data: {
+                            storyId: story.id,
+                            chapterNumber: index + 1,
+                            chapterName: chapter.title,
+                            rawText: chapter.content,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        }
+                    });
+                });
+
+                await Promise.all(chapterPromises);
             }
-        });
+
+            // Lấy lại truyện với chapters
+            return await prisma.userLibraryStory.findUnique({
+                where: { id: story.id },
+                include: {
+                    chapters: true
+                }
+            });
+        } catch (error) {
+            console.error('Error in createStory:', error);
+            throw error;
+        }
     },
 
     // Cập nhật truyện
@@ -168,13 +206,36 @@ const userLibraryService = {
 
     // Thêm chương mới
     addChapter: async (data) => {
-        return await prisma.userLibraryChapter.create({
-            data: {
-                ...data,
-                createdAt: new Date(),
-                updatedAt: new Date()
+        try {
+            // Kiểm tra storyId
+            if (!data.storyId) {
+                throw new Error('Thiếu storyId');
             }
-        });
+
+            // Kiểm tra truyện tồn tại
+            const story = await prisma.userLibraryStory.findUnique({
+                where: { id: data.storyId }
+            });
+
+            if (!story) {
+                throw new Error('Không tìm thấy truyện');
+            }
+
+            // Tạo chương mới
+            return await prisma.userLibraryChapter.create({
+                data: {
+                    storyId: data.storyId,
+                    chapterNumber: data.chapterNumber,
+                    chapterName: data.chapterName,
+                    rawText: data.rawText,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }
+            });
+        } catch (error) {
+            console.error('Error in addChapter:', error);
+            throw error;
+        }
     },
 
     // Cập nhật chương
