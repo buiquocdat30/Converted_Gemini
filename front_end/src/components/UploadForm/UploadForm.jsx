@@ -82,7 +82,9 @@ const UploadForm = ({ onFileParsed }) => {
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
 
   //selected model
-  const [selectedModel, setSelectedModel] = useState(model || "gemini-2.0-flash");
+  const [selectedModel, setSelectedModel] = useState(
+    model || "gemini-2.0-flash"
+  );
 
   // Thêm state local để quản lý apiKey
   const [localApiKey, setLocalApiKey] = useState(apiKey || "");
@@ -115,7 +117,7 @@ const UploadForm = ({ onFileParsed }) => {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        if (file.name.toLowerCase().endsWith('.epub')) {
+        if (file.name.toLowerCase().endsWith(".epub")) {
           await handleEpubFile(
             reader.result,
             setChapters,
@@ -127,7 +129,7 @@ const UploadForm = ({ onFileParsed }) => {
             setBooks,
             setAuthor
           );
-        } else if (file.name.toLowerCase().endsWith('.txt')) {
+        } else if (file.name.toLowerCase().endsWith(".txt")) {
           handleTxtFile(
             reader.result,
             setChapters,
@@ -181,14 +183,14 @@ const UploadForm = ({ onFileParsed }) => {
   };
 
   const handleCreateStory = async () => {
-    console.log("🚀 Bắt đầu tạo truyện mới");
     console.log("📝 Thông tin truyện:", storyInfo);
-    console.log("📁 File:", selectedFile);
+    console.log("📁 Thông tin File:", selectedFile);
 
     try {
       setIsCreatingStory(true);
+      console.log("📁 Thông tin File:", selectedFile);
       const response = await createStory(selectedFile, storyInfo);
-      
+
       console.log("✅ Tạo truyện thành công:", response);
       setSuccess("✅ Tạo truyện thành công! Đang chuyển hướng...");
       setShowStoryInfoModal(false);
@@ -200,7 +202,7 @@ const UploadForm = ({ onFileParsed }) => {
           response.id
         );
         window.location.href = `/translate?storyId=${response.id}`;
-      }, 2000);
+      }, 180000);
     } catch (error) {
       console.error("❌ Lỗi khi tạo truyện mới:", error);
       setError("Có lỗi xảy ra khi tạo truyện mới. Vui lòng thử lại.");
@@ -221,9 +223,9 @@ const UploadForm = ({ onFileParsed }) => {
             value={storyInfo.name}
             onChange={(e) => {
               const newValue = e.target.value;
-              setStoryInfo(prev => ({
+              setStoryInfo((prev) => ({
                 ...prev,
-                name: newValue
+                name: newValue,
               }));
             }}
             placeholder="Nhập tên truyện"
@@ -236,9 +238,9 @@ const UploadForm = ({ onFileParsed }) => {
             value={storyInfo.author}
             onChange={(e) => {
               const newValue = e.target.value;
-              setStoryInfo(prev => ({
+              setStoryInfo((prev) => ({
                 ...prev,
-                author: newValue
+                author: newValue,
               }));
             }}
             placeholder="Nhập tên tác giả"
@@ -290,10 +292,7 @@ const UploadForm = ({ onFileParsed }) => {
   return (
     <div className="wrapper">
       <h2>📘 Gemini Converte</h2>
-      <ConverteKeyInput 
-        apiKey={localApiKey} 
-        setApiKey={handleApiKeyChange} 
-      />
+      <ConverteKeyInput apiKey={localApiKey} setApiKey={handleApiKeyChange} />
       <div className="notify">
         <small>
           {apiKey
@@ -383,7 +382,7 @@ const UploadForm = ({ onFileParsed }) => {
 
         {selectedModel && (
           <p className="tip-model-description">
-            {models.find(m => m.value === selectedModel)?.description}
+            {models.find((m) => m.value === selectedModel)?.description}
           </p>
         )}
       </div>

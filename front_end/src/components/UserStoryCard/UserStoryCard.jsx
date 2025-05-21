@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import "./UserStoryCard.css";
 import axios from "axios";
+import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import defaultAvatar from "../../assets/default_avatar.jpg";
 
-const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
+const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedStory, setEditedStory] = useState({
     storyAvatar: story.storyAvatar,
@@ -30,10 +31,11 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
   const handleDelete = () => {
     if (window.confirm("Bạn có chắc chắn muốn xoá truyện này không?")) {
       onHide(story.id);
+      navigate("/translate");
+    } else {
+      toast.error("❌ Bạn đã hủy xoá truyện");
+      navigate("/translate");
     }
-    toast.success("Xoá truyện thành công");
-    navigate("/translate");
-
   };
 
   const handleEditToggle = () => {
@@ -90,9 +92,12 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
         <div className="stories-info-avatar">
           {isEditing ? (
             <div className="avatar-upload">
-              <img src={previewAvatar || null} className="avatar-preview" />
+              <label htmlFor="avatar-upload">
+                <img src={previewAvatar || null} className="avatar-preview" />
+              </label>
               <input
                 type="file"
+                id="avatar-upload"
                 name="storyAvatar"
                 accept="image/*"
                 onChange={handleAvatarChange}
@@ -130,28 +135,53 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
             )}
           </div>
           <div className="stories-total-chapters">
-            <p>Tổng chương: {story.chapters ? story.chapters.filter(chapter => !chapter.isHidden).length : 0}</p>
+            <p>
+              Tổng chương:{" "}
+              {story.chapters
+                ? story.chapters.filter((chapter) => !chapter.isHidden).length
+                : 0}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Thời gian cập nhật */}
       <div className="stories-update-time">
-        <p>Cập nhật lần cuối: {new Date(story.updatedAt).toLocaleString('vi-VN')}</p>
+        <p>
+          Cập nhật lần cuối: {new Date(story.updatedAt).toLocaleString("vi-VN")}
+        </p>
       </div>
 
       {/* Nút chức năng */}
       <div className="stories-update-btn">
         {isEditing ? (
-          <button className="btn-update-stories" onClick={handleSave}>
+          <button
+            className="btn-update-stories"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
+          >
             Lưu
           </button>
         ) : (
-          <button className="btn-update-stories" onClick={handleEditToggle}>
+          <button
+            className="btn-update-stories"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditToggle();
+            }}
+          >
             Sửa
           </button>
         )}
-        <button className="btn-delete-stories" onClick={handleDelete}>
+        <button
+          className="btn-delete-stories"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete();
+          }}
+        >
           Xoá
         </button>
       </div>

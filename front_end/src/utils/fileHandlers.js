@@ -109,7 +109,7 @@ const handleEpubFile = async (
     if (setChapterCount || setTotalWords || setAverageWords) {
       const { totalChapters, totalWords } = calculateChapterStats(chapters);
       const averageWords = Math.round(totalWords / totalChapters);
-      
+
       if (setChapterCount) setChapterCount(totalChapters);
       if (setTotalWords) setTotalWords(totalWords);
       if (setAverageWords) setAverageWords(averageWords);
@@ -155,9 +155,11 @@ const handleTxtFile = (
 
       // Tính toán và gọi các callback khác nếu cần
       if (setChapterCount || setTotalWords || setAverageWords) {
-        const { totalChapters, totalWords } = calculateChapterStats(result.chapters);
+        const { totalChapters, totalWords } = calculateChapterStats(
+          result.chapters
+        );
         const averageWords = Math.round(totalWords / totalChapters);
-        
+
         if (setChapterCount) setChapterCount(totalChapters);
         if (setTotalWords) setTotalWords(totalWords);
         if (setAverageWords) setAverageWords(averageWords);
@@ -171,12 +173,13 @@ const handleTxtFile = (
       return result.chapters;
     } else {
       // Xử lý lỗi
-      if (setError) setError(`❌ File ${file.name} không đúng định dạng chương.`);
+      if (setError)
+        setError(`❌ File ${file.name} không đúng định dạng chương.`);
       if (setSelectedFile) setSelectedFile(null);
       if (setChapters) setChapters([]);
       if (setSuccess) setSuccess("");
       if (fileInputRef?.current) fileInputRef.current.value = "";
-      
+
       throw new Error(`File ${file.name} không đúng định dạng chương.`);
     }
   } catch (err) {
@@ -188,7 +191,64 @@ const handleTxtFile = (
   }
 };
 
-// kiểm tra định dạng file txt  
+// Hàm chuyển đổi số Hán tự sang số Ả Rập
+const convertChineseNumber = (chineseNum) => {
+  const chineseNumbers = {
+    一: 1,
+    二: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+    十: 10,
+    百: 100,
+    千: 1000,
+    零: 0,
+    〇: 0,
+  };
+
+  let result = 0;
+  let temp = 0;
+  let unit = 1;
+
+  for (let i = chineseNum.length - 1; i >= 0; i--) {
+    const char = chineseNum[i];
+    if (chineseNumbers[char] >= 10) {
+      if (temp === 0) temp = 1;
+      result += temp * chineseNumbers[char];
+      temp = 0;
+      unit = 1;
+    } else {
+      temp += chineseNumbers[char] * unit;
+      unit *= 10;
+    }
+  }
+  result += temp;
+  return result;
+};
+
+// Hàm trích số chương từ tiêu đề
+const extractChapterNumber = (title) => {
+  // Thử tìm số Ả Rập trước
+  const arabicMatch = title.match(/\d+/);
+  if (arabicMatch) {
+    return parseInt(arabicMatch[0]);
+  }
+
+  // Thử tìm số Hán tự
+  const chineseMatch = title.match(/[一二三四五六七八九十百千零〇]+/);
+  if (chineseMatch) {
+    return convertChineseNumber(chineseMatch[0]);
+  }
+
+  // Nếu không tìm thấy số nào, trả về 0
+  return 0;
+};
+
+// kiểm tra định dạng file txt
 const checkFileFormatFromText = (text) => {
   const chapterRegex =
     /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)/im;
@@ -197,7 +257,6 @@ const checkFileFormatFromText = (text) => {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-
   const titles = [];
   const titleIndexes = [];
 
@@ -209,11 +268,9 @@ const checkFileFormatFromText = (text) => {
     }
   });
 
-  // Kiểm tra xem tiêu đề có lặp lại không → nếu có thì file dạng "title1 title2 title1 content1 ..."
+  // Kiểm tra cấu trúc file
   const titleSet = new Set(titles);
   const hasDuplicateTitles = titleSet.size !== titles.length;
-
-  // Kiểm tra xem khoảng cách giữa tiêu đề có đều và cách nhau 2 dòng → nghi ngờ kiểu "title1 title2 content1 content2"
   let evenlySpaced = true;
   const gaps = [];
 
@@ -226,56 +283,21 @@ const checkFileFormatFromText = (text) => {
     evenlySpaced = gaps.every((g) => g === firstGap);
   }
 
-  // Nếu có duplicate hoặc khoảng cách giữa tiêu đề bất thường → dùng tuyến tính
+  // Xử lý theo cấu trúc file
   const useLinear = hasDuplicateTitles || !evenlySpaced;
-
-  if (!useLinear) {
-    // Dùng chia đôi nếu cấu trúc phù hợp
-    const half = titles.length / 2;
-
-    if (Number.isInteger(half)) {
-      const chapterTitles = titles.slice(0, half);
-      const contentStartIndexes = titleIndexes.slice(half);
-
-      const chapters = [];
-
-      for (let i = 0; i < half; i++) {
-        const start = contentStartIndexes[i] + 1;
-        const end = contentStartIndexes[i + 1] || lines.length;
-        const contentLines = lines.slice(start, end);
-        const content = contentLines
-          .map((line) => line + "\n\n")
-          .join("")
-          .trim();
-
-        chapters.push({
-          title: chapterTitles[i],
-          content,
-        });
-      }
-
-      const valid =
-        chapters.length > 0 &&
-        chapters.every((ch) => ch.content && ch.content.length > 0);
-
-      return {
-        valid,
-        chapters,
-        total: chapters.length,
-      };
-    }
-  }
-
-  // Mặc định fallback sang tuyến tính
   const chapters = [];
   let currentChapter = null;
+  let chapterCount = 0;
 
   for (const line of lines) {
     if (chapterRegex.test(line)) {
       if (currentChapter) chapters.push(currentChapter);
+      chapterCount++;
+      const chapterNumber = extractChapterNumber(line);
       currentChapter = {
         title: line,
         content: "",
+        chapterNumber: chapterNumber || chapterCount,
       };
     } else if (currentChapter) {
       currentChapter.content += line + "\n\n";
@@ -284,11 +306,22 @@ const checkFileFormatFromText = (text) => {
 
   if (currentChapter) chapters.push(currentChapter);
 
-  const valid =
-    chapters.length > 0 && chapters.every((ch) => ch.content.trim().length > 0);
+  // Sắp xếp chương theo số chương
+  chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+
+  // Kiểm tra tính liên tục của số chương
+  for (let i = 0; i < chapters.length; i++) {
+    if (chapters[i].chapterNumber !== i + 1) {
+      console.warn(
+        `Cảnh báo: Chương "${chapters[i].title}" có số chương không liên tục`
+      );
+    }
+  }
 
   return {
-    valid,
+    valid:
+      chapters.length > 0 &&
+      chapters.every((ch) => ch.content.trim().length > 0),
     chapters,
     total: chapters.length,
   };
