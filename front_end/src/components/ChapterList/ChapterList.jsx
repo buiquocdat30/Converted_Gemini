@@ -215,6 +215,7 @@ const ChapterList = ({
 
   // Hàm xử lý khi chọn chương
   const handleSelectChapter = (index, page) => {
+    console.log('index của chương',index)
     if (page) {
       setCurrentPage(page);
     }
@@ -226,15 +227,14 @@ const ChapterList = ({
       <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
       <ul>
         {currentChapters.map((ch, idxOnPage) => {
-          const idx = startIdx + idxOnPage;
-          const isTranslated = !!results[ch.id]; // Sử dụng ch.id thay vì idx
-          const translatedTitle = results[ch.id]?.translatedTitle;
+          const idx = ch.chapterNumber - 1;
+          const isTranslated = !!results[idx];
           
           return (
-            <li key={ch.id}>
+            <li key={ch.chapterNumber}>
               <div 
-                className={`chapter-item ${ch.id === currentIndex ? 'selected' : ''}`} 
-                onClick={() => handleSelectChapter(ch.id)}
+                className={`chapter-item ${idx === currentIndex ? 'selected' : ''}`} 
+                onClick={() => handleSelectChapter(idx)}
               >
                 <div className="chapter-header">
                   <p>Chương {ch.chapterNumber}:</p>
@@ -247,7 +247,7 @@ const ChapterList = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      translate(ch.id);
+                      translate(idx);
                     }}
                     disabled={
                       isTranslated ||
@@ -262,17 +262,17 @@ const ChapterList = ({
                   </button>
                 </div>
 
-                {errorMessages[ch.id] && (
+                {errorMessages[idx] && (
                   <div className="error-message">
-                    <p>{errorMessages[ch.id]}</p>
+                    <p>{errorMessages[idx]}</p>
                   </div>
                 )}
 
-                {progress[ch.id] !== undefined && !isTranslatingAll && (
+                {progress[idx] !== undefined && !isTranslatingAll && (
                   <div className="chapter-progress-bar-container">
                     <div
                       className="chapter-progress-bar"
-                      style={{ width: `${progress[ch.id]}%` }}
+                      style={{ width: `${progress[idx]}%` }}
                     ></div>
                   </div>
                 )}

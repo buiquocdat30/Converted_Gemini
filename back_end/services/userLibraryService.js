@@ -85,12 +85,22 @@ const userLibraryService = {
 
             // Xử lý chapters nếu có
             if (data.chapters && Array.isArray(data.chapters)) {
-                // Tạo các chương
-                const chapterPromises = data.chapters.map((chapter, index) => {
+                // Sắp xếp chapters theo thứ tự trước khi tạo
+                const sortedChapters = [...data.chapters].sort((a, b) => {
+                    // Tìm số chương từ tiêu đề
+                    const getChapterNumber = (title) => {
+                        const match = title.match(/\d+/);
+                        return match ? parseInt(match[0]) : 0;
+                    };
+                    return getChapterNumber(a.title) - getChapterNumber(b.title);
+                });
+
+                // Tạo các chương với chapterNumber được gán đúng
+                const chapterPromises = sortedChapters.map((chapter, index) => {
                     return prisma.userLibraryChapter.create({
                         data: {
                             storyId: story.id,
-                            chapterNumber: index + 1,
+                            chapterNumber: index + 1, // Gán chapterNumber theo thứ tự
                             chapterName: chapter.title,
                             rawText: chapter.content,
                             createdAt: new Date(),
@@ -102,11 +112,15 @@ const userLibraryService = {
                 await Promise.all(chapterPromises);
             }
 
-            // Lấy lại truyện với chapters
+            // Lấy lại truyện với chapters đã được sắp xếp
             return await prisma.userLibraryStory.findUnique({
                 where: { id: story.id },
                 include: {
-                    chapters: true
+                    chapters: {
+                        orderBy: {
+                            chapterNumber: 'asc'
+                        }
+                    }
                 }
             });
         } catch (error) {
@@ -182,7 +196,7 @@ const userLibraryService = {
                 }
             });
 
-            // Chuyển đổi các trường DateTime
+            // Chuyển đổi các trường DateTime và đảm bảo thứ tự
             return chapters.map(chapter => ({
                 ...chapter,
                 createdAt: chapter.createdAt ? new Date(chapter.createdAt) : null,

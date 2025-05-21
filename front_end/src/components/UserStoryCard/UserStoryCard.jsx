@@ -31,7 +31,7 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
       onHide(story.id);
     }
     toast.success("Xoá truyện thành công");
-    navigate("/translate");
+    navigate("/");
 
   };
 
