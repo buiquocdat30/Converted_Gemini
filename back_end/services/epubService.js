@@ -114,7 +114,13 @@
 const EPub = require("epub");
 
 const chapterRegex =
-  /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim;
+  /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)[^\n]*|第[\d一二三四五六七八九十百千]+章[^\n]*)$/gim;
+
+// Hàm trích xuất số chương từ tiêu đề
+const extractChapterNumber = (title) => {
+  const match = title.match(/\d+/);
+  return match ? parseInt(match[0]) : 0;
+};
 
 const readEpub = (filePath) => {
   return new Promise(async (resolve, reject) => {
@@ -155,8 +161,17 @@ const readEpub = (filePath) => {
       for (let i = 0; i < parts.length; i += 2) {
         const title = parts[i]?.trim() || `Chương ${Math.floor(i / 2) + 1}`;
         const content = parts[i + 1]?.trim() || "";
-        chapters.push({ title, content });
+        const chapterNumber = extractChapterNumber(title);
+        
+        chapters.push({ 
+          title, 
+          content,
+          chapterNumber: chapterNumber || Math.floor(i / 2) + 1 // Nếu không tìm thấy số chương thì dùng index
+        });
       }
+
+      // Sắp xếp chapters theo chapterNumber
+      chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
 
       resolve(chapters);
     } catch (error) {

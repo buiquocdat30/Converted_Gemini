@@ -13,6 +13,7 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
   });
   const [previewAvatar, setPreviewAvatar] = useState(story.storyAvatar);
   const [selectedFile, setSelectedFile] = useState(null);
+  const navigate = useNavigate();
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -31,7 +32,7 @@ const UserStoryCard = ({ story,onHide, onDelete, onUpdate }) => {
       onHide(story.id);
     }
     toast.success("Xoá truyện thành công");
-    navigate("/");
+    navigate("/translate");
 
   };
 
