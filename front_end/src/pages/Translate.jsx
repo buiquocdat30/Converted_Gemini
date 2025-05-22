@@ -366,14 +366,9 @@ const Translate = () => {
                 ) : (
                   translatingStories.map((story) => (
                     <div
+                      className="tr-story-card"
                       key={story.id}
-                      onClick={(e) => {
-                        // Kiểm tra nếu người dùng click trực tiếp vào card
-                        if (e.target === e.currentTarget) {
-                          handleStoryClick(story.id);
-                        }
-                      }}
-                      // onClick={() => handleStoryClick(story.id)}
+                      onClick={() => handleStoryClick(story.id)}
                     >
                       <UserStoryCard
                         story={story}

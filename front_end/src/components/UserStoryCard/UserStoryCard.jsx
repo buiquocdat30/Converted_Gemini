@@ -93,7 +93,13 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
           {isEditing ? (
             <div className="avatar-upload">
               <label htmlFor="avatar-upload">
-                <img src={previewAvatar || null} className="avatar-preview" />
+                <img
+                  src={previewAvatar || null}
+                  className="avatar-preview"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
+                  }}
+                />
               </label>
               <input
                 type="file"
@@ -101,6 +107,9 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
                 name="storyAvatar"
                 accept="image/*"
                 onChange={handleAvatarChange}
+                onClick={(e) => {
+                  e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
+                }}
                 className="avatar-input"
               />
             </div>
@@ -117,6 +126,9 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
                 name="name"
                 value={editedStory.name}
                 onChange={handleInputChange}
+                onClick={(e) => {
+                  e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
+                }}
               />
             ) : (
               <h3>{story.name}</h3>
@@ -129,6 +141,9 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
                 name="author"
                 value={editedStory.author}
                 onChange={handleInputChange}
+                onClick={(e) => {
+                  e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
+                }}
               />
             ) : (
               <p>Tác giả: {story.author}</p>
