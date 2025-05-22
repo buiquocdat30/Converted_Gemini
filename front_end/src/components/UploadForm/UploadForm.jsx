@@ -1,6 +1,7 @@
 import React, { useState, useRef, useContext, useEffect } from "react";
 // import "../css/App.css";
 import "./UploadForm.css";
+import StoryInfoModal from "../StoryInfoModal/StoryInfoModal.jsx";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
 import { AuthContext } from "../../context/ConverteContext";
 import TranslationInfoPanel from "../TranslationInfoPanel/TranslationInfoPanel.jsx";
@@ -202,7 +203,7 @@ const UploadForm = ({ onFileParsed }) => {
           response.id
         );
         window.location.href = `/translate?storyId=${response.id}`;
-      }, 180000);
+      }, 2000);
     } catch (error) {
       console.error("❌ Lỗi khi tạo truyện mới:", error);
       setError("Có lỗi xảy ra khi tạo truyện mới. Vui lòng thử lại.");
@@ -212,58 +213,58 @@ const UploadForm = ({ onFileParsed }) => {
     }
   };
 
-  const StoryInfoModal = () => (
-    <div className="modal">
-      <div className="modal-content">
-        <h3>📝 Thông tin truyện</h3>
-        <div className="form-group">
-          <label>Tên truyện:</label>
-          <input
-            type="text"
-            value={storyInfo.name}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setStoryInfo((prev) => ({
-                ...prev,
-                name: newValue,
-              }));
-            }}
-            placeholder="Nhập tên truyện"
-          />
-        </div>
-        <div className="form-group">
-          <label>Tác giả:</label>
-          <input
-            type="text"
-            value={storyInfo.author}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setStoryInfo((prev) => ({
-                ...prev,
-                author: newValue,
-              }));
-            }}
-            placeholder="Nhập tên tác giả"
-          />
-        </div>
-        <div className="modal-buttons">
-          <button
-            onClick={handleCreateStory}
-            disabled={isCreatingStory}
-            className="btn-submit"
-          >
-            {isCreatingStory ? "Đang tạo..." : "Tạo truyện"}
-          </button>
-          <button
-            onClick={() => setShowStoryInfoModal(false)}
-            className="btn-cancel"
-          >
-            Hủy
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  // const StoryInfoModal = () => (
+  //   <div className="modal">
+  //     <div className="modal-content">
+  //       <h3>📝 Thông tin truyện</h3>
+  //       <div className="form-group">
+  //         <label>Tên truyện:</label>
+  //         <input
+  //           type="text"
+  //           value={storyInfo.name}
+  //           onChange={(e) => {
+  //             const newValue = e.target.value;
+  //             setStoryInfo((prev) => ({
+  //               ...prev,
+  //               name: newValue,
+  //             }));
+  //           }}
+  //           placeholder="Nhập tên truyện"
+  //         />
+  //       </div>
+  //       <div className="form-group">
+  //         <label>Tác giả:</label>
+  //         <input
+  //           type="text"
+  //           value={storyInfo.author}
+  //           onChange={(e) => {
+  //             const newValue = e.target.value;
+  //             setStoryInfo((prev) => ({
+  //               ...prev,
+  //               author: newValue,
+  //             }));
+  //           }}
+  //           placeholder="Nhập tên tác giả"
+  //         />
+  //       </div>
+  //       <div className="modal-buttons">
+  //         <button
+  //           onClick={handleCreateStory}
+  //           disabled={isCreatingStory}
+  //           className="btn-submit"
+  //         >
+  //           {isCreatingStory ? "Đang tạo..." : "Tạo truyện"}
+  //         </button>
+  //         <button
+  //           onClick={() => setShowStoryInfoModal(false)}
+  //           className="btn-cancel"
+  //         >
+  //           Hủy
+  //         </button>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 
   //hàm kiểm tra xem có đúng định dạng file
   const handleCheckFileFormat = async () => {
@@ -417,7 +418,15 @@ const UploadForm = ({ onFileParsed }) => {
           </div>
         </div>
       )}
-      {showStoryInfoModal && <StoryInfoModal />}
+      {showStoryInfoModal && (
+        <StoryInfoModal
+          storyInfo={storyInfo}
+          setStoryInfo={setStoryInfo}
+          handleCreateStory={handleCreateStory}
+          isCreatingStory={isCreatingStory}
+          setShowStoryInfoModal={setShowStoryInfoModal}
+        />
+      )}
       {isCreatingStory && (
         <div className="loading-overlay">
           <div className="loading-spinner"></div>

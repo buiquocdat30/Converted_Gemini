@@ -169,7 +169,7 @@ const handleTxtFile = (
       if (setSuccess) {
         setSuccess("✅ File có thể sử dụng.");
       }
-      console.log("✅ kết quả trả về của file handleTxtFile.",result.chapters);
+      console.log("✅ kết quả trả về của file handleTxtFile.", result.chapters);
       return result.chapters;
     } else {
       // Xử lý lỗi
@@ -251,72 +251,40 @@ const extractChapterNumber = (title) => {
 // kiểm tra định dạng file txt
 const checkFileFormatFromText = (text) => {
   const chapterRegex =
-    /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)/im;
+    /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[零〇一二三四五六七八九十百千万亿]+章[^\n]*)/i;
 
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const titles = [];
-  const titleIndexes = [];
 
-  // Bước 1: Xác định tiêu đề chương
-  lines.forEach((line, idx) => {
-    if (chapterRegex.test(line)) {
-      titles.push(line);
-      titleIndexes.push(idx);
-    }
-  });
-
-  // Kiểm tra cấu trúc file
-  const titleSet = new Set(titles);
-  const hasDuplicateTitles = titleSet.size !== titles.length;
-  let evenlySpaced = true;
-  const gaps = [];
-
-  for (let i = 1; i < titleIndexes.length; i++) {
-    gaps.push(titleIndexes[i] - titleIndexes[i - 1]);
-  }
-
-  if (gaps.length >= 2) {
-    const firstGap = gaps[0];
-    evenlySpaced = gaps.every((g) => g === firstGap);
-  }
-
-  // Xử lý theo cấu trúc file
-  const useLinear = hasDuplicateTitles || !evenlySpaced;
   const chapters = [];
   let currentChapter = null;
-  let chapterCount = 0;
 
   for (const line of lines) {
     if (chapterRegex.test(line)) {
-      if (currentChapter) chapters.push(currentChapter);
-      chapterCount++;
-      const chapterNumber = extractChapterNumber(line);
+      if (currentChapter) {
+        chapters.push(currentChapter);
+      }
+
       currentChapter = {
         title: line,
         content: "",
-        chapterNumber: chapterNumber || chapterCount,
+        chapterNumber: extractChapterNumber(line),
       };
     } else if (currentChapter) {
       currentChapter.content += line + "\n\n";
     }
   }
 
-  if (currentChapter) chapters.push(currentChapter);
-
-  // Sắp xếp chương theo số chương
-  chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
-
-  // Kiểm tra tính liên tục của số chương
-  for (let i = 0; i < chapters.length; i++) {
-    if (chapters[i].chapterNumber !== i + 1) {
-      console.warn(
-        `Cảnh báo: Chương "${chapters[i].title}" có số chương không liên tục`
-      );
-    }
+  if (currentChapter) {
+    chapters.push(currentChapter);
   }
+
+  // Gán lại chapterNumber theo thứ tự dòng xuất hiện
+  chapters.forEach((ch, index) => {
+    ch.chapterNumber = index + 1;
+  });
 
   return {
     valid:

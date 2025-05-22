@@ -81,6 +81,7 @@ const Translate = () => {
           console.log(`📖 Chương ${index + 1}:`, {
             id: chapter.id,
             chapterName: chapter.chapterName,
+            chapterNumber: chapter.chapterNumber,
             rawText: chapter.rawText,
             translation: chapter.translation,
           });
@@ -101,6 +102,7 @@ const Translate = () => {
         console.log("🔄 Đang format chương:", {
           id: chapter.id,
           chapterName: chapter.chapterName,
+          chapterNumber: chapter.chapterNumber,
           rawText: chapter.rawText,
           translation: chapter.translation,
         });
