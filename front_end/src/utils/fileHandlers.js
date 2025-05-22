@@ -169,7 +169,7 @@ const handleTxtFile = (
       if (setSuccess) {
         setSuccess("✅ File có thể sử dụng.");
       }
-
+      console.log("✅ kết quả trả về của file handleTxtFile.",result.chapters);
       return result.chapters;
     } else {
       // Xử lý lỗi
