@@ -4,6 +4,7 @@ import TranslateViewer from "../TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput";
 import { translateSingleChapter } from "../../services/translateSingleChapter.jsx";
 import "./TranslatorApp.css";
+import { toast } from "react-hot-toast";
 
 const TranslatorApp = ({
   apiKey,
@@ -18,6 +19,11 @@ const TranslatorApp = ({
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
   const [tempKey, setTempKey] = useState(apiKey || ""); //kiểm soát key
   const [isMenuOpen, setIsMenuOpen] = useState(false); //kiểm soát topmenu
+  const [isAddChapterModalOpen, setIsAddChapterModalOpen] = useState(false);
+  const [newChapterTitle, setNewChapterTitle] = useState("");
+  const [newChapterContent, setNewChapterContent] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [addChapterMode, setAddChapterMode] = useState("manual"); // "manual" hoặc "file"
 
   //Chọn chương để Nhảy
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
@@ -52,14 +58,35 @@ const TranslatorApp = ({
   };
 
   // Khi người dùng sửa lại nội dung trong TranslateViewer
-  const handleEditChapter = (index, newContent) => {
+  const handleEditChapter = (index, newContent, type = 'translated') => {
     setTranslatedChapters((prev) => {
       const updated = [...prev];
       updated[index] = {
         ...(chapters[index] || {}),
-        translated: newContent,
+        [type]: newContent,
       };
       return updated;
+    });
+  };
+
+  // Hàm xử lý dịch lại chương
+  const handleRetranslate = (index) => {
+    translateSingleChapter({
+      index,
+      chapters,
+      apiKey: currentApiKey,
+      model,
+      onTranslationResult: (idx, translated, translatedTitle) => {
+        handleTranslationResult(idx, translated, translatedTitle);
+        // Sau khi dịch xong, tự động lưu vào translated
+        handleEditChapter(idx, translated, 'translated');
+      },
+      onSelectChapter: () => {},
+      setProgress: () => {},
+      setResults: () => {},
+      setErrorMessages: () => {},
+      setTranslatedCount: () => {},
+      setTotalProgress: () => {},
     });
   };
 
@@ -109,6 +136,54 @@ const TranslatorApp = ({
     }
   };
 
+  // Hàm xử lý thêm chương mới
+  const handleAddChapter = () => {
+    if (addChapterMode === "manual") {
+      if (!newChapterTitle.trim() || !newChapterContent.trim()) {
+        toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
+        return;
+      }
+
+      const newChapter = {
+        title: newChapterTitle,
+        content: newChapterContent,
+        chapterNumber: chapters.length + 1,
+        chapterName: newChapterTitle,
+      };
+
+      setChapters([...chapters, newChapter]);
+      setNewChapterTitle("");
+      setNewChapterContent("");
+      setIsAddChapterModalOpen(false);
+      toast.success("✅ Đã thêm chương mới!");
+    } else {
+      // Xử lý thêm chương từ file
+      if (!selectedFile) {
+        toast.error("Vui lòng chọn file!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        const fileName = selectedFile.name.replace(/\.[^/.]+$/, ""); // Bỏ đuôi file
+
+        const newChapter = {
+          title: fileName,
+          content: content,
+          chapterNumber: chapters.length + 1,
+          chapterName: fileName,
+        };
+
+        setChapters([...chapters, newChapter]);
+        setSelectedFile(null);
+        setIsAddChapterModalOpen(false);
+        toast.success("✅ Đã thêm chương mới từ file!");
+      };
+      reader.readAsText(selectedFile);
+    }
+  };
+
   return (
     <div className="translator-app-wrapper">
       <h2
@@ -121,30 +196,99 @@ const TranslatorApp = ({
       <div
         className="menu-toggle-button"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
+        title="Nhập key"
       >
         🔑
       </div>
-      <div className={`top-menu ${isMenuOpen ? "open" : ""}`}>
-        <h3>📘 Menu key</h3>
-        <div className="top-menu-body">
-          <button onClick={() => (window.location.href = "/")}>
-            🏠 Trang chủ
-          </button>
-          <ConverteKeyInput apiKey={tempKey} setApiKey={setTempKey} />
-          <div className="converter-key-container">
-            <button
-              className="confirm-key-btn"
-              onClick={handleCurrentKey}
-              disabled={!tempKey || currentApiKey === tempKey}
-            >
-              🔑 Nhập key
-            </button>
-            <button className="check-key-btn" onClick={handleCheckKey}>
-              🔑 Kiểm tra key
-            </button>
+      {/* Nút thêm chương */}
+      <div
+        className="menu-toggle-button add-chapter-button"
+        onClick={() => setIsAddChapterModalOpen(true)}
+        title="Thêm chương"
+      >
+        ➕
+      </div>
+
+      {/* Modal thêm chương */}
+      {isAddChapterModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Thêm chương mới</h3>
+            <div className="add-chapter-tabs">
+              <button
+                className={addChapterMode === "manual" ? "active" : ""}
+                onClick={() => setAddChapterMode("manual")}
+              >
+                Nhập thủ công
+              </button>
+              <button
+                className={addChapterMode === "file" ? "active" : ""}
+                onClick={() => setAddChapterMode("file")}
+              >
+                Từ file
+              </button>
+            </div>
+
+            {addChapterMode === "manual" ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Nhập tiêu đề chương"
+                  value={newChapterTitle}
+                  onChange={(e) => setNewChapterTitle(e.target.value)}
+                />
+                <textarea
+                  placeholder="Nhập nội dung chương"
+                  value={newChapterContent}
+                  onChange={(e) => setNewChapterContent(e.target.value)}
+                  rows={10}
+                />
+              </>
+            ) : (
+              <input
+                type="file"
+                accept=".txt,.epub"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+              />
+            )}
+
+            <div className="modal-buttons">
+              <button onClick={handleAddChapter}>Thêm chương</button>
+              <button onClick={() => setIsAddChapterModalOpen(false)}>Hủy</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal nhập key */}
+      {isMenuOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>📘 Menu key</h3>
+            <div className="top-menu-body">
+              <button onClick={() => (window.location.href = "/")}>
+                🏠 Trang chủ
+              </button>
+              <ConverteKeyInput apiKey={tempKey} setApiKey={setTempKey} />
+              <div className="converter-key-container">
+                <button
+                  className="confirm-key-btn"
+                  onClick={handleCurrentKey}
+                  disabled={!tempKey || currentApiKey === tempKey}
+                >
+                  🔑 Nhập key
+                </button>
+                <button className="check-key-btn" onClick={handleCheckKey}>
+                  🔑 Kiểm tra key
+                </button>
+              </div>
+            </div>
+            <div className="modal-buttons">
+              <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main layout */}
       <div className="content">
@@ -166,6 +310,7 @@ const TranslatorApp = ({
             currentIndex={currentIndex}
             onChangeIndex={handleChapterChange}
             selectedChapterIndex={selectedChapterIndex}
+            onRetranslate={handleRetranslate}
           />
         </div>
       </div>

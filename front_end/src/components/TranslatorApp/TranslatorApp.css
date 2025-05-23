@@ -1,185 +1,395 @@
 .translator-app-wrapper {
-    /* display: flex;
-    flex-direction: column; */
-    max-width: 1240px;
-    width: 100%;
-    background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    text-align: center;
+  /* display: flex;
+  flex-direction: column; */
+  max-width: 1240px;
+  width: 100%;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
 }
 
 .translator-app-title {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 /* Nút tròn cố định góc trên bên phải */
 .menu-toggle-button {
-    position: fixed;
-    top: 12px;
-    right: 61px;
-    width: 50px;
-    height: 50px;
-    background-color: #28a745;
-    color: white;
-    font-size: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 1000;
-    /* Đảm bảo nút này nổi trên cùng */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease-in-out;
-    /* Thêm hiệu ứng khi click */
+  position: fixed;
+  top: 162px;
+  right: 61px;
+  width: 50px;
+  height: 50px;
+  background-color: #28a745;
+  color: white;
+  font-size: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  /* Đảm bảo nút này nổi trên cùng */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease-in-out;
+  /* Thêm hiệu ứng khi click */
 }
 
+/* .menu-toggle-button[title] {
+  position: relative;
+} */
+
+.menu-toggle-button[title]:hover::after {
+  content: attr(title);
+  /* position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 14px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1001; */
+}
+
+/* .menu-toggle-button[title]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+  z-index: 1001;
+} */
+
 .menu-toggle-button:hover {
-    transform: scale(1.1);
-    /* Tăng nhẹ khi hover */
+  transform: scale(1.1);
+  /* Tăng nhẹ khi hover */
 }
 
 .top-menu {
-    position: fixed;
-    top: 20px;
-    right: 84px;
-    background-color: #fff;
-    border-bottom: 1px solid #ccc;
-    padding: 10px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-direction: column;
-    max-width: 1190px;
-    z-index: 999;
-    opacity: 0;
-    transform: translateY(-20px);
-    /* Đặt vị trí ban đầu cho menu khi ẩn */
-    pointer-events: none;
-    /* Không tương tác khi ẩn */
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-    /* Hiệu ứng fade-in và slide */
+  position: fixed;
+  top: 20px;
+  right: 84px;
+  background-color: #fff;
+  border-bottom: 1px solid #ccc;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: column;
+  max-width: 1190px;
+  z-index: 999;
+  opacity: 0;
+  transform: translateY(-20px);
+  /* Đặt vị trí ban đầu cho menu khi ẩn */
+  pointer-events: none;
+  /* Không tương tác khi ẩn */
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  /* Hiệu ứng fade-in và slide */
 }
 
 /* Khi menu mở */
 .top-menu.open {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-    border-radius: 15px;
-    /* Cho phép tương tác khi mở */
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  border-radius: 15px;
+  /* Cho phép tương tác khi mở */
 }
 
 .top-menu h2 {
-    margin: 0;
+  margin: 0;
 }
 
 .top-menu-body {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    /* khoảng cách giữa 2 phần */
-    padding: 10px 20px;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  /* khoảng cách giữa 2 phần */
+  padding: 10px 20px;
+  width: 100%;
 }
 
 .top-menu-body>button {
-    flex: 0 0 20%;
-    /* cố định 25% */
-    max-width: 20%;
-    height: auto;
-    margin-top: 37px;
-    padding: 10px 12px;
-    color: white;
-    background-color: #4CAF50;
-    font-size: 16px;
-    cursor: pointer;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  flex: 0 0 20%;
+  /* cố định 25% */
+  max-width: 20%;
+  height: auto;
+  margin-top: 37px;
+  padding: 10px 12px;
+  color: white;
+  background-color: #4CAF50;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .top-menu-body>button:hover {
-    background-color: #45a049;
+  background-color: #45a049;
 }
 
 .top-menu-body>.converte-key {
-    flex: 1;
-    /* chiếm phần còn lại (75%) */
+  flex: 1;
+  /* chiếm phần còn lại (75%) */
 }
 
 
 .converter-key-container {
-    display: flex;
-    flex-direction: column;
-    max-width: 20%;
-    gap: 13px;
-    margin-top: 34px;
+  display: flex;
+  flex-direction: column;
+  max-width: 20%;
+  gap: 13px;
+  margin-top: 34px;
 }
 
 .converter-key-container>button {
 
-    max-width: 100%;
-    height: auto;
+  max-width: 100%;
+  height: auto;
 
-    padding: 10px 12px;
-    color: white;
-    background-color: #4CAF50;
-    font-size: 16px;
-    cursor: pointer;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  padding: 10px 12px;
+  color: white;
+  background-color: #4CAF50;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 /* Khi bị disable */
 .confirm-key-btn:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-    opacity: 0.7;
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .confirm-key-btn:disabled:hover {
-    background-color: #6c757d;
+  background-color: #6c757d;
 }
 
 .check-key-btn:hover {
-    background-color: #45a049;
+  background-color: #45a049;
 }
 
 
 
 
 .content {
-    display: flex;
-    margin-top: 20px;
-    gap: 10px;
-    align-items: flex-start;
-    /* canh từ trên xuống, tránh kéo giãn */
+  display: flex;
+  margin-top: 20px;
+  gap: 10px;
+  align-items: flex-start;
+  /* canh từ trên xuống, tránh kéo giãn */
 }
 
 .chapter-list-container {
-    flex: 1;
-    position: sticky;
-    top: 0;
-    /* để tránh đè lên top-menu */
-    width: 40%;
-    overflow-y: auto;
-    background-color: #f9f9f9;
-    /* thêm màu nền nếu muốn nổi bật */
-    border-right: 1px solid #ccc;
+  flex: 1;
+  position: sticky;
+  top: 0;
+  /* để tránh đè lên top-menu */
+  width: 40%;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+  /* thêm màu nền nếu muốn nổi bật */
+  border-right: 1px solid #ccc;
 
 }
 
 .translate-viewer-container {
-    flex: 2;
-    position: sticky;
-    top: 0;
-    width: 60%;
-    position: sticky;
-    padding-top: 20px;
+  flex: 2;
+  position: sticky;
+  top: 0;
+  width: 60%;
+  position: sticky;
+  padding-top: 20px;
 }
+
+/* Nút thêm chương */
+.add-chapter-button {
+  top: 220px; /* Đặt vị trí bên trái nút key */
+}
+
+/* Modal thêm chương */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.add-chapter-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.add-chapter-tabs button {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #28a745;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-chapter-tabs button.active {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.add-chapter-tabs button:hover:not(.active) {
+  background: #e9ecef;
+  border-color: #218838;
+}
+
+.modal-content input[type="text"],
+.modal-content textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-content textarea {
+  resize: vertical;
+  min-height: 200px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-buttons button:first-child {
+  background: #28a745;
+  color: white;
+}
+
+.modal-buttons button:last-child {
+  background: #28a745;
+  color: white;
+}
+
+.modal-buttons button:hover {
+  opacity: 0.9;
+  background: #218838;
+}
+
+/* Style cho input file */
+.modal-content input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #28a745;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.modal-content input[type="file"]:hover {
+  border-color: #218838;
+}
+
+/* Cập nhật style cho modal key */
+.modal-content .top-menu-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px 0;
+    width: 100%;
+}
+
+.modal-content .top-menu-body > button {
+    flex: none;
+    max-width: 100%;
+    margin-top: 0;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.modal-content .top-menu-body > button:hover {
+    background-color: #218838;
+}
+
+.modal-content .converter-key-container {
+    display: flex;
+    flex-direction: row;
+    max-width: 100%;
+    gap: 10px;
+    margin-top: 0;
+}
+
+.modal-content .converter-key-container > button {
+    flex: 1;
+    max-width: none;
+    margin-top: 0;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.modal-content .converter-key-container > button:hover {
+    background-color: #218838;
+}
+
+.modal-content .converter-key-container > button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.modal-content .converter-key-container > button:disabled:hover {
+    background-color: #6c757d;
+}
+
