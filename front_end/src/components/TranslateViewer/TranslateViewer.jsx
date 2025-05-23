@@ -10,8 +10,11 @@ const TranslateViewer = ({
   selectedChapterIndex,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  console.log('vị trí chương hiện tại:',currentIndex)
   const [history, setHistory] = useState([
-    chapters[currentIndex]?.translated || chapters[currentIndex]?.content || "",
+      chapters[currentIndex]?.translated ||
+      chapters[currentIndex]?.content ||
+      "",
   ]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
@@ -29,9 +32,9 @@ const TranslateViewer = ({
     setHistory([newContent]);
     setHistoryIndex(0);
     setIsEditing(false);
-    if (selectedChapterIndex !== null) {
-      onChangeIndex(selectedChapterIndex);
-    }
+    // if (selectedChapterIndex !== null) {
+    //   onChangeIndex(selectedChapterIndex);
+    // }
   }, [chapters, currentIndex, selectedChapterIndex]);
 
   const handleEdit = () => {
@@ -157,6 +160,7 @@ const TranslateViewer = ({
         <h3 className="viewr-content-title">
           {(() => {
             const chapter = chapters[currentIndex];
+            console.log("📌 vị trí chương đang hiển thị:", chapter);
             const translatedTitle = chapter?.translatedTitle;
             const displayTitle =
               translatedTitle ||
@@ -174,7 +178,9 @@ const TranslateViewer = ({
             style={{ width: "100%", height: 300 }}
           />
         ) : (
-          <div className="translated-content">{currentContent}</div>
+          <div className="translated-content">
+            {currentContent}
+          </div>
         )}
       </div>
     </div>
