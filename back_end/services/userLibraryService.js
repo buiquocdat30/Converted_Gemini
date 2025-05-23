@@ -99,6 +99,7 @@ const userLibraryService = {
 
       // Xử lý chapters nếu có
       if (data.chapters && Array.isArray(data.chapters)) {
+        console.log("Check order trước khi tạo:", data.chapters.map(c => c.title));
         // Tạo các chương với chapterNumber được gán đúng
         const chapterPromises = data.chapters.map((chapter, index) => {
           return prisma.userLibraryChapter.create({
@@ -112,7 +113,7 @@ const userLibraryService = {
             },
           });
         });
-
+        console.log("chapterPromises:", chapterPromises)
         await Promise.all(chapterPromises);
       }
 

@@ -126,22 +126,22 @@ const StoryInfoForm = ({
             />
           </div>
         </div>
-        <div className="story-avtar">
-          <div className="form-group">
-            <label>Ảnh bìa:</label>
-            <div className="avatar-upload">
+        <div className="s-story-avatar">
+          <div className="avatar-upload">
+            <label htmlFor="avatar-input">
               <img
                 src={previewAvatar || "/default-avatar.jpg"}
                 alt="Story Avatar"
                 className="avatar-preview"
               />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="avatar-input"
-              />
-            </div>
+            </label>
+            <input
+              id="avatar-input"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="avatar-input"
+            />
           </div>
         </div>
       </div>
