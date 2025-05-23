@@ -14,6 +14,7 @@
 
 .menu-bar {
   display: flex;
+  justify-content: space-between;
   flex: 1;
   position: sticky;
   top: 0;
@@ -32,15 +33,16 @@
 .menu-bar .row {
   display: flex;
   justify-content: space-around;
+  flex-direction: column;
   flex-wrap: wrap;
   gap: 5px;
   margin-bottom: 15px;
+  width: 100%;
 }
 
 .menu-bar .row button {
   padding: 6px 10px;
   border-radius: 6px;
-  width: 107px;
   border: none;
   background-color: #28a745;
   color: white;

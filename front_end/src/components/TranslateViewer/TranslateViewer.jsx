@@ -8,6 +8,7 @@ const TranslateViewer = ({
   currentIndex,
   onChangeIndex,
   selectedChapterIndex,
+  onRetranslate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   console.log('vị trí chương hiện tại:',currentIndex)
@@ -42,7 +43,13 @@ const TranslateViewer = ({
   };
 
   const handleSave = () => {
-    onUpdateChapter(currentIndex, currentContent);
+    const chapter = chapters[currentIndex];
+    // Nếu chưa có bản dịch thì lưu vào rawText, ngược lại lưu vào translated
+    if (!chapter.translated) {
+      onUpdateChapter(currentIndex, currentContent, 'rawText');
+    } else {
+      onUpdateChapter(currentIndex, currentContent, 'translated');
+    }
     setIsEditing(false);
     toast.success("💾 Đã lưu nội dung chương!");
   };
@@ -140,6 +147,9 @@ const TranslateViewer = ({
             <button onClick={handleSave}>✅ Hoàn tất</button>
           )}
           <button onClick={handleCopy}>📋 Copy</button>
+         
+        </div>
+        <div className="row">
           <button onClick={handleUndo} disabled={historyIndex === 0}>
             ↩ Undo
           </button>
@@ -151,8 +161,23 @@ const TranslateViewer = ({
           </button>
         </div>
         <div className="row">
-          <button onClick={() => handleExport("epub")}>📘 Xuất EPUB</button>
-          <button onClick={() => handleExport("txt")}>📄 Xuất Text</button>
+          <button 
+            onClick={() => onUpdateChapter(currentIndex, currentContent)}
+            disabled={!chapters[currentIndex]?.translated}
+          >
+            💾 Lưu 
+          </button>
+          <button 
+            onClick={() => {
+              // Gọi hàm dịch lại chương hiện tại
+              if (onRetranslate) {
+                onRetranslate(currentIndex);
+              }
+            }}
+            disabled={!chapters[currentIndex]?.translated}
+          >
+            🔄 Dịch lại
+          </button>
         </div>
       </div>
 
