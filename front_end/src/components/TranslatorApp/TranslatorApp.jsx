@@ -1,11 +1,10 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import ChapterList from "../ChapterList/ChapterList";
 import TranslateViewer from "../TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput";
 import { translateSingleChapter } from "../../services/translateSingleChapter.jsx";
 import "./TranslatorApp.css";
 import { toast } from "react-hot-toast";
-import { AuthContext } from "../../context/ConverteContext";
 
 const TranslatorApp = ({
   apiKey,
@@ -14,9 +13,7 @@ const TranslatorApp = ({
   model,
   onUpdateChapter,
   onSelectChapter,
-  currentStory,
 }) => {
-  const { editStories } = useContext(AuthContext);
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
@@ -140,68 +137,74 @@ const TranslatorApp = ({
   };
 
   // Hàm xử lý thêm chương mới
-  const handleAddChapter = async () => {
-    try {
-      if (addChapterMode === "manual") {
-        if (!newChapterTitle.trim() || !newChapterContent.trim()) {
-          toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
-          return;
-        }
+  const handleAddChapter = () => {
+    if (addChapterMode === "manual") {
+      if (!newChapterTitle.trim() || !newChapterContent.trim()) {
+        toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
+        return;
+      }
+
+      const newChapter = {
+        title: newChapterTitle,
+        content: newChapterContent,
+        chapterNumber: chapters.length + 1,
+        chapterName: newChapterTitle,
+      };
+
+      // Thêm chương mới vào mảng chapters hiện tại
+      const updatedChapters = [...chapters, newChapter];
+      setChapters(updatedChapters);
+
+      // Cập nhật translatedChapters
+      const updatedTranslatedChapters = [...translatedChapters];
+      updatedTranslatedChapters[chapters.length] = {
+        ...newChapter,
+        translated: newChapterContent,
+        translatedTitle: newChapterTitle
+      };
+      setTranslatedChapters(updatedTranslatedChapters);
+
+      setNewChapterTitle("");
+      setNewChapterContent("");
+      setIsAddChapterModalOpen(false);
+      toast.success("✅ Đã thêm chương mới!");
+    } else {
+      // Xử lý thêm chương từ file
+      if (!selectedFile) {
+        toast.error("Vui lòng chọn file!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        const fileName = selectedFile.name.replace(/\.[^/.]+$/, ""); // Bỏ đuôi file
 
         const newChapter = {
-          title: newChapterTitle,
-          content: newChapterContent,
+          title: fileName,
+          content: content,
           chapterNumber: chapters.length + 1,
-          chapterName: newChapterTitle,
+          chapterName: fileName,
         };
 
-        // Gọi API để thêm chương mới
-        await editStories(currentStory?.id, 'chapters', [...chapters, newChapter]);
+        // Thêm chương mới vào mảng chapters hiện tại
+        const updatedChapters = [...chapters, newChapter];
+        setChapters(updatedChapters);
 
-        // Cập nhật state local
-        setChapters([...chapters, newChapter]);
-        setNewChapterTitle("");
-        setNewChapterContent("");
+        // Cập nhật translatedChapters
+        const updatedTranslatedChapters = [...translatedChapters];
+        updatedTranslatedChapters[chapters.length] = {
+          ...newChapter,
+          translated: content,
+          translatedTitle: fileName
+        };
+        setTranslatedChapters(updatedTranslatedChapters);
+
+        setSelectedFile(null);
         setIsAddChapterModalOpen(false);
-        toast.success("✅ Đã thêm chương mới!");
-      } else {
-        // Xử lý thêm chương từ file
-        if (!selectedFile) {
-          toast.error("Vui lòng chọn file!");
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const content = e.target.result;
-            const fileName = selectedFile.name.replace(/\.[^/.]+$/, ""); // Bỏ đuôi file
-
-            const newChapter = {
-              title: fileName,
-              content: content,
-              chapterNumber: chapters.length + 1,
-              chapterName: fileName,
-            };
-
-            // Gọi API để thêm chương mới
-            await editStories(currentStory?.id, 'chapters', [...chapters, newChapter]);
-
-            // Cập nhật state local
-            setChapters([...chapters, newChapter]);
-            setSelectedFile(null);
-            setIsAddChapterModalOpen(false);
-            toast.success("✅ Đã thêm chương mới từ file!");
-          } catch (error) {
-            console.error("Lỗi khi thêm chương từ file:", error);
-            toast.error("❌ Lỗi khi thêm chương mới!");
-          }
-        };
-        reader.readAsText(selectedFile);
-      }
-    } catch (error) {
-      console.error("Lỗi khi thêm chương:", error);
-      toast.error("❌ Lỗi khi thêm chương mới!");
+        toast.success("✅ Đã thêm chương mới từ file!");
+      };
+      reader.readAsText(selectedFile);
     }
   };
 
@@ -335,6 +338,7 @@ const TranslatorApp = ({
             onRetranslate={handleRetranslate}
           />
         </div>
+        
       </div>
     </div>
   );
