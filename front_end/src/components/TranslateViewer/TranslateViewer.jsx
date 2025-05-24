@@ -162,7 +162,7 @@ const TranslateViewer = ({
         </div>
         <div className="row">
           <button 
-            onClick={() => onUpdateChapter(currentIndex, currentContent)}
+            onClick={() => onUpdateChapter(currentIndex, currentContent, 'translated')}
             disabled={!chapters[currentIndex]?.translated}
           >
             💾 Lưu 
