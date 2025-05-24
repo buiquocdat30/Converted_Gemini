@@ -306,6 +306,7 @@ const Translate = () => {
           model={model}
           setChapters={setChapters}
           onUpdateChapter={handleUpdateChapterContent}
+          currentStory={currentStory}
         />
         <StoryInfoForm
           story={currentStory}
@@ -330,6 +331,7 @@ const Translate = () => {
             model={model}
             setChapters={setChapters}
             onUpdateChapter={handleUpdateChapterContent}
+            currentStory={currentStory}
           />
         )}
       </div>
