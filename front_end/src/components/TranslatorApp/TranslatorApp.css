@@ -16,8 +16,8 @@
 /* Nút tròn cố định góc trên bên phải */
 .menu-toggle-button {
   position: fixed;
-  top: 162px;
-  right: 61px;
+  top: 116px;
+  right: 25px;
   width: 50px;
   height: 50px;
   background-color: #28a745;
@@ -34,37 +34,27 @@
   transition: transform 0.3s ease-in-out;
   /* Thêm hiệu ứng khi click */
 }
-
-/* .menu-toggle-button[title] {
-  position: relative;
-} */
-
-.menu-toggle-button[title]:hover::after {
-  content: attr(title);
-  /* position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 5px 10px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  font-size: 14px;
-  border-radius: 4px;
+.menu-toggle-button .tooltip-text {
+  visibility: visible;
+  opacity: 0;
+  width: max-content;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 5px 5px;
+  border-radius: 5px;
+  position: absolute;
+  right: 54px;
+  transform: translateY(-5%); /* Lùi lên 5px */
   white-space: nowrap;
-  z-index: 1001; */
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
-/* .menu-toggle-button[title]:hover::before {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
-  z-index: 1001;
-} */
+.menu-toggle-button:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
 
 .menu-toggle-button:hover {
   transform: scale(1.1);
@@ -217,7 +207,7 @@
 
 /* Nút thêm chương */
 .add-chapter-button {
-  top: 220px; /* Đặt vị trí bên trái nút key */
+  top: 175px; /* Đặt vị trí bên trái nút key */
 }
 
 /* Modal thêm chương */

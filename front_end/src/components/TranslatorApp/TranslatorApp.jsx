@@ -196,17 +196,18 @@ const TranslatorApp = ({
       <div
         className="menu-toggle-button"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        title="Nhập key"
+        
       >
         🔑
+        <span className="tooltip-text">Nhập key</span>
       </div>
       {/* Nút thêm chương */}
       <div
         className="menu-toggle-button add-chapter-button"
         onClick={() => setIsAddChapterModalOpen(true)}
-        title="Thêm chương"
       >
         ➕
+        <span className="tooltip-text">Thêm chương</span>
       </div>
 
       {/* Modal thêm chương */}
