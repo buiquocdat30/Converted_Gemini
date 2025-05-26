@@ -195,7 +195,7 @@ const readTxt = (filePath) => {
           );
         }
       }
-      console.log("Đây là két quả dưới backend:", chapters);
+      //console.log("Đây là két quả dưới backend:", chapters);
       resolve(chapters);
     });
   });

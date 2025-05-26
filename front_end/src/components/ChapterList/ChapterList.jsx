@@ -173,7 +173,7 @@ const ChapterList = ({
     const targetIndex = num - 1;
     const newPage = Math.ceil(num / chaptersPerPage);
     setCurrentPage(newPage);
-    onSelectChapter(targetIndex);
+    onSelectChapter?.(targetIndex);
     setJumpToChapter(""); // Reset input sau khi nhảy
   };
 
@@ -217,11 +217,16 @@ const ChapterList = ({
 
   // Hàm xử lý khi chọn chương
   const handleSelectChapter = (index, page) => {
-    console.log("index của chương", index);
+    // Lấy chapterNumber từ sortedChapters thay vì currentChapters
+    const chapterNumber = sortedChapters[index]?.chapterNumber;
+    console.log("Số chương được chọn:", chapterNumber);
+    console.log("Index được chọn:", index);
+    console.log("Sorted chapters:", sortedChapters);
+    
     if (page) {
       setCurrentPage(page);
     }
-    onSelectChapter?.(index);
+    onSelectChapter?.(index); // Truyền index dựa trên chapterNumber
   };
 
   return (
@@ -238,7 +243,7 @@ const ChapterList = ({
                 className={`chapter-item ${
                   idx === currentIndex ? "selected" : ""
                 }`}
-                onClick={() => handleSelectChapter(idx)}
+                onClick={() => handleSelectChapter(idx, Math.ceil(ch.chapterNumber / chaptersPerPage))}
               >
                 <div className="chapter-header">
                   <p>Chương {ch.chapterNumber}:</p>

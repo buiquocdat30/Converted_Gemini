@@ -36,6 +36,9 @@ const userLibraryService = {
         },
         include: {
           chapters: {
+            orderBy: {
+              chapterNumber: "asc", // ✅ Đảm bảo thứ tự chương đúng
+            },
             include: {
               translation: true,
             },
@@ -63,14 +66,14 @@ const userLibraryService = {
               : null,
             translation: chapter.translation
               ? {
-                  ...chapter.translation,
-                  createdAt: chapter.translation.createdAt
-                    ? new Date(chapter.translation.createdAt).toISOString()
-                    : null,
-                  updatedAt: chapter.translation.updatedAt
-                    ? new Date(chapter.translation.updatedAt).toISOString()
-                    : null,
-                }
+                ...chapter.translation,
+                createdAt: chapter.translation.createdAt
+                  ? new Date(chapter.translation.createdAt).toISOString()
+                  : null,
+                updatedAt: chapter.translation.updatedAt
+                  ? new Date(chapter.translation.updatedAt).toISOString()
+                  : null,
+              }
               : null,
           })),
         };
@@ -96,16 +99,18 @@ const userLibraryService = {
           updatedAt: new Date(),
         },
       });
+      console.log("Thứ tự chapterNumber trước khi tạo:", data.chapters.map(c => c.chapterNumber));
 
       // Xử lý chapters nếu có
       if (data.chapters && Array.isArray(data.chapters)) {
+        data.chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
         console.log("Check order trước khi tạo:", data.chapters.map(c => c.title));
         // Tạo các chương với chapterNumber được gán đúng
         const chapterPromises = data.chapters.map((chapter, index) => {
           return prisma.userLibraryChapter.create({
             data: {
               storyId: story.id,
-              chapterNumber: index + 1, // Gán chapterNumber theo thứ tự
+              chapterNumber: chapter.chapterNumber ?? index + 1, // Gán chapterNumber theo thứ tự
               chapterName: chapter.title,
               rawText: chapter.content,
               createdAt: new Date(),
@@ -113,12 +118,17 @@ const userLibraryService = {
             },
           });
         });
-        console.log("chapterPromises:", chapterPromises)
         await Promise.all(chapterPromises);
+        const createdChapters = await Promise.all(chapterPromises);
+
+        // 👉 Bây giờ bạn có thể dùng .map
+        console.log("📚 Tiêu đề các chương sau khi tạo:", createdChapters.map(c => `${c.chapterNumber}. ${c.chapterName}`));
       }
 
+
+
       // Lấy lại truyện với chapters đã được sắp xếp
-      return await prisma.userLibraryStory.findUnique({
+      const storyWithChapters = await prisma.userLibraryStory.findUnique({
         where: { id: story.id },
         include: {
           chapters: {
@@ -128,6 +138,9 @@ const userLibraryService = {
           },
         },
       });
+
+      console.log("📚 Tiêu đề các chương sau khi lấy lại truyện nè má:", storyWithChapters.chapters.map(c => `${c.chapterNumber}. ${c.chapterName}`));
+      return storyWithChapters;
     } catch (error) {
       console.error("Error in createStory:", error);
       throw error;
@@ -208,14 +221,14 @@ const userLibraryService = {
         updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt) : null,
         translation: chapter.translation
           ? {
-              ...chapter.translation,
-              createdAt: chapter.translation.createdAt
-                ? new Date(chapter.translation.createdAt)
-                : null,
-              updatedAt: chapter.translation.updatedAt
-                ? new Date(chapter.translation.updatedAt)
-                : null,
-            }
+            ...chapter.translation,
+            createdAt: chapter.translation.createdAt
+              ? new Date(chapter.translation.createdAt)
+              : null,
+            updatedAt: chapter.translation.updatedAt
+              ? new Date(chapter.translation.updatedAt)
+              : null,
+          }
           : null,
         versions: chapter.versions.map((version) => ({
           ...version,
