@@ -285,7 +285,8 @@ const checkFileFormatFromText = (text) => {
   chapters.forEach((ch, index) => {
     ch.chapterNumber = index + 1;
   });
-
+  chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+  console.log("✅ kết quả trả về của file handleTxtFile.", chapters);
   return {
     valid:
       chapters.length > 0 &&
@@ -293,6 +294,7 @@ const checkFileFormatFromText = (text) => {
     chapters,
     total: chapters.length,
   };
+ 
 };
 
 export { handleEpubFile, handleTxtFile, checkFileFormatFromText };

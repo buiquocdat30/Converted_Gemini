@@ -22,20 +22,20 @@ const TranslateViewer = ({
   const currentContent = history[historyIndex];
 
   useEffect(() => {
+    console.log("TranslateViewer - Current Index:", currentIndex);
     const chapter = chapters[currentIndex];
-    // Nếu chương đã có bản dịch thì hiển thị bản dịch, nếu chưa thì hiển thị rawText
-    const newContent = chapter?.translated || chapter?.rawText || "";
-    // console.log(`📌 Nội dung chương: ${newContent}`);
-    const title = chapter?.chapterName || `Chương ${currentIndex + 1}`;
+    console.log("TranslateViewer - Chapter data:", chapter);
+
+    // Lấy nội dung và tiêu đề từ chapter hiện tại
+    const newContent = chapter?.translated || chapter?.content || "";
+    const title = chapter?.chapterName || chapter?.title || `Chương ${currentIndex + 1}`;
 
     console.log(`📌 Nội dung tiêu đề chương: ${currentIndex + 1}: ${title}`);
+    console.log(`📌 Nội dung chương:`, newContent);
 
     setHistory([newContent]);
     setHistoryIndex(0);
     setIsEditing(false);
-    // if (selectedChapterIndex !== null) {
-    //   onChangeIndex(selectedChapterIndex);
-    // }
   }, [chapters, currentIndex, selectedChapterIndex]);
 
   const handleEdit = () => {

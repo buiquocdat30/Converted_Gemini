@@ -86,7 +86,7 @@ const userLibraryController = {
         }
       } else if (chapters && Array.isArray(chapters)) {
         // Sử dụng chapters từ request nếu không có file
-        console.log(" ĐÂY LÀ ĐẦU VÀO USERLIRARYUSER:", processedChapters);
+       console.log(" ĐÂY LÀ ĐẦU VÀO USERLIRARYUSER:", processedChapters);
         processedChapters = chapters;
       }
 
@@ -98,7 +98,7 @@ const userLibraryController = {
         chapters: processedChapters,
       });
 
-      console.log("createStory - Created story:", newStory);
+      // console.log("createStory - Created story:", newStory);
       res.status(201).json(newStory);
     } catch (error) {
       console.error("Error creating story:", error);

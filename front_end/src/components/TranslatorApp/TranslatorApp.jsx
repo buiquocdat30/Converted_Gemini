@@ -35,6 +35,7 @@ const TranslatorApp = ({
 
   // Hàm xử lý khi chuyển chương
   const handleChapterChange = (newIndex) => {
+    console.log("TranslatorApp - Index mới:", newIndex);
     setCurrentIndex(newIndex);
     // Tính toán trang mới dựa trên index
     const chaptersPerPage = 10;
