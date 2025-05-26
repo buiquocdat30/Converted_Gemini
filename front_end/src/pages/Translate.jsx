@@ -16,6 +16,7 @@ const Translate = () => {
     editStories,
     hideStories,
     deleteStories,
+    addChapter,
   } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
   const [chapters, setChapters] = useState([]);
@@ -294,29 +295,27 @@ const Translate = () => {
 
   // Render nội dung Translator
   const renderTranslatorContent = () => {
-    if (chapters.length === 0) {
-      return <UploadForm onFileParsed={handleParsedChapters} />;
-    }
-
-    return (
-      <>
+    if (activeTab === "new") {
+      return (
+        <UploadForm
+          onParsedChapters={handleParsedChapters}
+          onSaveStory={handleSaveStory}
+        />
+      );
+    } else {
+      return (
         <TranslatorApp
           apiKey={apiKey}
           chapters={chapters}
-          model={model}
           setChapters={setChapters}
+          model={model}
           onUpdateChapter={handleUpdateChapterContent}
-          currentStory={currentStory}
+          onSelectChapter={() => {}}
+          addChapter={addChapter}
+          storyId={currentStory?.id}
         />
-        <StoryInfoForm
-          story={currentStory}
-          onSave={activeTab === "new" ? handleSaveStory : handleUpdateStoryInfo}
-          isEditing={activeTab === "translating"}
-          fileName={fileName}
-          onStorySaved={(storyInfo) => setCurrentStory(storyInfo)}
-        />
-      </>
-    );
+      );
+    }
   };
 
   if (!isLoggedIn) {
