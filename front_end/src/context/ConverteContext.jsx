@@ -1,11 +1,14 @@
 // context/ConverteContext.jsx
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { handleEpubFile, checkFileFormatFromText, handleTxtFile } from "../utils/fileHandlers";
 
 // Định nghĩa API_URL
 const API_URL = "http://localhost:8000";
+
+// Helper function để lấy token
+const getAuthToken = () => localStorage.getItem("auth-token");
 
 export const AuthContext = createContext();
 
@@ -15,6 +18,11 @@ export const AuthProvider = ({ children }) => {
   const [menu, setMenu] = useState("home");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Sử dụng useMemo để cache token
+  const token = useMemo(() => {
+    return localStorage.getItem("auth-token");
+  }, [isLoggedIn]); // Chỉ tính toán lại khi isLoggedIn thay đổi
 
   // ===== USER STATE & FUNCTIONS =====
   const [userData, setUserData] = useState({
@@ -32,12 +40,11 @@ export const AuthProvider = ({ children }) => {
 
   // User Authentication
   useEffect(() => {
-    const token = localStorage.getItem("auth-token");
     if (token) {
       setIsLoggedIn(true);
-      fetchUserData(token);
+      fetchUserData();
     }
-  }, []);
+  }, [token]);
 
   const onLogin = (userData) => {
     if (!userData) return;
@@ -74,7 +81,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // User Profile Management
-  const fetchUserData = async (token) => {
+  const fetchUserData = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/user/profile`, {
@@ -105,7 +112,6 @@ export const AuthProvider = ({ children }) => {
   const updateUserProfile = async (updateData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
 
       if (updateData.newPassword) {
         const response = await axios.put(
@@ -115,7 +121,7 @@ export const AuthProvider = ({ children }) => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        await fetchUserData(token);
+        await fetchUserData();
         return response.data;
       } else {
         const response = await axios.put(
@@ -131,7 +137,7 @@ export const AuthProvider = ({ children }) => {
             ...prev,
             ...response.data,
           }));
-          await fetchUserData(token);
+          await fetchUserData();
         }
         return response.data;
       }
@@ -147,7 +153,6 @@ export const AuthProvider = ({ children }) => {
   const updateAvatar = async (formData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       const response = await axios.post(
         `${API_URL}/upload/image/avatar`,
         formData,
@@ -164,7 +169,7 @@ export const AuthProvider = ({ children }) => {
           ...prev,
           avatar: response.data.filePath || response.data.data.filePath,
         }));
-        await fetchUserData(token);
+        await fetchUserData();
       }
       return response.data;
     } catch (err) {
@@ -179,7 +184,6 @@ export const AuthProvider = ({ children }) => {
   const updateBackground = async (formData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       const response = await axios.post(
         `${API_URL}/upload/image/background`,
         formData,
@@ -211,7 +215,6 @@ export const AuthProvider = ({ children }) => {
   const addApiKey = async (keyData) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       const response = await axios.post(
         `${API_URL}/user/keys`,
         keyData,
@@ -239,7 +242,6 @@ export const AuthProvider = ({ children }) => {
   const removeApiKey = async (keyId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       await axios.delete(`${API_URL}/user/keys/${keyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -263,7 +265,6 @@ export const AuthProvider = ({ children }) => {
   const fetchStories = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       const response = await axios.get(`${API_URL}/user/library`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -282,9 +283,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const createStory = async (file, storyInfo) => {
+    try {
+      setLoading(true);
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      // Upload và xử lý file trước
+      const uploadResult = await uploadFile(file);
+      const { chapters } = uploadResult;
+
+      // Tạo truyện với thông tin chapters
+      const response = await axios.post(
+        `${API_URL}/user/library`,
+        {
+          ...storyInfo,
+          chapters: chapters
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi tạo truyện mới:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const editStories = async (storyId, field, value) => {
     try {
-      const token = localStorage.getItem("auth-token");
       const response = await axios.put(
         `${API_URL}/user/library/${storyId}`,
         { [field]: value },
@@ -322,7 +357,6 @@ export const AuthProvider = ({ children }) => {
 
   const hideStories = async (storyId) => {
     try {
-      const token = localStorage.getItem("auth-token");
       const response = await axios.patch(
         `${API_URL}/user/library/${storyId}/hide`,
         {},
@@ -344,7 +378,6 @@ export const AuthProvider = ({ children }) => {
 
   const deleteStories = async (storyId) => {
     try {
-      const token = localStorage.getItem("auth-token");
       const response = await axios.delete(`${API_URL}/user-library/${storyId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -372,7 +405,6 @@ export const AuthProvider = ({ children }) => {
   const uploadFile = async (file) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
@@ -455,7 +487,6 @@ export const AuthProvider = ({ children }) => {
   const processFile = async (fileId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
@@ -482,7 +513,6 @@ export const AuthProvider = ({ children }) => {
   const getProcessedFile = async (fileId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
@@ -505,35 +535,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const createStory = async (file, storyInfo) => {
+  // ===== CHAPTER MANAGEMENT =====
+  
+
+  const addChapter = async (storyId, chapter) => {
+    console.log("đây là thông tin chương mới addChapter", storyId, chapter);
     try {
       setLoading(true);
-      const token = localStorage.getItem("auth-token");
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
 
-      // Upload và xử lý file trước
-      const uploadResult = await uploadFile(file);
-      const { chapters } = uploadResult;
-
-      // Tạo truyện với thông tin chapters
       const response = await axios.post(
-        `${API_URL}/user/library`,
-        {
-          ...storyInfo,
-          chapters: chapters
-        },
+        `${API_URL}/user/library/${storyId}/chapters`,
+        chapter,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
       return response.data;
     } catch (err) {
-      console.error("Lỗi khi tạo truyện mới:", err);
+      console.error("Lỗi khi thêm chương:", err);
       setError(err.message);
       throw err;
     } finally {
@@ -575,6 +599,9 @@ export const AuthProvider = ({ children }) => {
         uploadFile,
         processFile,
         getProcessedFile,
+
+        // Chapter Functions
+        addChapter,
       }}
     >
       {children}

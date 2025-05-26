@@ -51,7 +51,7 @@ const userLibraryController = {
   createStory: async (req, res) => {
     try {
       const userId = req.user.id;
-      console.log("createStory - Request body:", req.body);
+      //console.log("createStory - Request body:", req.body);
 
       if (!userId) {
         return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
@@ -229,7 +229,7 @@ const userLibraryController = {
 
       // Kiểm tra truyện tồn tại và thuộc về user
       const story = await userLibraryService.getStoryById(storyId, userId);
-      console.log("addChapter - Found story:", story);
+      console.log("addChapter - Found story:", story.chapters.map(c => `${c.chapterNumber}. ${c.chapterName}`));
 
       if (!story) {
         return res.status(404).json({ error: "Không tìm thấy truyện" });

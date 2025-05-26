@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import ChapterList from "../ChapterList/ChapterList";
 import TranslateViewer from "../TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput";
@@ -13,6 +13,8 @@ const TranslatorApp = ({
   model,
   onUpdateChapter,
   onSelectChapter,
+  addChapter,
+  storyId,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -137,49 +139,162 @@ const TranslatorApp = ({
     }
   };
 
-  // Hàm xử lý thêm chương mới
-  const handleAddChapter = () => {
-    if (addChapterMode === "manual") {
-      if (!newChapterTitle.trim() || !newChapterContent.trim()) {
+  // Tách modal thành component riêng để tránh re-render
+  const AddChapterModal = React.memo(({ isOpen, onClose, onAdd }) => {
+    const [localTitle, setLocalTitle] = useState("");
+    const [localContent, setLocalContent] = useState("");
+    const [localFile, setLocalFile] = useState(null);
+    const [localMode, setLocalMode] = useState("manual");
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onAdd({
+        title: localTitle,
+        content: localContent,
+        file: localFile,
+        mode: localMode
+      });
+    };
+
+    if (!isOpen) return null;
+
+    return (
+      <div 
+        className="modal-overlay" 
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      >
+        <div 
+          className="modal-content"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <form onSubmit={handleSubmit}>
+            <h3>Thêm chương mới</h3>
+            <div className="add-chapter-tabs">
+              <button
+                type="button"
+                className={localMode === "manual" ? "active" : ""}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocalMode("manual");
+                }}
+              >
+                Nhập thủ công
+              </button>
+              <button
+                type="button"
+                className={localMode === "file" ? "active" : ""}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocalMode("file");
+                }}
+              >
+                Từ file
+              </button>
+            </div>
+
+            {localMode === "manual" ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Nhập tiêu đề chương"
+                  value={localTitle}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setLocalTitle(e.target.value);
+                  }}
+                />
+                <textarea
+                  placeholder="Nhập nội dung chương"
+                  value={localContent}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setLocalContent(e.target.value);
+                  }}
+                  rows={10}
+                />
+              </>
+            ) : (
+              <input
+                type="file"
+                accept=".txt,.epub"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setLocalFile(e.target.files[0]);
+                }}
+              />
+            )}
+
+            <div className="modal-buttons">
+              <button type="submit">Thêm chương</button>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+              >
+                Hủy
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  });
+
+  // Xử lý thêm chương mới
+  const handleAddChapter = useCallback(async (data) => {
+    if (data.mode === "manual") {
+      if (!data.title.trim() || !data.content.trim()) {
         toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
         return;
       }
 
       const newChapter = {
-        title: newChapterTitle,
-        content: newChapterContent,
+        title: data.title,
+        content: data.content,
         chapterNumber: chapters.length + 1,
-        chapterName: newChapterTitle,
+        chapterName: data.title,
       };
 
-      // Thêm chương mới vào mảng chapters hiện tại
-      const updatedChapters = [...chapters, newChapter];
-      setChapters(updatedChapters);
+      try {
+        console.log("đây là thông tin chương mới addChapter", newChapter);
+        //await addChapter(storyId, newChapter);
+        
+        const updatedChapters = [...chapters, newChapter];
+        setChapters(updatedChapters);
 
-      // Cập nhật translatedChapters
-      const updatedTranslatedChapters = [...translatedChapters];
-      updatedTranslatedChapters[chapters.length] = {
-        ...newChapter,
-        translated: newChapterContent,
-        translatedTitle: newChapterTitle
-      };
-      setTranslatedChapters(updatedTranslatedChapters);
+        const updatedTranslatedChapters = [...translatedChapters];
+        updatedTranslatedChapters[chapters.length] = {
+          ...newChapter,
+          translated: data.content,
+          translatedTitle: data.title
+        };
+        setTranslatedChapters(updatedTranslatedChapters);
 
-      setNewChapterTitle("");
-      setNewChapterContent("");
-      setIsAddChapterModalOpen(false);
-      toast.success("✅ Đã thêm chương mới!");
+        setIsAddChapterModalOpen(false);
+        toast.success("✅ Đã thêm chương mới!");
+      } catch (error) {
+        console.error("Lỗi khi thêm chương:", error);
+        toast.error("❌ Lỗi khi thêm chương mới!");
+      }
     } else {
-      // Xử lý thêm chương từ file
-      if (!selectedFile) {
+      if (!data.file) {
         toast.error("Vui lòng chọn file!");
         return;
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const content = e.target.result;
-        const fileName = selectedFile.name.replace(/\.[^/.]+$/, ""); // Bỏ đuôi file
+        const fileName = data.file.name.replace(/\.[^/.]+$/, "");
 
         const newChapter = {
           title: fileName,
@@ -188,26 +303,35 @@ const TranslatorApp = ({
           chapterName: fileName,
         };
 
-        // Thêm chương mới vào mảng chapters hiện tại
-        const updatedChapters = [...chapters, newChapter];
-        setChapters(updatedChapters);
+        try {
+          await addChapter(storyId, {
+            storyId: storyId,
+            chapterNumber: chapters.length + 1,
+            chapterName: fileName,
+            rawText: content
+          });
 
-        // Cập nhật translatedChapters
-        const updatedTranslatedChapters = [...translatedChapters];
-        updatedTranslatedChapters[chapters.length] = {
-          ...newChapter,
-          translated: content,
-          translatedTitle: fileName
-        };
-        setTranslatedChapters(updatedTranslatedChapters);
+          const updatedChapters = [...chapters, newChapter];
+          setChapters(updatedChapters);
 
-        setSelectedFile(null);
-        setIsAddChapterModalOpen(false);
-        toast.success("✅ Đã thêm chương mới từ file!");
+          const updatedTranslatedChapters = [...translatedChapters];
+          updatedTranslatedChapters[chapters.length] = {
+            ...newChapter,
+            translated: content,
+            translatedTitle: fileName
+          };
+          setTranslatedChapters(updatedTranslatedChapters);
+
+          setIsAddChapterModalOpen(false);
+          toast.success("✅ Đã thêm chương mới từ file!");
+        } catch (error) {
+          console.error("Lỗi khi thêm chương:", error);
+          toast.error("❌ Lỗi khi thêm chương mới từ file!");
+        }
       };
-      reader.readAsText(selectedFile);
+      reader.readAsText(data.file);
     }
-  };
+  }, [chapters, translatedChapters, addChapter, storyId]);
 
   return (
     <div className="translator-app-wrapper">
@@ -229,62 +353,20 @@ const TranslatorApp = ({
       {/* Nút thêm chương */}
       <div
         className="menu-toggle-button add-chapter-button"
-        onClick={() => setIsAddChapterModalOpen(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsAddChapterModalOpen(true);
+        }}
       >
         ➕
         <span className="tooltip-text">Thêm chương</span>
       </div>
 
-      {/* Modal thêm chương */}
-      {isAddChapterModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Thêm chương mới</h3>
-            <div className="add-chapter-tabs">
-              <button
-                className={addChapterMode === "manual" ? "active" : ""}
-                onClick={() => setAddChapterMode("manual")}
-              >
-                Nhập thủ công
-              </button>
-              <button
-                className={addChapterMode === "file" ? "active" : ""}
-                onClick={() => setAddChapterMode("file")}
-              >
-                Từ file
-              </button>
-            </div>
-
-            {addChapterMode === "manual" ? (
-              <>
-                <input
-                  type="text"
-                  placeholder="Nhập tiêu đề chương"
-                  value={newChapterTitle}
-                  onChange={(e) => setNewChapterTitle(e.target.value)}
-                />
-                <textarea
-                  placeholder="Nhập nội dung chương"
-                  value={newChapterContent}
-                  onChange={(e) => setNewChapterContent(e.target.value)}
-                  rows={10}
-                />
-              </>
-            ) : (
-              <input
-                type="file"
-                accept=".txt,.epub"
-                onChange={(e) => setSelectedFile(e.target.files[0])}
-              />
-            )}
-
-            <div className="modal-buttons">
-              <button onClick={handleAddChapter}>Thêm chương</button>
-              <button onClick={() => setIsAddChapterModalOpen(false)}>Hủy</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddChapterModal 
+        isOpen={isAddChapterModalOpen}
+        onClose={() => setIsAddChapterModalOpen(false)}
+        onAdd={handleAddChapter}
+      />
 
       {/* Modal nhập key */}
       {isMenuOpen && (
@@ -345,4 +427,4 @@ const TranslatorApp = ({
   );
 };
 
-export default TranslatorApp;
+export default React.memo(TranslatorApp);
