@@ -154,16 +154,48 @@ const TranslatorApp = ({
     const [processedChapters, setProcessedChapters] = useState([]);
     const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
     const [isProcessingFile, setIsProcessingFile] = useState(false);
+    const [selectedChapters, setSelectedChapters] = useState(new Set()); // Thêm state để lưu các chương được chọn
 
-    // Hàm xử lý khi chọn file
+    // Hàm xử lý khi chọn/bỏ chọn một chương
+    const handleChapterSelect = (index) => {
+      setSelectedChapters((prev) => {
+        const newSelected = new Set(prev);
+        if (newSelected.has(index)) {
+          newSelected.delete(index);
+        } else {
+          newSelected.add(index);
+        }
+        return newSelected;
+      });
+    };
+
+    // Hàm chọn/bỏ chọn tất cả chương
+    const handleSelectAll = () => {
+      if (selectedChapters.size === processedChapters.length) {
+        // Nếu đã chọn hết thì bỏ chọn hết
+        setSelectedChapters(new Set());
+      } else {
+        // Nếu chưa chọn hết thì chọn hết
+        setSelectedChapters(
+          new Set(processedChapters.map((_, index) => index))
+        );
+      }
+    };
+
+    // Reset selected chapters khi đóng modal hoặc chuyển mode
+    const resetSelections = () => {
+      setSelectedChapters(new Set());
+      setSelectedChapterIndex(null);
+      setProcessedChapters([]);
+    };
+
     const handleFileSelect = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       setLocalFile(file);
       setIsProcessingFile(true);
-      setProcessedChapters([]);
-      setSelectedChapterIndex(null);
+      resetSelections();
 
       try {
         const content = await new Promise((resolve, reject) => {
@@ -229,21 +261,21 @@ const TranslatorApp = ({
           content: localContent,
           mode: localMode,
         });
+        onClose();
       } else {
         if (!localFile) {
           toast.error("Vui lòng chọn file!");
           return;
         }
-        if (selectedChapterIndex === null) {
-          toast.error("Vui lòng chọn chương muốn thêm!");
+        if (selectedChapters.size === 0) {
+          toast.error("Vui lòng chọn ít nhất một chương!");
           return;
         }
-        const selectedChapter = processedChapters[selectedChapterIndex];
+
         onAdd({
-          title: selectedChapter.title,
-          content: selectedChapter.content,
           mode: localMode,
           file: localFile,
+          selectedChapters: selectedChapters,
         });
       }
     };
@@ -323,16 +355,36 @@ const TranslatorApp = ({
                 )}
                 {processedChapters.length > 0 && (
                   <div className="chapter-list">
-                    <h4>Chọn chương muốn thêm:</h4>
+                    <div className="chapter-list-header">
+                      <h4>Chọn chương muốn thêm:</h4>
+                      <button
+                        type="button"
+                        className="select-all-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectAll();
+                        }}
+                      >
+                        {selectedChapters.size === processedChapters.length
+                          ? "Bỏ chọn tất cả"
+                          : "Chọn tất cả"}
+                      </button>
+                    </div>
                     <div className="chapter-select">
                       {processedChapters.map((chapter, index) => (
                         <div
                           key={index}
                           className={`chapter-item ${
-                            selectedChapterIndex === index ? "selected" : ""
+                            selectedChapters.has(index) ? "selected" : ""
                           }`}
-                          onClick={() => setSelectedChapterIndex(index)}
+                          onClick={() => handleChapterSelect(index)}
                         >
+                          <input
+                            type="checkbox"
+                            checked={selectedChapters.has(index)}
+                            onChange={() => {}}
+                            onClick={(e) => e.stopPropagation()}
+                          />
                           <span className="chapter-number">
                             Chương {index + 1}:
                           </span>
@@ -340,19 +392,32 @@ const TranslatorApp = ({
                         </div>
                       ))}
                     </div>
+                    <div className="selected-count">
+                      Đã chọn {selectedChapters.size} /{" "}
+                      {processedChapters.length} chương
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
             <div className="modal-buttons">
-              <button type="submit" disabled={isProcessingFile}>
-                Thêm chương
+              <button
+                type="submit"
+                disabled={
+                  isProcessingFile ||
+                  (localMode === "file" && selectedChapters.size === 0)
+                }
+              >
+                {localMode === "file" && selectedChapters.size > 0
+                  ? `Thêm ${selectedChapters.size} chương`
+                  : "Thêm chương"}
               </button>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  resetSelections();
                   onClose();
                 }}
               >
@@ -445,20 +510,18 @@ const TranslatorApp = ({
           let processedChapters;
 
           if (fileExt === "epub") {
-            // Xử lý file EPUB
             processedChapters = await handleEpubFile(
               content,
-              null, // setChapters không cần thiết ở đây
+              null,
               (error) => toast.error(error),
               (success) => toast.success(success),
-              null, // setChapterCount không cần thiết
-              null, // setTotalWords không cần thiết
-              null, // setAverageWords không cần thiết
-              null, // setBooks không cần thiết
-              null // setAuthor không cần thiết
+              null,
+              null,
+              null,
+              null,
+              null
             );
           } else if (fileExt === "txt") {
-            // Xử lý file TXT
             const result = checkFileFormatFromText(content);
             if (!result.valid) {
               toast.error("File không đúng định dạng chương!");
@@ -475,41 +538,63 @@ const TranslatorApp = ({
             return;
           }
 
-          // Lấy chương đầu tiên từ file
-          const chapter = processedChapters[0];
+          // Lấy danh sách các chương đã chọn từ modal
+          const selectedChapters = data.selectedChapters || new Set();
+          if (selectedChapters.size === 0) {
+            toast.error("Vui lòng chọn ít nhất một chương!");
+            return;
+          }
 
-          const newChapter = {
-            storyId: storyId,
-            chapterName:
-              chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
-            rawText: chapter.content,
-            chapterNumber: chapters.length + 1,
-          };
+          // Chuyển Set thành Array và sắp xếp theo thứ tự
+          const sortedSelectedIndices = Array.from(selectedChapters).sort(
+            (a, b) => a - b
+          );
 
-          console.log("Thông tin chương mới từ file:", newChapter);
+          // Tìm chapterNumber lớn nhất hiện tại
+          const maxChapterNumber = chapters.reduce(
+            (max, chapter) => Math.max(max, chapter.chapterNumber),
+            0
+          );
 
-          // Gọi API thêm chương
-          await addChapter({
-            storyId: storyId,
-            chapterNumber: newChapter.chapterNumber,
-            chapterName: newChapter.chapterName,
-            rawText: newChapter.rawText,
-          });
+          // Thêm từng chương đã chọn với chapterNumber tăng dần
+          for (let i = 0; i < sortedSelectedIndices.length; i++) {
+            const index = sortedSelectedIndices[i];
+            const chapter = processedChapters[index];
+            const newChapter = {
+              storyId: storyId,
+              chapterName:
+                chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
+              rawText: chapter.content,
+              chapterNumber: maxChapterNumber + i + 1, // Tăng dần từ số lớn nhất hiện tại
+            };
 
-          // Cập nhật state local
-          const updatedChapters = [...chapters, newChapter];
-          setChapters(updatedChapters);
+            console.log("Thông tin chương mới từ file:", newChapter);
 
-          const updatedTranslatedChapters = [...translatedChapters];
-          updatedTranslatedChapters[chapters.length] = {
-            ...newChapter,
-            translated: chapter.content,
-            translatedTitle: chapter.title || newChapter.chapterName,
-          };
-          setTranslatedChapters(updatedTranslatedChapters);
+            // Gọi API thêm chương
+            await addChapter({
+              storyId: storyId,
+              chapterNumber: newChapter.chapterNumber,
+              chapterName: newChapter.chapterName,
+              rawText: newChapter.rawText,
+            });
+
+            // Cập nhật state local
+            const updatedChapters = [...chapters, newChapter];
+            setChapters(updatedChapters);
+
+            const updatedTranslatedChapters = [...translatedChapters];
+            updatedTranslatedChapters[chapters.length] = {
+              ...newChapter,
+              translated: chapter.content,
+              translatedTitle: chapter.title || newChapter.chapterName,
+            };
+            setTranslatedChapters(updatedTranslatedChapters);
+          }
 
           setIsAddChapterModalOpen(false);
-          toast.success("✅ Đã thêm chương mới từ file!");
+          toast.success(
+            `✅ Đã thêm ${sortedSelectedIndices.length} chương mới từ file!`
+          );
         } catch (error) {
           console.error("Lỗi khi thêm chương từ file:", error);
           if (error.response?.status === 401) {

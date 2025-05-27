@@ -222,7 +222,7 @@ const ChapterList = ({
     console.log("Số chương được chọn:", chapterNumber);
     console.log("Index được chọn:", index);
     console.log("Sorted chapters:", sortedChapters);
-    
+
     if (page) {
       setCurrentPage(page);
     }
@@ -243,7 +243,12 @@ const ChapterList = ({
                 className={`chapter-item ${
                   idx === currentIndex ? "selected" : ""
                 }`}
-                onClick={() => handleSelectChapter(idx, Math.ceil(ch.chapterNumber / chaptersPerPage))}
+                onClick={() =>
+                  handleSelectChapter(
+                    idx,
+                    Math.ceil(ch.chapterNumber / chaptersPerPage)
+                  )
+                }
               >
                 <div className="chapter-header">
                   <p>Chương {ch.chapterNumber}:</p>
