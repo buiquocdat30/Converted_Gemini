@@ -259,7 +259,7 @@ const userLibraryService = {
         throw new Error("Không tìm thấy truyện");
       }
 
-      console.log("đây là thông tin chương mới addChapter", data);
+      console.log("đây là thông tin chương mới addChapter name", data.chapterName);
       // Tạo chương mới
       return await prisma.userLibraryChapter.create({
         data: {

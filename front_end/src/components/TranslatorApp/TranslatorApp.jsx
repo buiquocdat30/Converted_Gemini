@@ -15,6 +15,7 @@ const TranslatorApp = ({
   onSelectChapter,
   addChapter,
   storyId,
+  getAuthToken,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -155,6 +156,7 @@ const TranslatorApp = ({
         file: localFile,
         mode: localMode
       });
+
     };
 
     if (!isOpen) return null;
@@ -258,15 +260,27 @@ const TranslatorApp = ({
       }
 
       const newChapter = {
-        title: data.title,
-        content: data.content,
-        chapterNumber: chapters.length + 1,
+        storyId: storyId,
         chapterName: data.title,
+        rawText: data.content,
+        chapterNumber: chapters.length + 1,
       };
 
       try {
+        const token = getAuthToken();
+        console.log("đây là token", token);
+        if (!token) {
+          toast.error("Vui lòng đăng nhập lại!");
+          return;
+        }
+
         console.log("đây là thông tin chương mới addChapter", newChapter);
-        //await addChapter(storyId, newChapter);
+        await addChapter({
+          storyId: storyId,
+          chapterNumber: newChapter.chapterNumber,
+          chapterName: newChapter.chapterName,
+          rawText: newChapter.rawText
+        });
         
         const updatedChapters = [...chapters, newChapter];
         setChapters(updatedChapters);
@@ -283,7 +297,11 @@ const TranslatorApp = ({
         toast.success("✅ Đã thêm chương mới!");
       } catch (error) {
         console.error("Lỗi khi thêm chương:", error);
-        toast.error("❌ Lỗi khi thêm chương mới!");
+        if (error.response?.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!");
+        } else {
+          toast.error("❌ Lỗi khi thêm chương mới!");
+        }
       }
     } else {
       if (!data.file) {
@@ -304,11 +322,17 @@ const TranslatorApp = ({
         };
 
         try {
-          await addChapter(storyId, {
+          const token = getAuthToken();
+          if (!token) {
+            toast.error("Vui lòng đăng nhập lại!");
+            return;
+          }
+
+          await addChapter({
             storyId: storyId,
-            chapterNumber: chapters.length + 1,
-            chapterName: fileName,
-            rawText: content
+            chapterNumber: newChapter.chapterNumber,
+            chapterName: newChapter.chapterName,
+            rawText: newChapter.rawText
           });
 
           const updatedChapters = [...chapters, newChapter];
@@ -331,7 +355,7 @@ const TranslatorApp = ({
       };
       reader.readAsText(data.file);
     }
-  }, [chapters, translatedChapters, addChapter, storyId]);
+  }, [chapters, translatedChapters, addChapter, storyId, getAuthToken]);
 
   return (
     <div className="translator-app-wrapper">
