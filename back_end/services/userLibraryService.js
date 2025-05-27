@@ -3,7 +3,15 @@ const { readEpub } = require("./epubService");
 const { readTxt } = require("./txtServices");
 
 const userLibraryService = {
-  // Lấy tất cả truyện của user
+  // ==============================================
+  // PHẦN 1: QUẢN LÝ TRUYỆN (STORY MANAGEMENT)
+  // ==============================================
+
+  /**
+   * Lấy tất cả truyện của user
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Array>} Danh sách truyện
+   */
   getAllStories: async (userId) => {
     return await prisma.userLibraryStory.findMany({
       where: {
@@ -26,7 +34,12 @@ const userLibraryService = {
     });
   },
 
-  // Lấy truyện theo ID
+  /**
+   * Lấy thông tin chi tiết một truyện theo ID
+   * @param {string} id - ID của truyện
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Object|null>} Thông tin truyện hoặc null nếu không tìm thấy
+   */
   getStoryById: async (id, userId) => {
     try {
       const story = await prisma.userLibraryStory.findFirst({
@@ -37,7 +50,7 @@ const userLibraryService = {
         include: {
           chapters: {
             orderBy: {
-              chapterNumber: "asc", // ✅ Đảm bảo thứ tự chương đúng
+              chapterNumber: "asc",
             },
             include: {
               translation: true,
@@ -46,7 +59,6 @@ const userLibraryService = {
         },
       });
 
-      // Nếu tìm thấy story, chuyển đổi các trường DateTime
       if (story) {
         return {
           ...story,
@@ -66,14 +78,14 @@ const userLibraryService = {
               : null,
             translation: chapter.translation
               ? {
-                ...chapter.translation,
-                createdAt: chapter.translation.createdAt
-                  ? new Date(chapter.translation.createdAt).toISOString()
-                  : null,
-                updatedAt: chapter.translation.updatedAt
-                  ? new Date(chapter.translation.updatedAt).toISOString()
-                  : null,
-              }
+                  ...chapter.translation,
+                  createdAt: chapter.translation.createdAt
+                    ? new Date(chapter.translation.createdAt).toISOString()
+                    : null,
+                  updatedAt: chapter.translation.updatedAt
+                    ? new Date(chapter.translation.updatedAt).toISOString()
+                    : null,
+                }
               : null,
           })),
         };
@@ -85,7 +97,11 @@ const userLibraryService = {
     }
   },
 
-  // Tạo truyện mới
+  /**
+   * Tạo truyện mới
+   * @param {Object} data - Dữ liệu truyện mới
+   * @returns {Promise<Object>} Truyện đã tạo
+   */
   createStory: async (data) => {
     try {
       // Tạo truyện mới
@@ -99,18 +115,24 @@ const userLibraryService = {
           updatedAt: new Date(),
         },
       });
-      console.log("Thứ tự chapterNumber trước khi tạo:", data.chapters.map(c => c.chapterNumber));
+      console.log(
+        "Thứ tự chapterNumber trước khi tạo:",
+        data.chapters.map((c) => c.chapterNumber)
+      );
 
       // Xử lý chapters nếu có
       if (data.chapters && Array.isArray(data.chapters)) {
         data.chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
-        console.log("Check order trước khi tạo:", data.chapters.map(c => c.title));
+        console.log(
+          "Check order trước khi tạo:",
+          data.chapters.map((c) => c.title)
+        );
         // Tạo các chương với chapterNumber được gán đúng
         const chapterPromises = data.chapters.map((chapter, index) => {
           return prisma.userLibraryChapter.create({
             data: {
               storyId: story.id,
-              chapterNumber: chapter.chapterNumber ?? index + 1, // Gán chapterNumber theo thứ tự
+              chapterNumber: chapter.chapterNumber ?? index + 1,
               chapterName: chapter.title,
               rawText: chapter.content,
               createdAt: new Date(),
@@ -122,10 +144,11 @@ const userLibraryService = {
         const createdChapters = await Promise.all(chapterPromises);
 
         // 👉 Bây giờ bạn có thể dùng .map
-        console.log("📚 Tiêu đề các chương sau khi tạo:", createdChapters.map(c => `${c.chapterNumber}. ${c.chapterName}`));
+        console.log(
+          "📚 Tiêu đề các chương sau khi tạo:",
+          createdChapters.map((c) => `${c.chapterNumber}. ${c.chapterName}`)
+        );
       }
-
-
 
       // Lấy lại truyện với chapters đã được sắp xếp
       const storyWithChapters = await prisma.userLibraryStory.findUnique({
@@ -139,7 +162,12 @@ const userLibraryService = {
         },
       });
 
-      console.log("📚 Tiêu đề các chương sau khi lấy lại truyện nè má:", storyWithChapters.chapters.map(c => `${c.chapterNumber}. ${c.chapterName}`));
+      console.log(
+        "📚 Tiêu đề các chương sau khi lấy lại truyện nè má:",
+        storyWithChapters.chapters.map(
+          (c) => `${c.chapterNumber}. ${c.chapterName}`
+        )
+      );
       return storyWithChapters;
     } catch (error) {
       console.error("Error in createStory:", error);
@@ -147,7 +175,13 @@ const userLibraryService = {
     }
   },
 
-  // Cập nhật truyện
+  /**
+   * Cập nhật thông tin truyện
+   * @param {string} id - ID của truyện
+   * @param {string} userId - ID của người dùng
+   * @param {Object} data - Dữ liệu cập nhật
+   * @returns {Promise<Object>} Kết quả cập nhật
+   */
   updateStory: async (id, userId, data) => {
     return await prisma.userLibraryStory.updateMany({
       where: {
@@ -161,7 +195,12 @@ const userLibraryService = {
     });
   },
 
-  // Ẩn truyện (xóa mềm)
+  /**
+   * Ẩn truyện (xóa mềm)
+   * @param {string} storyId - ID của truyện
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Object>} Kết quả ẩn truyện
+   */
   hideStory: async (storyId, userId) => {
     try {
       return await prisma.userLibraryStory.updateMany({
@@ -180,7 +219,12 @@ const userLibraryService = {
     }
   },
 
-  // Xóa truyện vĩnh viễn (xóa cứng)
+  /**
+   * Xóa truyện vĩnh viễn (xóa cứng)
+   * @param {string} storyId - ID của truyện
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Object>} Kết quả xóa truyện
+   */
   deleteStory: async (storyId, userId) => {
     try {
       return await prisma.userLibraryStory.deleteMany({
@@ -195,7 +239,16 @@ const userLibraryService = {
     }
   },
 
-  // Lấy danh sách chương
+  // ==============================================
+  // PHẦN 2: QUẢN LÝ CHƯƠNG (CHAPTER MANAGEMENT)
+  // ==============================================
+
+  /**
+   * Lấy danh sách chương của truyện
+   * @param {string} storyId - ID của truyện
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Array>} Danh sách chương
+   */
   getChapters: async (storyId, userId) => {
     try {
       const chapters = await prisma.userLibraryChapter.findMany({
@@ -221,14 +274,14 @@ const userLibraryService = {
         updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt) : null,
         translation: chapter.translation
           ? {
-            ...chapter.translation,
-            createdAt: chapter.translation.createdAt
-              ? new Date(chapter.translation.createdAt)
-              : null,
-            updatedAt: chapter.translation.updatedAt
-              ? new Date(chapter.translation.updatedAt)
-              : null,
-          }
+              ...chapter.translation,
+              createdAt: chapter.translation.createdAt
+                ? new Date(chapter.translation.createdAt)
+                : null,
+              updatedAt: chapter.translation.updatedAt
+                ? new Date(chapter.translation.updatedAt)
+                : null,
+            }
           : null,
         versions: chapter.versions.map((version) => ({
           ...version,
@@ -242,7 +295,11 @@ const userLibraryService = {
     }
   },
 
-  // Thêm chương mới
+  /**
+   * Thêm chương mới vào truyện
+   * @param {Object} data - Dữ liệu chương mới
+   * @returns {Promise<Object>} Chương đã tạo
+   */
   addChapter: async (data) => {
     try {
       // Kiểm tra storyId
@@ -259,7 +316,10 @@ const userLibraryService = {
         throw new Error("Không tìm thấy truyện");
       }
 
-      console.log("đây là thông tin chương mới addChapter name", data.chapterName);
+      console.log(
+        "đây là thông tin chương mới addChapter name",
+        data.chapterName
+      );
       // Tạo chương mới
       return await prisma.userLibraryChapter.create({
         data: {
@@ -277,7 +337,14 @@ const userLibraryService = {
     }
   },
 
-  // Cập nhật chương
+  /**
+   * Cập nhật nội dung chương
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} userId - ID của người dùng
+   * @param {Object} data - Dữ liệu cập nhật
+   * @returns {Promise<Object>} Kết quả cập nhật
+   */
   updateChapter: async (storyId, chapterNumber, userId, data) => {
     return await prisma.userLibraryChapter.updateMany({
       where: {
@@ -294,7 +361,13 @@ const userLibraryService = {
     });
   },
 
-  // Xóa chương
+  /**
+   * Xóa chương
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Object>} Kết quả xóa chương
+   */
   deleteChapter: async (storyId, chapterNumber, userId) => {
     return await prisma.userLibraryChapter.deleteMany({
       where: {
@@ -305,6 +378,277 @@ const userLibraryService = {
         },
       },
     });
+  },
+
+  // ==============================================
+  // PHẦN 3: QUẢN LÝ BẢN DỊCH (TRANSLATION MANAGEMENT)
+  // ==============================================
+
+  /**
+   * Tạo bản dịch mới cho chương
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} userId - ID của người dùng
+   * @param {Object} data - Dữ liệu bản dịch
+   * @returns {Promise<Object>} Bản dịch đã tạo
+   */
+  createTranslation: async (storyId, chapterNumber, userId, data) => {
+    try {
+      // Kiểm tra chương tồn tại và thuộc về user
+      const chapter = await prisma.userLibraryChapter.findFirst({
+        where: {
+          storyId: storyId,
+          chapterNumber: parseInt(chapterNumber),
+          story: {
+            userId: userId,
+          },
+        },
+      });
+
+      if (!chapter) {
+        throw new Error("Không tìm thấy chương");
+      }
+
+      // Tạo hoặc cập nhật bản dịch
+      const translation = await prisma.userTranslatedChapter.upsert({
+        where: {
+          chapterId: chapter.id,
+        },
+        update: {
+          translatedTitle: data.translatedTitle,
+          translatedContent: data.translatedContent,
+          updatedAt: new Date(),
+        },
+        create: {
+          chapterId: chapter.id,
+          translatedTitle: data.translatedTitle,
+          translatedContent: data.translatedContent,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Cập nhật trạng thái chương thành TRANSLATED
+      await prisma.userLibraryChapter.update({
+        where: { id: chapter.id },
+        data: { status: "TRANSLATED" },
+      });
+
+      return translation;
+    } catch (error) {
+      console.error("Lỗi khi tạo bản dịch:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật bản dịch của chương
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} userId - ID của người dùng
+   * @param {Object} data - Dữ liệu cập nhật
+   * @returns {Promise<Object>} Bản dịch đã cập nhật
+   */
+  updateTranslation: async (storyId, chapterNumber, userId, data) => {
+    try {
+      const chapter = await prisma.userLibraryChapter.findFirst({
+        where: {
+          storyId: storyId,
+          chapterNumber: parseInt(chapterNumber),
+          story: {
+            userId: userId,
+          },
+        },
+        include: {
+          translation: true,
+        },
+      });
+
+      if (!chapter || !chapter.translation) {
+        throw new Error("Không tìm thấy bản dịch");
+      }
+
+      // Lưu phiên bản cũ trước khi cập nhật
+      await prisma.userTranslationVersion.create({
+        data: {
+          chapterId: chapter.id,
+          translatedText: chapter.translation.translatedContent,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Cập nhật bản dịch mới
+      const updatedTranslation = await prisma.userTranslatedChapter.update({
+        where: {
+          chapterId: chapter.id,
+        },
+        data: {
+          translatedTitle: data.translatedTitle,
+          translatedContent: data.translatedContent,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Cập nhật trạng thái chương thành REVIEWING
+      await prisma.userLibraryChapter.update({
+        where: { id: chapter.id },
+        data: { status: "REVIEWING" },
+      });
+
+      return updatedTranslation;
+    } catch (error) {
+      console.error("Lỗi khi cập nhật bản dịch:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Xóa bản dịch của chương
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Object>} Kết quả xóa bản dịch
+   */
+  deleteTranslation: async (storyId, chapterNumber, userId) => {
+    try {
+      const chapter = await prisma.userLibraryChapter.findFirst({
+        where: {
+          storyId: storyId,
+          chapterNumber: parseInt(chapterNumber),
+          story: {
+            userId: userId,
+          },
+        },
+        include: {
+          translation: true,
+        },
+      });
+
+      if (!chapter || !chapter.translation) {
+        throw new Error("Không tìm thấy bản dịch");
+      }
+
+      // Lưu phiên bản cuối cùng trước khi xóa
+      await prisma.userTranslationVersion.create({
+        data: {
+          chapterId: chapter.id,
+          translatedText: chapter.translation.translatedContent,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Xóa bản dịch
+      await prisma.userTranslatedChapter.delete({
+        where: {
+          chapterId: chapter.id,
+        },
+      });
+
+      // Cập nhật trạng thái chương thành DRAFT
+      await prisma.userLibraryChapter.update({
+        where: { id: chapter.id },
+        data: { status: "DRAFT" },
+      });
+
+      return { message: "Đã xóa bản dịch thành công" };
+    } catch (error) {
+      console.error("Lỗi khi xóa bản dịch:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách tất cả các phiên bản dịch của chương
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Array>} Danh sách phiên bản
+   */
+  getTranslationVersions: async (storyId, chapterNumber, userId) => {
+    try {
+      const chapter = await prisma.userLibraryChapter.findFirst({
+        where: {
+          storyId: storyId,
+          chapterNumber: parseInt(chapterNumber),
+          story: {
+            userId: userId,
+          },
+        },
+        include: {
+          versions: {
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+        },
+      });
+
+      if (!chapter) {
+        throw new Error("Không tìm thấy chương");
+      }
+
+      return chapter.versions.map((version) => ({
+        ...version,
+        createdAt: version.createdAt
+          ? new Date(version.createdAt).toISOString()
+          : null,
+        updatedAt: version.updatedAt
+          ? new Date(version.updatedAt).toISOString()
+          : null,
+      }));
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách phiên bản:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy chi tiết một phiên bản dịch cụ thể
+   * @param {string} storyId - ID của truyện
+   * @param {number} chapterNumber - Số thứ tự chương
+   * @param {string} versionId - ID của phiên bản
+   * @param {string} userId - ID của người dùng
+   * @returns {Promise<Object>} Chi tiết phiên bản
+   */
+  getTranslationVersion: async (storyId, chapterNumber, versionId, userId) => {
+    try {
+      const chapter = await prisma.userLibraryChapter.findFirst({
+        where: {
+          storyId: storyId,
+          chapterNumber: parseInt(chapterNumber),
+          story: {
+            userId: userId,
+          },
+        },
+        include: {
+          versions: {
+            where: {
+              id: versionId,
+            },
+          },
+        },
+      });
+
+      if (!chapter || !chapter.versions.length) {
+        throw new Error("Không tìm thấy phiên bản dịch");
+      }
+
+      const version = chapter.versions[0];
+      return {
+        ...version,
+        createdAt: version.createdAt
+          ? new Date(version.createdAt).toISOString()
+          : null,
+        updatedAt: version.updatedAt
+          ? new Date(version.updatedAt).toISOString()
+          : null,
+      };
+    } catch (error) {
+      console.error("Lỗi khi lấy phiên bản:", error);
+      throw error;
+    }
   },
 };
 
