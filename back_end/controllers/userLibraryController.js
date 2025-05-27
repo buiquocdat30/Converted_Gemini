@@ -217,7 +217,7 @@ const userLibraryController = {
   addChapter: async (req, res) => {
     try {
       const { storyId } = req.params;
-      const { chapterNumber, rawText } = req.body;
+      const { chapterNumber, rawText, chapterName } = req.body;
       const userId = req.user.id;
       console.log("addChapter - Story ID:", storyId);
       console.log("addChapter - User ID:", userId);
@@ -238,6 +238,7 @@ const userLibraryController = {
       const newChapter = await userLibraryService.addChapter({
         storyId,
         chapterNumber,
+        chapterName,
         rawText,
       });
       console.log("addChapter - Created chapter:", newChapter);

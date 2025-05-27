@@ -1,5 +1,5 @@
 // context/ConverteContext.jsx
-import React, { createContext, useState, useEffect, useMemo } from "react";
+import React, { createContext, useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { handleEpubFile, checkFileFormatFromText, handleTxtFile } from "../utils/fileHandlers";
@@ -8,7 +8,7 @@ import { handleEpubFile, checkFileFormatFromText, handleTxtFile } from "../utils
 const API_URL = "http://localhost:8000";
 
 // Helper function để lấy token
-const getAuthToken = () => localStorage.getItem("auth-token");
+export const getAuthToken = () => localStorage.getItem("auth-token");
 
 export const AuthContext = createContext();
 
@@ -538,17 +538,20 @@ export const AuthProvider = ({ children }) => {
   // ===== CHAPTER MANAGEMENT =====
   
 
-  const addChapter = async (storyId, chapter) => {
-    console.log("đây là thông tin chương mới addChapter", storyId, chapter);
+  const addChapter = async (chapterData) => {
     try {
       setLoading(true);
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
-
+  
       const response = await axios.post(
-        `${API_URL}/user/library/${storyId}/chapters`,
-        chapter,
+        `${API_URL}/user/library/${chapterData.storyId}/chapters`,
+        {
+          chapterNumber: chapterData.chapterNumber,
+          chapterName: chapterData.chapterName,
+          rawText: chapterData.rawText
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -575,6 +578,7 @@ export const AuthProvider = ({ children }) => {
         error,
         userData,
         stories,
+        getAuthToken,
 
         // User Functions
         onLogin,
