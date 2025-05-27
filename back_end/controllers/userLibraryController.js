@@ -4,10 +4,16 @@ const { readTxt } = require("../services/txtServices");
 const path = require("path");
 
 const userLibraryController = {
-  // Lấy tất cả truyện của user
+  // ==============================================
+  // PHẦN 1: QUẢN LÝ TRUYỆN (STORY MANAGEMENT)
+  // ==============================================
+
+  /**
+   * Lấy danh sách tất cả truyện của user
+   */
   getAllStories: async (req, res) => {
     try {
-      const userId = req.user.id; // Lấy userId từ middleware
+      const userId = req.user.id;
       console.log("getAllStories - User ID:", userId);
 
       if (!userId) {
@@ -22,7 +28,9 @@ const userLibraryController = {
     }
   },
 
-  // Lấy truyện theo ID
+  /**
+   * Lấy thông tin chi tiết một truyện theo ID
+   */
   getStoryById: async (req, res) => {
     try {
       const { id } = req.params;
@@ -47,19 +55,19 @@ const userLibraryController = {
     }
   },
 
-  // Tạo truyện mới
+  /**
+   * Tạo truyện mới
+   */
   createStory: async (req, res) => {
     try {
       const userId = req.user.id;
-      //console.log("createStory - Request body:", req.body);
+      const { name, author, chapters, filePath } = req.body;
+      console.log("createStory - User ID:", userId);
+      console.log("createStory - Story data:", { name, author, filePath });
 
       if (!userId) {
         return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
       }
-
-      const { name, author, chapters, filePath } = req.body;
-      console.log("createStory - User ID:", userId);
-      console.log("createStory - Story data:", { name, author, filePath });
 
       if (!name || !author) {
         return res
@@ -85,12 +93,9 @@ const userLibraryController = {
             .json({ error: "Lỗi khi xử lý file: " + error.message });
         }
       } else if (chapters && Array.isArray(chapters)) {
-        // Sử dụng chapters từ request nếu không có file
-       console.log(" ĐÂY LÀ ĐẦU VÀO USERLIRARYUSER:", processedChapters);
         processedChapters = chapters;
       }
 
-      // Tạo truyện với chapters
       const newStory = await userLibraryService.createStory({
         name,
         author,
@@ -98,7 +103,6 @@ const userLibraryController = {
         chapters: processedChapters,
       });
 
-      // console.log("createStory - Created story:", newStory);
       res.status(201).json(newStory);
     } catch (error) {
       console.error("Error creating story:", error);
@@ -108,7 +112,9 @@ const userLibraryController = {
     }
   },
 
-  // Cập nhật truyện
+  /**
+   * Cập nhật thông tin truyện
+   */
   updateStory: async (req, res) => {
     try {
       const { id } = req.params;
@@ -127,7 +133,6 @@ const userLibraryController = {
         author,
         storyAvatar,
       });
-      console.log("updateStory - Update result:", updatedStory);
 
       if (updatedStory.count === 0) {
         return res.status(404).json({ error: "Không tìm thấy truyện" });
@@ -140,7 +145,9 @@ const userLibraryController = {
     }
   },
 
-  // Ẩn truyện (xóa mềm)
+  /**
+   * Ẩn truyện (xóa mềm)
+   */
   hideStory: async (req, res) => {
     try {
       const { id } = req.params;
@@ -153,7 +160,6 @@ const userLibraryController = {
       }
 
       const hiddenStory = await userLibraryService.hideStory(id, userId);
-      console.log("hideStory - Hide result:", hiddenStory);
 
       if (hiddenStory.count === 0) {
         return res.status(404).json({ error: "Không tìm thấy truyện" });
@@ -166,7 +172,9 @@ const userLibraryController = {
     }
   },
 
-  // Xóa truyện vĩnh viễn (xóa cứng)
+  /**
+   * Xóa truyện vĩnh viễn (xóa cứng)
+   */
   deleteStory: async (req, res) => {
     try {
       const { id } = req.params;
@@ -179,7 +187,6 @@ const userLibraryController = {
       }
 
       const deletedStory = await userLibraryService.deleteStory(id, userId);
-      console.log("deleteStory - Delete result:", deletedStory);
 
       if (deletedStory.count === 0) {
         return res.status(404).json({ error: "Không tìm thấy truyện" });
@@ -192,7 +199,13 @@ const userLibraryController = {
     }
   },
 
-  // Lấy danh sách chương
+  // ==============================================
+  // PHẦN 2: QUẢN LÝ CHƯƠNG (CHAPTER MANAGEMENT)
+  // ==============================================
+
+  /**
+   * Lấy danh sách chương của truyện
+   */
   getChapters: async (req, res) => {
     try {
       const { storyId } = req.params;
@@ -205,7 +218,6 @@ const userLibraryController = {
       }
 
       const chapters = await userLibraryService.getChapters(storyId, userId);
-      console.log("getChapters - Found chapters:", chapters);
       res.json(chapters);
     } catch (error) {
       console.error("Error getting chapters:", error);
@@ -213,7 +225,9 @@ const userLibraryController = {
     }
   },
 
-  // Thêm chương mới
+  /**
+   * Thêm chương mới vào truyện
+   */
   addChapter: async (req, res) => {
     try {
       const { storyId } = req.params;
@@ -227,9 +241,7 @@ const userLibraryController = {
         return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
       }
 
-      // Kiểm tra truyện tồn tại và thuộc về user
       const story = await userLibraryService.getStoryById(storyId, userId);
-      console.log("addChapter - Found story:", story.chapters.map(c => `${c.chapterNumber}. ${c.chapterName}`));
 
       if (!story) {
         return res.status(404).json({ error: "Không tìm thấy truyện" });
@@ -241,7 +253,6 @@ const userLibraryController = {
         chapterName,
         rawText,
       });
-      console.log("addChapter - Created chapter:", newChapter);
 
       res.status(201).json(newChapter);
     } catch (error) {
@@ -250,7 +261,9 @@ const userLibraryController = {
     }
   },
 
-  // Cập nhật chương
+  /**
+   * Cập nhật nội dung chương
+   */
   updateChapter: async (req, res) => {
     try {
       const { storyId, chapterNumber } = req.params;
@@ -259,7 +272,6 @@ const userLibraryController = {
       console.log("updateChapter - Story ID:", storyId);
       console.log("updateChapter - Chapter number:", chapterNumber);
       console.log("updateChapter - User ID:", userId);
-      console.log("updateChapter - Update data:", { rawText });
 
       if (!userId) {
         return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
@@ -271,7 +283,6 @@ const userLibraryController = {
         userId,
         { rawText }
       );
-      console.log("updateChapter - Update result:", updatedChapter);
 
       if (updatedChapter.count === 0) {
         return res.status(404).json({ error: "Không tìm thấy chương" });
@@ -284,7 +295,9 @@ const userLibraryController = {
     }
   },
 
-  // Xóa chương
+  /**
+   * Xóa chương
+   */
   deleteChapter: async (req, res) => {
     try {
       const { storyId, chapterNumber } = req.params;
@@ -302,7 +315,6 @@ const userLibraryController = {
         chapterNumber,
         userId
       );
-      console.log("deleteChapter - Delete result:", deletedChapter);
 
       if (deletedChapter.count === 0) {
         return res.status(404).json({ error: "Không tìm thấy chương" });
@@ -312,6 +324,169 @@ const userLibraryController = {
     } catch (error) {
       console.error("Error deleting chapter:", error);
       res.status(500).json({ error: "Lỗi khi xóa chương" });
+    }
+  },
+
+  // ==============================================
+  // PHẦN 3: QUẢN LÝ BẢN DỊCH (TRANSLATION MANAGEMENT)
+  // ==============================================
+
+  /**
+   * Tạo bản dịch mới cho chương
+   */
+  createTranslation: async (req, res) => {
+    try {
+      const { storyId, chapterNumber } = req.params;
+      const userId = req.user.id;
+      const { translatedTitle, translatedContent } = req.body;
+      console.log("createTranslation - Story ID:", storyId);
+      console.log("createTranslation - Chapter number:", chapterNumber);
+      console.log("createTranslation - User ID:", userId);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
+      }
+
+      if (!translatedTitle || !translatedContent) {
+        return res.status(400).json({ error: "Thiếu thông tin bản dịch" });
+      }
+
+      const translation = await userLibraryService.createTranslation(
+        storyId,
+        chapterNumber,
+        userId,
+        { translatedTitle, translatedContent }
+      );
+
+      res.status(201).json(translation);
+    } catch (error) {
+      console.error("Error creating translation:", error);
+      res.status(500).json({ error: "Lỗi khi tạo bản dịch: " + error.message });
+    }
+  },
+
+  /**
+   * Cập nhật bản dịch của chương
+   */
+  updateTranslation: async (req, res) => {
+    try {
+      const { storyId, chapterNumber } = req.params;
+      const userId = req.user.id;
+      const { translatedTitle, translatedContent } = req.body;
+      console.log("updateTranslation - Story ID:", storyId);
+      console.log("updateTranslation - Chapter number:", chapterNumber);
+      console.log("updateTranslation - User ID:", userId);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
+      }
+
+      if (!translatedTitle || !translatedContent) {
+        return res.status(400).json({ error: "Thiếu thông tin bản dịch" });
+      }
+
+      const translation = await userLibraryService.updateTranslation(
+        storyId,
+        chapterNumber,
+        userId,
+        { translatedTitle, translatedContent }
+      );
+
+      res.json(translation);
+    } catch (error) {
+      console.error("Error updating translation:", error);
+      res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật bản dịch: " + error.message });
+    }
+  },
+
+  /**
+   * Xóa bản dịch của chương
+   */
+  deleteTranslation: async (req, res) => {
+    try {
+      const { storyId, chapterNumber } = req.params;
+      const userId = req.user.id;
+      console.log("deleteTranslation - Story ID:", storyId);
+      console.log("deleteTranslation - Chapter number:", chapterNumber);
+      console.log("deleteTranslation - User ID:", userId);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
+      }
+
+      const result = await userLibraryService.deleteTranslation(
+        storyId,
+        chapterNumber,
+        userId
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Error deleting translation:", error);
+      res.status(500).json({ error: "Lỗi khi xóa bản dịch: " + error.message });
+    }
+  },
+
+  /**
+   * Lấy danh sách tất cả các phiên bản dịch của chương
+   */
+  getAllTranslationVersion: async (req, res) => {
+    try {
+      const { storyId, chapterNumber } = req.params;
+      const userId = req.user.id;
+      console.log("getAllTranslationVersion - Story ID:", storyId);
+      console.log("getAllTranslationVersion - Chapter number:", chapterNumber);
+      console.log("getAllTranslationVersion - User ID:", userId);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
+      }
+
+      const versions = await userLibraryService.getTranslationVersions(
+        storyId,
+        chapterNumber,
+        userId
+      );
+
+      res.json(versions);
+    } catch (error) {
+      console.error("Error getting translation versions:", error);
+      res
+        .status(500)
+        .json({ error: "Lỗi khi lấy danh sách phiên bản: " + error.message });
+    }
+  },
+
+  /**
+   * Lấy chi tiết một phiên bản dịch cụ thể
+   */
+  getOneTranslationVersion: async (req, res) => {
+    try {
+      const { storyId, chapterNumber, versionId } = req.params;
+      const userId = req.user.id;
+      console.log("getOneTranslationVersion - Story ID:", storyId);
+      console.log("getOneTranslationVersion - Chapter number:", chapterNumber);
+      console.log("getOneTranslationVersion - Version ID:", versionId);
+      console.log("getOneTranslationVersion - User ID:", userId);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
+      }
+
+      const version = await userLibraryService.getTranslationVersion(
+        storyId,
+        chapterNumber,
+        versionId,
+        userId
+      );
+
+      res.json(version);
+    } catch (error) {
+      console.error("Error getting translation version:", error);
+      res
+        .status(500)
+        .json({ error: "Lỗi khi lấy phiên bản: " + error.message });
     }
   },
 };
