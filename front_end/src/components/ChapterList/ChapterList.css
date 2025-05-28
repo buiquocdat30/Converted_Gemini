@@ -2,7 +2,7 @@
 
 .chapter-list {
   font-family: Arial, sans-serif;
-  padding: 20px;
+  padding: 10px;
   background-color: #fff;
   color: #333;
   border-radius: 16px;
@@ -139,10 +139,11 @@
   width: 15%;
 }
 
-.translate-button {
+.chapter-header>.translate-button,
+.chapter-header>.delete-chapter-button {
   margin-left: 10px;
   padding: 5px 10px;
-  background-color: #007bff;
+  background-color: #28a745;
   color: white;
   border: none;
   border-radius: 5px;
