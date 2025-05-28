@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ChapterList from "../ChapterList/ChapterList";
 import TranslateViewer from "../TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput";
@@ -21,6 +21,7 @@ const TranslatorApp = ({
   addChapter,
   storyId,
   getAuthToken,
+  onChapterAdded,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -32,11 +33,19 @@ const TranslatorApp = ({
   const [newChapterContent, setNewChapterContent] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [addChapterMode, setAddChapterMode] = useState("manual"); // "manual" hoặc "file"
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
+  const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
+
+  // Thêm useEffect để xử lý re-render
+  useEffect(() => {
+    if (shouldRefresh) {
+      // Reset state để tránh re-render vô hạn
+      setShouldRefresh(false);
+      // Có thể thêm logic re-render ở đây nếu cần
+    }
+  }, [shouldRefresh]);
 
   //Chọn chương để Nhảy
-  const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
-
-  //hàm chọn chương để Nhảy
   const handleSelectJumbChapter = (index) => {
     setSelectedChapterIndex(index);
   };
@@ -146,7 +155,7 @@ const TranslatorApp = ({
   };
 
   // Tách modal thành component riêng để tránh re-render
-  const AddChapterModal = React.memo(({ isOpen, onClose, onAdd }) => {
+  const AddChapterModal = React.memo(({ isOpen, onClose, onAdd, onCloseComplete }) => {
     const [localTitle, setLocalTitle] = useState("");
     const [localContent, setLocalContent] = useState("");
     const [localFile, setLocalFile] = useState(null);
@@ -262,6 +271,7 @@ const TranslatorApp = ({
           mode: localMode,
         });
         onClose();
+        onCloseComplete?.(); // Gọi callback sau khi đóng modal
       } else {
         if (!localFile) {
           toast.error("Vui lòng chọn file!");
@@ -277,6 +287,8 @@ const TranslatorApp = ({
           file: localFile,
           selectedChapters: selectedChapters,
         });
+        onClose();
+        onCloseComplete?.(); // Gọi callback sau khi đóng modal
       }
     };
 
@@ -412,6 +424,7 @@ const TranslatorApp = ({
                 {localMode === "file" && selectedChapters.size > 0
                   ? `Thêm ${selectedChapters.size} chương`
                   : "Thêm chương"}
+
               </button>
               <button
                 type="button"
@@ -462,19 +475,10 @@ const TranslatorApp = ({
             rawText: newChapter.rawText,
           });
 
-          const updatedChapters = [...chapters, newChapter];
-          setChapters(updatedChapters);
-
-          const updatedTranslatedChapters = [...translatedChapters];
-          updatedTranslatedChapters[chapters.length] = {
-            ...newChapter,
-            translated: data.content,
-            translatedTitle: data.title,
-          };
-          setTranslatedChapters(updatedTranslatedChapters);
-
+          // Không cần cập nhật state local vì sẽ tải lại từ server
           setIsAddChapterModalOpen(false);
           toast.success("✅ Đã thêm chương mới!");
+          onChapterAdded?.(); // Gọi callback để tải lại dữ liệu
         } catch (error) {
           console.error("Lỗi khi thêm chương:", error);
           if (error.response?.status === 401) {
@@ -565,7 +569,7 @@ const TranslatorApp = ({
               chapterName:
                 chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
               rawText: chapter.content,
-              chapterNumber: maxChapterNumber + i + 1, // Tăng dần từ số lớn nhất hiện tại
+              chapterNumber: maxChapterNumber + i + 1,
             };
 
             console.log("Thông tin chương mới từ file:", newChapter);
@@ -577,24 +581,14 @@ const TranslatorApp = ({
               chapterName: newChapter.chapterName,
               rawText: newChapter.rawText,
             });
-
-            // Cập nhật state local
-            const updatedChapters = [...chapters, newChapter];
-            setChapters(updatedChapters);
-
-            const updatedTranslatedChapters = [...translatedChapters];
-            updatedTranslatedChapters[chapters.length] = {
-              ...newChapter,
-              translated: chapter.content,
-              translatedTitle: chapter.title || newChapter.chapterName,
-            };
-            setTranslatedChapters(updatedTranslatedChapters);
           }
 
+          // Không cần cập nhật state local vì sẽ tải lại từ server
           setIsAddChapterModalOpen(false);
           toast.success(
             `✅ Đã thêm ${sortedSelectedIndices.length} chương mới từ file!`
           );
+          onChapterAdded?.(); // Gọi callback để tải lại dữ liệu
         } catch (error) {
           console.error("Lỗi khi thêm chương từ file:", error);
           if (error.response?.status === 401) {
@@ -605,7 +599,7 @@ const TranslatorApp = ({
         }
       }
     },
-    [chapters, translatedChapters, addChapter, storyId, getAuthToken]
+    [chapters, addChapter, storyId, getAuthToken, onChapterAdded]
   );
 
   return (
@@ -639,6 +633,10 @@ const TranslatorApp = ({
         isOpen={isAddChapterModalOpen}
         onClose={() => setIsAddChapterModalOpen(false)}
         onAdd={handleAddChapter}
+        onCloseComplete={() => {
+          setShouldRefresh(true);
+          onChapterAdded?.(); // Gọi callback để tải lại dữ liệu
+        }}
       />
 
       {/* Modal nhập key */}

@@ -43,6 +43,11 @@ const ChapterList = ({
   const [jumpToPage, setJumpToPage] = useState("");
   const [jumpToChapter, setJumpToChapter] = useState("");
 
+  // Hàm tính số chương dựa trên trang và vị trí
+  const calculateChapterNumber = (index) => {
+    return startIdx + index + 1;
+  };
+
   //đếm chương
   const canTranslate = (index) => {
     if (results[index]) return false; // đã dịch rồi
@@ -234,6 +239,7 @@ const ChapterList = ({
       <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
       <ul>
         {currentChapters.map((ch, idxOnPage) => {
+          const calculatedChapterNumber = calculateChapterNumber(idxOnPage);
           const idx = ch.chapterNumber - 1;
           const isTranslated = !!results[idx];
 
@@ -251,12 +257,12 @@ const ChapterList = ({
                 }
               >
                 <div className="chapter-header">
-                  <p>Chương {ch.chapterNumber}:</p>
+                  <p>Chương {calculatedChapterNumber}:</p>
                   <strong>
                     {ch.translatedTitle ||
                       ch.title ||
                       ch.chapterName ||
-                      `Chương ${ch.chapterNumber}`}
+                      `Chương ${calculatedChapterNumber}`}
                   </strong>
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>
