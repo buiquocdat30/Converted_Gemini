@@ -180,6 +180,10 @@ const TranslateViewer = ({
             🔄 Dịch lại
           </button>
         </div>
+        <div className="row">
+          <button onClick={() => handleExport("epub")}>📘 Xuất EPUB</button>
+          <button onClick={() => handleExport("txt")}>📄 Xuất Text</button>
+        </div>
       </div>
 
       <div className="viewr-content">
