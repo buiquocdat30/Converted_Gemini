@@ -326,7 +326,7 @@ const ChapterList = ({
                         handleDeleteChapter(idx);
                       }} 
                       className="delete-chapter-button"
-                      style={isTranslated ? { width: "100%" } : { width: "50%" }}
+                      style={isTranslated ? { width: "100%",height: "100%" } : { width: "50%" }}
                     >
                       ❌ Xoá
                     </button>

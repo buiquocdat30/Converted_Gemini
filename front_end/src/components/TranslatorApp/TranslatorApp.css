@@ -200,7 +200,6 @@
 
 .translate-viewer-container {
   width: 60%;
-  padding-top: 20px;
 }
 
 /* Nút thêm chương */
@@ -311,8 +310,6 @@
 
 /* Chapter list */
 .chapter-list {
-  margin-top: 1rem;
-  border: 1px solid #eee;
   border-radius: 4px;
   overflow: hidden;
 }
