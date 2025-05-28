@@ -294,6 +294,13 @@ const Translate = () => {
     loadTranslatingStory(storyId);
   };
 
+  // Thêm hàm để tải lại dữ liệu sau khi thêm chương
+  const handleChapterAdded = async () => {
+    if (currentStory?.id) {
+      await loadTranslatingStory(currentStory.id);
+    }
+  };
+
   // Render nội dung Translator
   const renderTranslatorContent = () => {
     if (activeTab === "new") {
@@ -315,6 +322,7 @@ const Translate = () => {
           addChapter={addChapter}
           storyId={currentStory?.id}
           getAuthToken={getAuthToken}
+          onChapterAdded={handleChapterAdded}
         />
       );
     }

@@ -22,7 +22,6 @@ body {
 }
 
 .translate-page {
-    padding: 12px;
     max-width: 1200px;
     margin: 10px auto;
     background: #fff;
@@ -34,7 +33,7 @@ body {
 .translate-tabs {
     display: flex;
     gap: 10px;
-    padding-bottom: 10px;
+    padding: 10px 0
 }
 
 .tab-button {
@@ -68,7 +67,6 @@ body {
 
 .translating-stories {
     min-height: 400px;
-    padding: 20px;
 }
 
 .stories-grid {
