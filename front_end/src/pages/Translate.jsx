@@ -17,6 +17,7 @@ const Translate = () => {
     hideStories,
     deleteStories,
     addChapter,
+    deleteChapter,
     getAuthToken,
   } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
@@ -323,6 +324,7 @@ const Translate = () => {
           storyId={currentStory?.id}
           getAuthToken={getAuthToken}
           onChapterAdded={handleChapterAdded}
+          deleteChapter={deleteChapter}
         />
       );
     }

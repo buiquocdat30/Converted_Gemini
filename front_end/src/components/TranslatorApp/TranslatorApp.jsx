@@ -22,6 +22,7 @@ const TranslatorApp = ({
   storyId,
   getAuthToken,
   onChapterAdded,
+  deleteChapter,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -680,6 +681,9 @@ const TranslatorApp = ({
             onSelectChapter={handleChapterChange}
             onSelectJumbChapter={handleSelectJumbChapter}
             currentIndex={currentIndex}
+            storyId={storyId}
+            deleteChapter={deleteChapter}
+            onChapterAdded={onChapterAdded}
           />
         </div>
         <div className="translate-viewer-container">
