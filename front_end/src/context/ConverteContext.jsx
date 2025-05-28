@@ -536,8 +536,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ===== CHAPTER MANAGEMENT =====
-  
-
   const addChapter = async (chapterData) => {
     try {
       setLoading(true);
@@ -561,6 +559,62 @@ export const AuthProvider = ({ children }) => {
       return response.data;
     } catch (err) {
       console.error("Lỗi khi thêm chương:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteChapter = async (storyId, chapterNumber) => {
+    try {
+      setLoading(true);
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      // Xóa chương
+      await axios.delete(
+        `${API_URL}/user/library/${storyId}/chapters/${chapterNumber}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Lấy danh sách chương sau khi xóa
+      const response = await axios.get(
+        `${API_URL}/user/library/${storyId}/chapters`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Cập nhật số thứ tự cho các chương sau
+      const chapters = response.data;
+      const updatePromises = chapters
+        .filter(chapter => chapter.chapterNumber > chapterNumber)
+        .map(chapter => 
+          axios.put(
+            `${API_URL}/user/library/${storyId}/chapters/${chapter.chapterNumber}`,
+            {
+              chapterNumber: chapter.chapterNumber - 1
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        );
+
+      await Promise.all(updatePromises);
+      return true;
+    } catch (err) {
+      console.error("Lỗi khi xóa chương:", err);
       setError(err.message);
       throw err;
     } finally {
@@ -606,6 +660,7 @@ export const AuthProvider = ({ children }) => {
 
         // Chapter Functions
         addChapter,
+        deleteChapter,
       }}
     >
       {children}

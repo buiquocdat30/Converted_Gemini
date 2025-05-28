@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { translateAllChapters } from "../../services/translateChapters";
 import { translateSingleChapter } from "../../services/translateSingleChapter";
+import { toast } from "react-hot-toast";
 import "./ChapterList.css";
 
 const ChapterList = ({
@@ -14,6 +15,9 @@ const ChapterList = ({
   onSelectChapter,
   onSelectJumbChapter,
   currentIndex = 0,
+  storyId,
+  deleteChapter,
+  onChapterAdded,
 }) => {
   const [results, setResults] = useState({});
   const [errorMessages, setErrorMessages] = useState({}); // Thêm trạng thái lỗi
@@ -234,6 +238,38 @@ const ChapterList = ({
     onSelectChapter?.(index); // Truyền index dựa trên chapterNumber
   };
 
+  // Hàm xử lý xóa chương
+  const handleDeleteChapter = async (index) => {
+    try {
+      if (!storyId) {
+        toast.error("Không tìm thấy ID truyện!");
+        return;
+      }
+
+      const chapterToDelete = chapters[index];
+      if (!chapterToDelete) {
+        toast.error("Không tìm thấy chương cần xóa!");
+        return;
+      }
+
+      const confirmDelete = window.confirm(
+        `Bạn có chắc muốn xóa chương ${chapterToDelete.chapterNumber} không?`
+      );
+
+      if (confirmDelete) {
+        await deleteChapter(storyId, chapterToDelete.chapterNumber);
+        toast.success("✅ Đã xóa chương thành công!");
+        // Gọi callback để tải lại dữ liệu
+        if (onChapterAdded) {
+          onChapterAdded();
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa chương:", error);
+      toast.error("❌ Lỗi khi xóa chương!");
+    }
+  };
+
   return (
     <div className="chapter-list">
       <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
@@ -283,7 +319,15 @@ const ChapterList = ({
                   >
                     📝 Dịch
                   </button>
-                  <button onClick={() => deleteChapter(idx)} className="delete-chapter-button">❌ Xoá</button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteChapter(idx);
+                    }} 
+                    className="delete-chapter-button"
+                  >
+                    ❌ Xoá
+                  </button>
                 </div>
 
                 {errorMessages[idx] && (
