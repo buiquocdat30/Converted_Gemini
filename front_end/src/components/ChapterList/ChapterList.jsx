@@ -283,6 +283,7 @@ const ChapterList = ({
                   >
                     📝 Dịch
                   </button>
+                  <button onClick={() => deleteChapter(idx)} className="delete-chapter-button">❌ Xoá</button>
                 </div>
 
                 {errorMessages[idx] && (

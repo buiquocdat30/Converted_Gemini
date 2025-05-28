@@ -125,6 +125,7 @@ const TranslateViewer = ({
 
   return (
     <div className="translation-viewer">
+      <h3>📝Nội dung chương</h3>
       <div className="menu-bar">
         <div className="chapter-index">
           Chương {currentIndex + 1} / {chapters.length}
