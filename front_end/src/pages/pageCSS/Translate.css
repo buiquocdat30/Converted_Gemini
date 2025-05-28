@@ -72,8 +72,8 @@ body {
 .stories-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    padding: 20px 0;
+    gap: 15px;
+    padding: 20px 15px;
 }
 
 .tr-story-card {

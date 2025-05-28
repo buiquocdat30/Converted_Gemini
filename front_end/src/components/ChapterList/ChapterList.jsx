@@ -303,45 +303,46 @@ const ChapterList = ({
                   {isTranslated && (
                     <span className="translated-label">✅ Đã dịch</span>
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      translate(idx);
-                    }}
-                    disabled={
-                      isTranslated ||
-                      (!apiKey && translatedCount >= 2) ||
-                      isTranslatingAll
-                    }
-                    className={`translate-button ${
-                      isTranslated ? "hidden" : ""
-                    }`}
-                  >
-                    📝 Dịch
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteChapter(idx);
-                    }} 
-                    className="delete-chapter-button"
-                  >
-                    ❌ Xoá
-                  </button>
+                  <div className="chapter-actions">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        translate(idx);
+                      }}
+                      disabled={
+                        isTranslated ||
+                        (!apiKey && translatedCount >= 2) ||
+                        isTranslatingAll
+                      }
+                      className={`translate-button ${
+                        isTranslated ? "hidden" : ""
+                      }`}
+                    >
+                      📝 Dịch
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChapter(idx);
+                      }} 
+                      className="delete-chapter-button"
+                      style={isTranslated ? { width: "100%" } : { width: "50%" }}
+                    >
+                      ❌ Xoá
+                    </button>
+                  </div>
                 </div>
-
+                {progress[idx] !== undefined && !isTranslatingAll && (
+                    <div className="chapter-progress-bar-container">
+                      <div
+                        className="chapter-progress-bar"
+                        style={{ width: `${progress[idx]}%` }}
+                      ></div>
+                    </div>
+                  )}
                 {errorMessages[idx] && (
                   <div className="error-message">
                     <p>{errorMessages[idx]}</p>
-                  </div>
-                )}
-
-                {progress[idx] !== undefined && !isTranslatingAll && (
-                  <div className="chapter-progress-bar-container">
-                    <div
-                      className="chapter-progress-bar"
-                      style={{ width: `${progress[idx]}%` }}
-                    ></div>
                   </div>
                 )}
               </div>

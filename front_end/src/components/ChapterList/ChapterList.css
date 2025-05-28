@@ -69,6 +69,8 @@
 }
 
 .chapter-item {
+  display: flex;
+  flex-direction: column;
   cursor: pointer;
   padding: 10px;
   border: 1px solid #ddd;
@@ -76,6 +78,7 @@
   border-radius: 4px;
   transition: all 0.3s ease;
   width: 100%;
+  height: 100%;
 }
 
 .chapter-item:hover {
@@ -100,17 +103,6 @@
   box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
 }
 
-.chapter-title {
-  font-size: 1.1em;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: #333;
-  transition: all 0.3s ease;
-}
-
-.dark .chapter-title {
-  color: #fff;
-}
 
 .chapter-header {
   display: flex;
@@ -139,9 +131,13 @@
   width: 15%;
 }
 
-.chapter-header>.translate-button,
-.chapter-header>.delete-chapter-button {
-  margin-left: 10px;
+.chapter-header .chapter-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.chapter-header .chapter-actions>.translate-button,
+.chapter-header .chapter-actions>.delete-chapter-button {
   padding: 5px 10px;
   background-color: #28a745;
   color: white;
@@ -149,13 +145,14 @@
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s;
+  width: 50%;
 }
 
-.translate-button:hover {
+.translate-button:hover, .delete-chapter-button:hover {
   background-color: #0056b3;
 }
 
-.translate-button:disabled {
+.translate-button:disabled, .delete-chapter-button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
 }
@@ -170,6 +167,7 @@
   margin-top: 6px;
   border-radius: 4px;
   overflow: hidden;
+  width: 100%;
 }
 
 .chapter-progress-bar {
@@ -276,7 +274,7 @@
   transition: width 0.3s ease;
 }
 
-.chapter-actions {
+/* .chapter-actions {
   display: flex;
   gap: 10px;
   margin-top: 10px;
@@ -288,7 +286,7 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
-}
+} */
 
 .translate-btn {
   background-color: #28a745;
