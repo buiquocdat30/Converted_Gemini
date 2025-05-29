@@ -18,6 +18,7 @@ const ChapterList = ({
   storyId,
   deleteChapter,
   onChapterAdded,
+  setChapters,
 }) => {
   const [results, setResults] = useState({});
   const [errorMessages, setErrorMessages] = useState({}); // Thêm trạng thái lỗi
@@ -226,47 +227,36 @@ const ChapterList = ({
 
   // Hàm xử lý khi chọn chương
   const handleSelectChapter = (index, page) => {
-    // Lấy chapterNumber từ sortedChapters thay vì currentChapters
+    // Lấy chapterNumber từ sortedChapters
     const chapterNumber = sortedChapters[index]?.chapterNumber;
     console.log("Số chương được chọn:", chapterNumber);
     console.log("Index được chọn:", index);
     console.log("Sorted chapters:", sortedChapters);
 
+    // Tìm index thực tế trong mảng chapters dựa trên chapterNumber
+    const actualIndex = chapters.findIndex(ch => ch.chapterNumber === chapterNumber);
+    console.log("Index thực tế trong mảng chapters:", actualIndex);
+
     if (page) {
       setCurrentPage(page);
     }
-    onSelectChapter?.(index); // Truyền index dựa trên chapterNumber
+    onSelectChapter?.(actualIndex); // Truyền index thực tế
   };
 
   // Hàm xử lý xóa chương
-  const handleDeleteChapter = async (index) => {
-    try {
-      if (!storyId) {
-        toast.error("Không tìm thấy ID truyện!");
-        return;
-      }
-
-      const chapterToDelete = chapters[index];
-      if (!chapterToDelete) {
-        toast.error("Không tìm thấy chương cần xóa!");
-        return;
-      }
-
-      const confirmDelete = window.confirm(
-        `Bạn có chắc muốn xóa chương ${chapterToDelete.chapterNumber} không?`
-      );
-
-      if (confirmDelete) {
-        await deleteChapter(storyId, chapterToDelete.chapterNumber);
-        toast.success("✅ Đã xóa chương thành công!");
+  const handleDeleteChapter = async (chapterNumber) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa chương này?")) {
+      try {
+        await deleteChapter(storyId, chapterNumber);
         // Gọi callback để tải lại dữ liệu
         if (onChapterAdded) {
           onChapterAdded();
         }
+        toast.success("Đã xóa chương thành công!");
+      } catch (error) {
+        console.error("Lỗi khi xóa chương:", error);
+        toast.error("Lỗi khi xóa chương!");
       }
-    } catch (error) {
-      console.error("Lỗi khi xóa chương:", error);
-      toast.error("❌ Lỗi khi xóa chương!");
     }
   };
 
@@ -276,7 +266,8 @@ const ChapterList = ({
       <ul>
         {currentChapters.map((ch, idxOnPage) => {
           const calculatedChapterNumber = calculateChapterNumber(idxOnPage);
-          const idx = ch.chapterNumber - 1;
+          // Tìm index thực tế trong mảng chapters dựa trên chapterNumber
+          const idx = chapters.findIndex(chapter => chapter.chapterNumber === ch.chapterNumber);
           const isTranslated = !!results[idx];
 
           return (
@@ -323,7 +314,7 @@ const ChapterList = ({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteChapter(idx);
+                        handleDeleteChapter(ch.chapterNumber);
                       }} 
                       className="delete-chapter-button"
                       style={isTranslated ? { width: "100%",height: "100%" } : { width: "50%" }}
