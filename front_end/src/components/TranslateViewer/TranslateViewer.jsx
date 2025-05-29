@@ -128,7 +128,7 @@ const TranslateViewer = ({
       <h3>📝Nội dung chương</h3>
       <div className="menu-bar">
         <div className="chapter-index">
-          Chương {chapters[currentIndex]?.chapterNumber || currentIndex + 1} / {chapters.length}
+          Chương {chapters[currentIndex]?.chapterNumber || 0} / {chapters.length}
         </div>
         <div className="row">
           <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>
@@ -190,6 +190,8 @@ const TranslateViewer = ({
         <h3 className="viewr-content-title">
           {(() => {
             const chapter = chapters[currentIndex];
+            console.log("📌 vị trí  đang hiển thị:", currentIndex);
+            console.log('chương hiện tại:',chapters[currentIndex-1])
             console.log("📌 vị trí chương đang hiển thị:", chapter);
             const translatedTitle = chapter?.translatedTitle;
             const displayTitle =
