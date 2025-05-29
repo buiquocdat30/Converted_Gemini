@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeLowVision } from "@fortawesome/free-solid-svg-icons";
 import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
+import { toast } from "react-hot-toast";
 
 // Placeholder components cho nội dung bên phải
 // Bạn có thể tách chúng ra thành các file riêng nếu cần
@@ -409,22 +410,126 @@ const KeyManagement = () => {
   const { userData, loading, error, addApiKey, removeApiKey } =
     useContext(AuthContext);
   const [message, setMessage] = useState("");
+  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [keyLabel, setKeyLabel] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("google");
 
-  const handleAddKey = async () => {
-    const newKey = prompt("Nhập API Key mới của Gemini:");
-    if (newKey) {
+  // Modal thêm key mới
+  const AddKeyModal = ({ isOpen, onClose }) => {
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!newKey.trim()) {
+        toast.error("Vui lòng nhập API Key!");
+        return;
+      }
+
       try {
         await addApiKey({
           key: newKey,
-          label: "Key Gemini mới",
+          label: keyLabel || "Key Gemini mới",
+          provider: selectedProvider
         });
         setMessage("Thêm key thành công!");
+        setNewKey("");
+        setKeyLabel("");
+        onClose();
       } catch (error) {
-        setMessage(
-          "Lỗi khi thêm key: " + (error.response?.data?.error || error.message)
-        );
+        setMessage("Lỗi khi thêm key: " + (error.response?.data?.error || error.message));
       }
-    }
+    };
+
+    return (
+      <div className="key-modal-overlay"  onClick={(e) => {
+        // Chỉ đóng khi click trực tiếp vào overlay, không phải con của nó
+        if (e.target.classList.contains('key-modal-overlay')) {
+          onClose();
+        }
+      }}>
+        <div className="key-modal-content" onClick={e => e.stopPropagation()}>
+          <form onSubmit={handleSubmit}>
+            <h3>Thêm API Key Mới</h3>
+            
+            <div className="key-form-group">
+              <label htmlFor="apiKey">API Key:</label>
+              <input
+                type="text"
+                id="apiKey"
+                value={newKey}
+                onChange={(e) => 
+                  setNewKey(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Nhập API Key của Gemini"
+                required
+              />
+            </div>
+
+            <div className="key-form-group">
+              <label htmlFor="keyLabel">Nhãn (tùy chọn):</label>
+              <input
+                type="text"
+                id="keyLabel"
+                value={keyLabel}
+                onChange={(e) => setKeyLabel(e.target.value)}
+                placeholder="Ví dụ: Key chính, Key dự phòng..."
+              />
+            </div>
+
+            <div className="key-form-group">
+              <label>Nhà cung cấp:</label>
+              <div className="key-provider-options">
+                <label className="key-provider-option">
+                  <input
+                    type="radio"
+                    name="provider"
+                    value="google"
+                    checked={selectedProvider === "google"}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                  />
+                  <span className="key-provider-badge">Google</span>
+                </label>
+                <label className="key-provider-option">
+                  <input
+                    type="radio"
+                    name="provider"
+                    value="openai"
+                    checked={selectedProvider === "openai"}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                  />
+                  <span className="key-provider-badge">OpenAI</span>
+                </label>
+                <label className="key-provider-option">
+                  <input
+                    type="radio"
+                    name="provider"
+                    value="deepresearch"
+                    checked={selectedProvider === "deepresearch"}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                  />
+                  <span className="key-provider-badge">DeepResearch</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="key-modal-buttons">
+              <button type="submit" className="use-btn">
+                Thêm Key
+              </button>
+              <button type="button" className="cancel-btn" onClick={onClose}>
+                Hủy
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // Sửa lại hàm handleAddKey
+  const handleAddKey = () => {
+    setIsAddKeyModalOpen(true);
   };
 
   const handleRemoveKey = async (keyId) => {
@@ -455,6 +560,13 @@ const KeyManagement = () => {
       >
         Thêm Key Mới
       </button>
+
+      {/* Thêm modal vào đây */}
+      <AddKeyModal 
+        isOpen={isAddKeyModalOpen} 
+        onClose={() => setIsAddKeyModalOpen(false)} 
+      />
+
       <table>
         <thead>
           <tr>
