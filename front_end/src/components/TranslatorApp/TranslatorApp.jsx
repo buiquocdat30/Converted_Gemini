@@ -63,17 +63,29 @@ const TranslatorApp = ({
   };
 
   // Khi nhận kết quả dịch từ ChapterList
-  const handleTranslationResult = (index, translated, translatedTitle) => {
-    setTranslatedChapters((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...(chapters[index] || {}), // lấy từ chương gốc nếu chưa có
-        translated, // thêm bản dịch mới
-        translatedTitle,
-      };
-      return updated;
-    });
-    setCurrentIndex(index); // 👈 chuyển sang chương vừa dịch
+  const handleTranslationResult = async (index, translated, translatedTitle) => {
+    try {
+      // Cập nhật state local
+      setTranslatedChapters((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...(chapters[index] || {}),
+          translated,
+          translatedTitle,
+        };
+        return updated;
+      });
+
+      // Lưu vào database
+      if (storyId) {
+        const chapter = chapters[index];
+        await onUpdateChapter(index, translated, 'translated');
+      }
+
+      setCurrentIndex(index); // Chuyển sang chương vừa dịch
+    } catch (error) {
+      console.error("Lỗi khi lưu kết quả dịch:", error);
+    }
   };
 
   // Khi người dùng sửa lại nội dung trong TranslateViewer
@@ -383,11 +395,11 @@ const TranslatorApp = ({
                           : "Chọn tất cả"}
                       </button>
                     </div>
-                    <div className="chapter-select">
+                    <div className="modal-chapter-select">
                       {processedChapters.map((chapter, index) => (
                         <div
                           key={index}
-                          className={`chapter-item ${
+                          className={`modal-chapter-item ${
                             selectedChapters.has(index) ? "selected" : ""
                           }`}
                           onClick={() => handleChapterSelect(index)}
@@ -398,10 +410,10 @@ const TranslatorApp = ({
                             onChange={() => {}}
                             onClick={(e) => e.stopPropagation()}
                           />
-                          <span className="chapter-number">
+                          <span className="modal-chapter-number">
                             Chương {index + 1}:
                           </span>
-                          <span className="chapter-title">{chapter.title}</span>
+                          <span className="modal-chapter-title">{chapter.title}</span>
                         </div>
                       ))}
                     </div>

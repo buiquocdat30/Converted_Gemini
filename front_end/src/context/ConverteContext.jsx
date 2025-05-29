@@ -622,6 +622,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateChapterContent = async (chapterId, content, type = 'translated') => {
+    try {
+      setLoading(true);
+      const response = await axios.put(
+        `${API_URL}/user/library/chapter/${chapterId}/translation`,
+        {
+          currentText: content,
+          type: type
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi cập nhật nội dung chương:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -652,6 +677,7 @@ export const AuthProvider = ({ children }) => {
         deleteStories,
         hideStories,
         createStory,
+        updateChapterContent,
 
         // File Functions
         uploadFile,

@@ -343,42 +343,44 @@
   background-color: #e8f5e9;
 }
 
-.chapter-select {
+.modal-chapter-select {
   max-height: 300px;
   overflow-y: auto;
 }
 
-.chapter-item {
+.modal-chapter-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   cursor: pointer;
   border-bottom: 1px solid #eee;
   transition: background-color 0.2s;
+  padding: 8px 12px;
+
 }
 
-.chapter-item:hover {
+.modal-chapter-item:hover {
   background-color: #f8f9fa;
 }
 
-.chapter-item.selected {
+.modal-chapter-item.selected {
   background-color: #e8f5e9;
 }
 
-.chapter-item input[type="checkbox"] {
+.modal-chapter-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin: 0;
   cursor: pointer;
 }
 
-.chapter-number {
+.modal-chapter-number {
   color: #666;
   font-size: 0.9rem;
   min-width: 80px;
 }
 
-.chapter-title {
+.modal-chapter-title {
   flex: 1;
   color: #333;
 }
