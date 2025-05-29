@@ -5,7 +5,7 @@ import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import defaultAvatar from "../../assets/default_avatar.jpg";
 
-const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
+const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton = true }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedStory, setEditedStory] = useState({
     storyAvatar: story.storyAvatar,
@@ -85,6 +85,21 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
     }
   };
 
+  const handleComplete = async (e) => {
+    e.stopPropagation();
+    if (window.confirm("Bạn có chắc chắn muốn đánh dấu truyện này là đã hoàn thành?")) {
+      try {
+        await onUpdate(story.id, "isComplete", true);
+        toast.success("Đã đánh dấu truyện hoàn thành!");
+      } catch (error) {
+        console.error("Lỗi khi cập nhật trạng thái:", error);
+        toast.error("Lỗi khi cập nhật trạng thái truyện");
+      }
+    } else {
+      toast.error("Đã hủy đánh dấu hoàn thành");
+    }
+  };
+
   return (
     <div className="user-story-card">
       {/* Phần thông tin truyện */}
@@ -114,7 +129,7 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
               />
             </div>
           ) : (
-            <img src={story.storyAvatar || defaultAvatar} />
+            <img src={story.storyAvatar || defaultAvatar} onClick={(e) => e.stopPropagation()} />
           )}
         </div>
 
@@ -127,11 +142,14 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
                 value={editedStory.name}
                 onChange={handleInputChange}
                 onClick={(e) => {
-                  e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
+                  e.stopPropagation();
                 }}
               />
             ) : (
-              <h3>{story.name}</h3>
+              <h3 onClick={(e) => e.stopPropagation()}>
+                {story.name}
+                {story.isComplete && <span className="completed-badge">✓</span>}
+              </h3>
             )}
           </div>
           <div className="stories-author">
@@ -146,7 +164,7 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
                 }}
               />
             ) : (
-              <p>Tác giả: {story.author}</p>
+              <p onClick={(e) => e.stopPropagation()}>Tác giả: {story.author}</p>
             )}
           </div>
           <div className="stories-total-chapters">
@@ -190,6 +208,13 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate }) => {
             Sửa
           </button>
         )}
+        <button
+          className="btn-complete-stories"
+          onClick={handleComplete}
+          style={{ display: (story.isComplete || !showCompleteButton) ? 'none' : 'block' }}
+        >
+          Hoàn thành
+        </button>
         <button
           className="btn-delete-stories"
           onClick={(e) => {

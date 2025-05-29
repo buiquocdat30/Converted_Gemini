@@ -391,6 +391,7 @@ const Translate = () => {
                         onHide={() => handleHideStory(story.id)}
                         onDelete={() => handleDeleteStory(story.id)}
                         onUpdate={handleUpdateStoryField}
+                        showCompleteButton={false}
                       />
                     </div>
                   ))

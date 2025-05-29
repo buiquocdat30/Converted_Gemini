@@ -694,8 +694,8 @@ input[type="file"] {
 .stories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 20px 0;
+  gap: 15px;
+  padding: 20px 15px;
 }
 
 .user-story-card {
@@ -755,7 +755,8 @@ input[type="file"] {
 }
 
 .btn-update-stories,
-.btn-delete-stories {
+.btn-delete-stories,
+.btn-complete-stories {
   padding: 8px 15px;
   border: none;
   border-radius: 4px;
