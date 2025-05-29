@@ -119,10 +119,10 @@ const userLibraryController = {
     try {
       const { id } = req.params;
       const userId = req.user.id;
-      const { name, author, storyAvatar } = req.body;
+      const { name, author, storyAvatar, isComplete } = req.body;
       console.log("updateStory - Story ID:", id);
       console.log("updateStory - User ID:", userId);
-      console.log("updateStory - Update data:", { name, author });
+      console.log("updateStory - Update data:", { name, author, isComplete });
 
       if (!userId) {
         return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
@@ -132,6 +132,7 @@ const userLibraryController = {
         name,
         author,
         storyAvatar,
+        isComplete
       });
 
       if (updatedStory.count === 0) {

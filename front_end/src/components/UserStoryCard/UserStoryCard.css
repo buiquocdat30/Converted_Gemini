@@ -109,6 +109,7 @@
 }
 
 .stories-update-time p {
+  text-align: end;
   margin: 0;
   color: #666;
   font-size: 0.9em;
@@ -383,4 +384,15 @@
     flex-direction: column;
     gap: 5px;
   }
+}
+
+.completed-badge {
+  display: inline-block;
+  margin-left: 8px;
+  color: #28a745;
+  font-weight: bold;
+}
+
+.dark .completed-badge {
+  color: #2ecc71;
 }
