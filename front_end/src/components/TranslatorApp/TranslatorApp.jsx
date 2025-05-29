@@ -283,8 +283,6 @@ const TranslatorApp = ({
           content: localContent,
           mode: localMode,
         });
-        onClose();
-        onCloseComplete?.(); // Gọi callback sau khi đóng modal
       } else {
         if (!localFile) {
           toast.error("Vui lòng chọn file!");
@@ -299,9 +297,9 @@ const TranslatorApp = ({
           mode: localMode,
           file: localFile,
           selectedChapters: selectedChapters,
+          processedChapters: processedChapters,
+          setSelectedChapters: setSelectedChapters,
         });
-        onClose();
-        onCloseComplete?.(); // Gọi callback sau khi đóng modal
       }
     };
 
@@ -465,6 +463,16 @@ const TranslatorApp = ({
           return;
         }
 
+        // Kiểm tra trùng tên chương
+        const isTitleDuplicate = chapters.some(
+          (chapter) => chapter.chapterName.toLowerCase() === data.title.toLowerCase()
+        );
+        if (isTitleDuplicate) {
+          toast.error("❌ Tên chương đã tồn tại! Vui lòng chọn tên khác.");
+          setIsAddChapterModalOpen(true);
+          return;
+        }
+
         const newChapter = {
           storyId: storyId,
           chapterName: data.title,
@@ -474,13 +482,11 @@ const TranslatorApp = ({
 
         try {
           const token = getAuthToken();
-          console.log("đây là token", token);
           if (!token) {
             toast.error("Vui lòng đăng nhập lại!");
             return;
           }
 
-          console.log("đây là thông tin chương mới addChapter", newChapter);
           await addChapter({
             storyId: storyId,
             chapterNumber: newChapter.chapterNumber,
@@ -488,10 +494,10 @@ const TranslatorApp = ({
             rawText: newChapter.rawText,
           });
 
-          // Không cần cập nhật state local vì sẽ tải lại từ server
+          // Chỉ đóng modal và hiển thị thông báo thành công khi thêm chương thành công
           setIsAddChapterModalOpen(false);
           toast.success("✅ Đã thêm chương mới!");
-          onChapterAdded?.(); // Gọi callback để tải lại dữ liệu
+          onChapterAdded?.();
         } catch (error) {
           console.error("Lỗi khi thêm chương:", error);
           if (error.response?.status === 401) {
@@ -499,6 +505,7 @@ const TranslatorApp = ({
           } else {
             toast.error("❌ Lỗi khi thêm chương mới!");
           }
+          // Không đóng modal khi có lỗi
         }
       } else {
         // Xử lý thêm chương từ file
@@ -514,58 +521,29 @@ const TranslatorApp = ({
             return;
           }
 
-          // Đọc nội dung file
-          const content = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(data.file);
-          });
+          // Kiểm tra trùng lặp trước khi thêm
+          const existingTitles = new Set(chapters.map(ch => ch.chapterName.toLowerCase()));
+          const duplicateTitles = [];
+          const validChapters = new Set();
 
-          // Xử lý file dựa vào định dạng
-          const fileExt = data.file.name.split(".").pop().toLowerCase();
-          let processedChapters;
+          // Lọc ra các chương không trùng
+          for (let i = 0; i < data.processedChapters.length; i++) {
+            const chapter = data.processedChapters[i];
+            const chapterTitle = chapter.title.toLowerCase();
 
-          if (fileExt === "epub") {
-            processedChapters = await handleEpubFile(
-              content,
-              null,
-              (error) => toast.error(error),
-              (success) => toast.success(success),
-              null,
-              null,
-              null,
-              null,
-              null
-            );
-          } else if (fileExt === "txt") {
-            const result = checkFileFormatFromText(content);
-            if (!result.valid) {
-              toast.error("File không đúng định dạng chương!");
-              return;
+            if (existingTitles.has(chapterTitle)) {
+              duplicateTitles.push(chapter.title);
+            } else {
+              validChapters.add(i);
             }
-            processedChapters = result.chapters;
-          } else {
-            toast.error("Chỉ hỗ trợ file EPUB và TXT!");
-            return;
           }
 
-          if (!processedChapters || processedChapters.length === 0) {
-            toast.error("Không tìm thấy chương nào trong file!");
+          if (duplicateTitles.length > 0) {
+            toast.error(`❌ Các chương sau đã tồn tại: ${duplicateTitles.join(", ")}`);
+            // Sử dụng setSelectedChapters được truyền từ AddChapterModal
+            data.setSelectedChapters(validChapters);
             return;
           }
-
-          // Lấy danh sách các chương đã chọn từ modal
-          const selectedChapters = data.selectedChapters || new Set();
-          if (selectedChapters.size === 0) {
-            toast.error("Vui lòng chọn ít nhất một chương!");
-            return;
-          }
-
-          // Chuyển Set thành Array và sắp xếp theo thứ tự
-          const sortedSelectedIndices = Array.from(selectedChapters).sort(
-            (a, b) => a - b
-          );
 
           // Tìm chapterNumber lớn nhất hiện tại
           const maxChapterNumber = chapters.reduce(
@@ -573,35 +551,37 @@ const TranslatorApp = ({
             0
           );
 
+          let successCount = 0;
           // Thêm từng chương đã chọn với chapterNumber tăng dần
-          for (let i = 0; i < sortedSelectedIndices.length; i++) {
-            const index = sortedSelectedIndices[i];
-            const chapter = processedChapters[index];
+          for (let i = 0; i < data.selectedChapters.size; i++) {
+            const index = Array.from(data.selectedChapters)[i];
+            const chapter = data.processedChapters[index];
             const newChapter = {
               storyId: storyId,
-              chapterName:
-                chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
+              chapterName: chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
               rawText: chapter.content,
               chapterNumber: maxChapterNumber + i + 1,
             };
 
-            console.log("Thông tin chương mới từ file:", newChapter);
-
-            // Gọi API thêm chương
-            await addChapter({
-              storyId: storyId,
-              chapterNumber: newChapter.chapterNumber,
-              chapterName: newChapter.chapterName,
-              rawText: newChapter.rawText,
-            });
+            try {
+              await addChapter({
+                storyId: storyId,
+                chapterNumber: newChapter.chapterNumber,
+                chapterName: newChapter.chapterName,
+                rawText: newChapter.rawText,
+              });
+              successCount++;
+            } catch (error) {
+              console.error(`Lỗi khi thêm chương ${newChapter.chapterName}:`, error);
+              toast.error(`❌ Lỗi khi thêm chương "${newChapter.chapterName}"`);
+            }
           }
 
-          // Không cần cập nhật state local vì sẽ tải lại từ server
-          setIsAddChapterModalOpen(false);
-          toast.success(
-            `✅ Đã thêm ${sortedSelectedIndices.length} chương mới từ file!`
-          );
-          onChapterAdded?.(); // Gọi callback để tải lại dữ liệu
+          if (successCount > 0) {
+            setIsAddChapterModalOpen(false);
+            toast.success(`✅ Đã thêm ${successCount} chương mới từ file!`);
+            onChapterAdded?.();
+          }
         } catch (error) {
           console.error("Lỗi khi thêm chương từ file:", error);
           if (error.response?.status === 401) {
