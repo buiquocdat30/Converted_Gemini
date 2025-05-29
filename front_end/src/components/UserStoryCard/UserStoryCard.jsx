@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import "./UserStoryCard.css";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import defaultAvatar from "../../assets/default_avatar.jpg";
 
-const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton = true }) => {
+const UserStoryCard = React.memo(({ story, onHide, onDelete, onUpdate, showCompleteButton = true }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedStory, setEditedStory] = useState({
     storyAvatar: story.storyAvatar,
@@ -15,7 +15,8 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
   const [previewAvatar, setPreviewAvatar] = useState(story.storyAvatar);
   const [selectedFile, setSelectedFile] = useState(null);
   const navigate = useNavigate();
-  const handleAvatarChange = (e) => {
+
+  const handleAvatarChange = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
@@ -25,10 +26,9 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
       };
       reader.readAsDataURL(file);
     }
-  };
+  }, []);
 
-  //xoá mềm dùng trong tủ truyện
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (window.confirm("Bạn có chắc chắn muốn xoá truyện này không?")) {
       onHide(story.id);
       navigate("/translate");
@@ -36,24 +36,22 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
       toast.error("❌ Bạn đã hủy xoá truyện");
       navigate("/translate");
     }
-  };
+  }, [onHide, story.id, navigate]);
 
-  const handleEditToggle = () => {
+  const handleEditToggle = useCallback(() => {
     setIsEditing(true);
-  };
+  }, []);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setEditedStory((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
-      // Nếu có file ảnh mới, upload ảnh trước
       if (selectedFile) {
         const formData = new FormData();
         formData.append("image", selectedFile);
-        console.log("formData", formData);
         const response = await axios.post(
           "http://localhost:8000/upload/image/storyAvatar",
           formData,
@@ -65,27 +63,23 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
           }
         );
         const storyAvatar = `http://localhost:8000/data/upload/${response.data.filePath}`;
-        console.log("storyAvatar", storyAvatar);
-        // Cập nhật storyAvatar với đường dẫn mới
         await onUpdate(story.id, "storyAvatar", storyAvatar);
       }
 
-      // Cập nhật các thông tin khác
       for (const [field, value] of Object.entries(editedStory)) {
         if (field !== "storyAvatar") {
-          // Không cập nhật storyAvatar ở đây vì đã xử lý ở trên
           await onUpdate(story.id, field, value);
         }
       }
 
       setIsEditing(false);
-      setSelectedFile(null); // Reset selected file
+      setSelectedFile(null);
     } catch (error) {
       console.error("Lỗi khi cập nhật thông tin:", error);
     }
-  };
+  }, [selectedFile, editedStory, onUpdate, story.id]);
 
-  const handleComplete = async (e) => {
+  const handleComplete = useCallback(async (e) => {
     e.stopPropagation();
     if (window.confirm("Bạn có chắc chắn muốn đánh dấu truyện này là đã hoàn thành?")) {
       try {
@@ -98,11 +92,20 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
     } else {
       toast.error("Đã hủy đánh dấu hoàn thành");
     }
-  };
+  }, [onUpdate, story.id]);
+
+  const totalChapters = useMemo(() => {
+    return story.chapters
+      ? story.chapters.filter((chapter) => !chapter.isHidden).length
+      : 0;
+  }, [story.chapters]);
+
+  const formattedUpdateTime = useMemo(() => {
+    return new Date(story.updatedAt).toLocaleString("vi-VN");
+  }, [story.updatedAt]);
 
   return (
     <div className="user-story-card">
-      {/* Phần thông tin truyện */}
       <div className="stories-info">
         <div className="stories-info-avatar">
           {isEditing ? (
@@ -111,9 +114,8 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
                 <img
                   src={previewAvatar || null}
                   className="avatar-preview"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
-                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  alt="Preview"
                 />
               </label>
               <input
@@ -122,14 +124,16 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
                 name="storyAvatar"
                 accept="image/*"
                 onChange={handleAvatarChange}
-                onClick={(e) => {
-                  e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
-                }}
+                onClick={(e) => e.stopPropagation()}
                 className="avatar-input"
               />
             </div>
           ) : (
-            <img src={story.storyAvatar || defaultAvatar} onClick={(e) => e.stopPropagation()} />
+            <img 
+              src={story.storyAvatar || defaultAvatar} 
+              onClick={(e) => e.stopPropagation()} 
+              alt={story.name}
+            />
           )}
         </div>
 
@@ -141,9 +145,7 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
                 name="name"
                 value={editedStory.name}
                 onChange={handleInputChange}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
+                onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <h3 onClick={(e) => e.stopPropagation()}>
@@ -159,33 +161,22 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
                 name="author"
                 value={editedStory.author}
                 onChange={handleInputChange}
-                onClick={(e) => {
-                  e.stopPropagation(); // Ngăn sự kiện click nổi bọt lên div cha
-                }}
+                onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <p onClick={(e) => e.stopPropagation()}>Tác giả: {story.author}</p>
             )}
           </div>
           <div className="stories-total-chapters">
-            <p>
-              Tổng chương:{" "}
-              {story.chapters
-                ? story.chapters.filter((chapter) => !chapter.isHidden).length
-                : 0}
-            </p>
+            <p>Tổng chương: {totalChapters}</p>
           </div>
         </div>
       </div>
 
-      {/* Thời gian cập nhật */}
       <div className="stories-update-time">
-        <p>
-          Cập nhật lần cuối: {new Date(story.updatedAt).toLocaleString("vi-VN")}
-        </p>
+        <p>Cập nhật lần cuối: {formattedUpdateTime}</p>
       </div>
 
-      {/* Nút chức năng */}
       <div className="stories-update-btn">
         {isEditing ? (
           <button
@@ -227,6 +218,8 @@ const UserStoryCard = ({ story, onHide, onDelete, onUpdate, showCompleteButton =
       </div>
     </div>
   );
-};
+});
+
+UserStoryCard.displayName = 'UserStoryCard';
 
 export default UserStoryCard;

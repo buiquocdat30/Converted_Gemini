@@ -128,7 +128,7 @@ const TranslateViewer = ({
       <h3>📝Nội dung chương</h3>
       <div className="menu-bar">
         <div className="chapter-index">
-          Chương {currentIndex + 1} / {chapters.length}
+          Chương {chapters[currentIndex]?.chapterNumber || currentIndex + 1} / {chapters.length}
         </div>
         <div className="row">
           <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>

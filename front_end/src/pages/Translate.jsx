@@ -19,6 +19,7 @@ const Translate = () => {
     addChapter,
     deleteChapter,
     getAuthToken,
+    updateChapterContent,
   } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
   const [chapters, setChapters] = useState([]);
@@ -173,22 +174,9 @@ const Translate = () => {
   // Cập nhật nội dung chương đã dịch
   const handleUpdateChapterContent = async (index, newContent) => {
     try {
-      const token = localStorage.getItem("auth-token");
       const chapter = chapters[index];
-
-      // Cập nhật nội dung chương trong database
-      await axios.put(
-        `http://localhost:8000/user/library/chapter/${chapter.id}/translation`,
-        {
-          currentText: newContent,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      await updateChapterContent(chapter.id, newContent);
+      
       // Cập nhật state local
       setChapters((prev) =>
         prev.map((ch, i) =>
