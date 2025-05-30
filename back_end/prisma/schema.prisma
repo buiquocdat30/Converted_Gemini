@@ -103,18 +103,20 @@ model UserTranslationVersion {
 
 //quản lý key của user, người dùng sẽ có thể thêm xoá sửa key của minh được
 model UserApiKey {
-   id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
   key         String        // Có thể trùng (nếu user dùng cùng key nhiều lần)
   userId      String        @db.ObjectId
+  user        User          @relation(fields: [userId], references: [id])
   label       String?       // Tên tùy chọn để user dễ phân biệt: "Key Gemini chính", "Dự phòng", v.v.
+  modelId     String        @db.ObjectId
+  model       Model         @relation(fields: [modelId], references: [id])
   status      ApiKeyStatus  @default(ACTIVE)
   usageCount  Int           @default(0)
   lastUsedAt  DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  user        User          @relation(fields: [userId], references: [id])
-
-  @@unique([userId, key]) // Một user có thể thêm key trùng, nhưng không trùng với cùng model
+ 
+  @@unique([userId, key, modelId])
   @@map("User_api_keys") // Tên collection trong MongoDB
 }
 
@@ -136,28 +138,31 @@ model Provider {
 }
 
 model Model {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  providerId  String   @db.ObjectId
-  value       String
-  rpm         Int?
-  tpm         Int?
-  rpd         Int?
-  label       String
-  description String
-  provider    Provider @relation(fields: [providerId], references: [id])
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  providerId    String        @db.ObjectId
+  provider      Provider      @relation(fields: [providerId], references: [id])
+  value         String
+  rpm           Int?
+  tpm           Int?
+  rpd           Int?
+  label         String
+  description   String?
+  userApiKeys   UserApiKey[]
+  defaultKeys   DefaultKey[]  @relation("ModelToDefaultKey") // 👈 thêm dòng này
 
-
-  @@unique([providerId, value]) // Đảm bảo mỗi model value là duy nhất trong một provider
-  @@map("Model") // Ánh xạ model Model tới collection "Model" trong MongoDB
+  @@unique([providerId, value])
+  @@map("Model")
 }
 
-//key mặc định của hệ thống khi user ko nhập key
 model DefaultKey {
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
-  key   String  @unique
-  value String
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  key      String  @unique
+  value    String
+  modelId  String  @db.ObjectId
+  model    Model   @relation("ModelToDefaultKey", fields: [modelId], references: [id])
   @@map("DefaultKey")
 }
+
 
 //từ điển
 model Dictionary {
