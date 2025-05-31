@@ -19,6 +19,9 @@ const translateText = async (text, customKey, modelAI, userId) => {
   // Khởi tạo ApiKeyManager khi đã có modelAI
   const apiKeyManager = new ApiKeyManager(currentModelAI);
 
+  // Load default keys từ database
+  await apiKeyManager.loadDefaultKeys();
+
   // Load keys của user nếu có userId
   if (userId) {
     await apiKeyManager.loadUserKeys(userId);

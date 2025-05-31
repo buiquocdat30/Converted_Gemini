@@ -1,5 +1,5 @@
 // controllers/userController.js
-const userService = require('../adminServices/userService'); // Đảm bảo đường dẫn này chính xác
+const userService = require('../adminServices/userServices'); // Đảm bảo đường dẫn này chính xác
 
 async function getAllUsers(req, res) {
   try {

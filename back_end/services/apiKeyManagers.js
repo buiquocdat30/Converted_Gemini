@@ -1,14 +1,38 @@
 const prisma = require("../config/prismaConfig");
 const { getModelInfo } = require("./modelAIManagers");
 
-const DEFAULT_KEYS = process.env.DEFAULT_GEMINI_API_KEYS
-  ? process.env.DEFAULT_GEMINI_API_KEYS.split(",")
-  : [];
-
 class ApiKeyManager {
   constructor(modelValue) {
     this.modelValue = modelValue;
-    this.aliveKeys = [...DEFAULT_KEYS];
+    this.aliveKeys = [];
+  }
+
+  // Lấy default keys từ database
+  async loadDefaultKeys() {
+    try {
+      // Tìm model ID dựa trên modelValue
+      const model = await prisma.model.findFirst({
+        where: { value: this.modelValue }
+      });
+
+      if (!model) {
+        console.log("⚠️ Không tìm thấy model trong database");
+        return;
+      }
+
+      // Lấy tất cả default keys của model
+      const defaultKeys = await prisma.defaultKey.findMany({
+        where: { modelId: model.id }
+      });
+
+      // Thêm default keys vào danh sách aliveKeys
+      const defaultKeyValues = defaultKeys.map(k => k.key);
+      this.aliveKeys = [...new Set([...this.aliveKeys, ...defaultKeyValues])];
+      
+      console.log(`📥 Đã tải ${defaultKeyValues.length} default keys`);
+    } catch (error) {
+      console.error("❌ Lỗi khi tải default keys:", error);
+    }
   }
 
   // Lấy keys của user từ database

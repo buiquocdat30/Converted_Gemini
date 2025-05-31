@@ -4,9 +4,10 @@ import TranslatorApp from "../components/TranslatorApp/TranslatorApp";
 import StoryInfoForm from "../components/StoryInfoForm/StoryInfoForm";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "../pages/pageCSS/Translate.css";
+import { FaBook, FaHistory, FaSpinner } from 'react-icons/fa';
 
 const Translate = () => {
   const {
@@ -20,6 +21,7 @@ const Translate = () => {
     deleteChapter,
     getAuthToken,
     updateChapterContent,
+    isDarkMode,
   } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("new");
   const [chapters, setChapters] = useState([]);
@@ -29,6 +31,9 @@ const Translate = () => {
   const [fileName, setFileName] = useState("");
   const [searchParams] = useSearchParams();
   const [translatingStories, setTranslatingStories] = useState([]);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const storyId = searchParams.get("storyId");
@@ -339,7 +344,7 @@ const Translate = () => {
   }
 
   return (
-    <div className="translate-page">
+    <div className={`translate-page ${isDarkMode ? 'dark' : ''}`}>
       <div className="translate-tabs">
         <button
           className={`tab-button ${activeTab === "new" ? "active" : ""}`}

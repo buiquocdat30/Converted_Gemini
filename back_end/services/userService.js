@@ -37,15 +37,21 @@ class UserService {
   // Get user by ID
   async getUserById(id) {
     try {
+      console.log("🔍 Đang tìm user với ID:", id);
+      
       const user = await prisma.user.findUnique({
-        where: { id },
-        include: {
-          libraryStories: true,
-          UserApiKey: true,
-        },
+        where: { id }
       });
+
+      console.log("📦 Kết quả tìm user:", user);
+      
+      if (!user) {
+        console.log("⚠️ Không tìm thấy user với ID:", id);
+      }
+
       return user;
     } catch (error) {
+      console.error("❌ Lỗi khi tìm user:", error);
       throw error;
     }
   }

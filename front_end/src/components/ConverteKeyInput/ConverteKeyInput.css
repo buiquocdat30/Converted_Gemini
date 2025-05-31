@@ -19,6 +19,11 @@
     height: 46px;
 }
 
+.dark .converte-key input {
+    background-color: #1f1f1f;
+    color: #fff;
+}
+
 /* Nút hướng dẫn API */
 .converte-key button {
     width: 100%;
@@ -72,7 +77,10 @@
     font-size: 16px;
 }
 
-
+.dark .converte-file {
+    background-color: #1f1f1f;
+    color: #fff;
+}
 
 /*Hướng dẫn*/
 .modal {

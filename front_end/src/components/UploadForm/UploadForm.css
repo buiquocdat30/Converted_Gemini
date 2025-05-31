@@ -11,12 +11,21 @@
 .wrapper {
   max-width: 1240px;
   width: 100%;
-  margin: 10px auto;
+  margin: 5px auto;
   padding: 15px;
   background-color: #fff;
   border-radius: 16px;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   text-align: center;
+  transition: all 0.3s ease;
+}
+
+.dark .wrapper {
+  background-color: #1f1f1f;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  color: #A8C4B5;
 }
 
 .wrapper h2 {

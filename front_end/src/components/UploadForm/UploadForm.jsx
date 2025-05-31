@@ -42,7 +42,7 @@ const models = [
   },
 ];
 
-const UploadForm = ({ onFileParsed }) => {
+const UploadForm = ({ onFileParsed, isDarkMode }) => {
   const {
     isLoggedIn,
     username,
@@ -237,7 +237,7 @@ const UploadForm = ({ onFileParsed }) => {
   };
 
   return (
-    <div className="wrapper">
+    <div className={`wrapper ${isDarkMode ? 'dark' : ''}`}>
       <h2>📘 Gemini Converte</h2>
       <ConverteKeyInput apiKey={localApiKey} setApiKey={handleApiKeyChange} />
       <div className="notify">

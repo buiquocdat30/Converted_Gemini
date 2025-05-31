@@ -65,7 +65,7 @@ const LoginSignup = () => {
           console.log("userData", userData);
         }
 
-        navigate("/user");
+        navigate("/");
         console.log("Đăng nhập thành công");
         toast.success("Đăng nhập thành công");
       } else {

@@ -84,9 +84,11 @@ export const AuthProvider = ({ children }) => {
   const fetchUserData = async () => {
     try {
       setLoading(true);
+      console.log("fetchUserData", token);
       const response = await axios.get(`${API_URL}/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("response", response.data);
       if (response.data) {
         setUserData({
           id: response.data.id,
