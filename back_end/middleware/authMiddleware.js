@@ -3,21 +3,21 @@ const prisma = require("../config/prismaConfig");
 
 const authMiddleware = async (req, res, next) => {
     try {
-        // Lấy token từ header
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                error: 'Không tìm thấy token xác thực',
-                code: 'NO_TOKEN'
-            });
+        const token = req.headers.authorization?.split(' ')[1];
+        console.log("🔑 Token từ request:", token);
+
+        if (!token) {
+            console.log("⚠️ Không tìm thấy token");
+            return res.status(401).json({ error: "Không tìm thấy token" });
         }
 
-        const token = authHeader.split(' ')[1];
-
-
-        // Xác thực token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("🔓 Token đã giải mã:", decoded);
 
+        if (!decoded.userId) {
+            console.log("⚠️ Token không chứa ID user");
+            return res.status(401).json({ error: "Token không hợp lệ" });
+        }
 
         // Kiểm tra user có tồn tại không
         const user = await prisma.user.findUnique({
@@ -25,7 +25,6 @@ const authMiddleware = async (req, res, next) => {
                 id: decoded.userId
             }
         });
-
 
         if (!user) {
             return res.status(401).json({
@@ -36,15 +35,15 @@ const authMiddleware = async (req, res, next) => {
 
         // Thêm thông tin user vào request
         req.user = {
-            id: user.id, // Đảm bảo id là ObjectId từ MongoDB
+            id: user.id,
             email: user.email,
             username: user.username
         };
 
-
+        console.log("✅ Xác thực thành công, user ID:", decoded.userId);
         next();
     } catch (error) {
-
+        console.error("❌ Lỗi xác thực:", error);
         if (error instanceof jwt.TokenExpiredError) {
             return res.status(401).json({
                 error: 'Token đã hết hạn',

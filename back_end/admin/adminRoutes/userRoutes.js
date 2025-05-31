@@ -1,7 +1,7 @@
 // routes/modelRoutes.js
 const express = require('express');
 const router = express.Router();
-const userController = require('../adminControllers/userController'); // Đảm bảo đường dẫn này chính xác
+const userController = require('../adminControllers/userControllers'); // Đảm bảo đường dẫn này chính xác
 
 // Route để lấy tất cả models, có thể có query param ?providerId=...
 router.get('/', userController.getAllUsers);

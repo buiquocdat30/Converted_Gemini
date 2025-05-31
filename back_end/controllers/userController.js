@@ -5,12 +5,26 @@ class UserController {
   async getCurrentUserProfile(req, res) {
     try {
       const userId = req.user.id; // Lấy từ authMiddleware
+      console.log("🔑 User ID từ token:", userId);
+      console.log("🔑 Kiểu dữ liệu của ID:", typeof userId);
+
+      // Kiểm tra định dạng ID
+      if (!userId || typeof userId !== 'string') {
+        console.error("❌ ID không hợp lệ:", userId);
+        return res.status(400).json({ message: "ID không hợp lệ" });
+      }
+
       const user = await userService.getUserById(userId);
+      console.log("👤 Kết quả tìm user:", user);
+
       if (!user) {
+        console.log("⚠️ Không tìm thấy user");
         return res.status(404).json({ message: "User not found" });
       }
+
       res.status(200).json(user);
     } catch (error) {
+      console.error("❌ Lỗi server:", error);
       res.status(500).json({ message: error.message });
     }
   }

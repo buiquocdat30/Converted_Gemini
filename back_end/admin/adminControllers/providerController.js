@@ -24,9 +24,9 @@ async function getProviderById(req, res) {
 }
 
 async function createProvider(req, res) {
-  const { name } = req.body;
+  const providerData = req.body;
   try {
-    const newProvider = await providerService.createProvider(name);
+    const newProvider = await providerService.createProvider(providerData);
     res.status(201).json(newProvider);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -35,9 +35,12 @@ async function createProvider(req, res) {
 
 async function updateProvider(req, res) {
   const { id } = req.params;
-  const { name } = req.body;
+  const providerData = req.body;
   try {
-    const updatedProvider = await providerService.updateProvider(id, name);
+    const updatedProvider = await providerService.updateProvider(id, providerData);
+    if (!updatedProvider) {
+      return res.status(404).json({ message: 'Provider không tồn tại để cập nhật.' });
+    }
     res.json(updatedProvider);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -47,8 +50,11 @@ async function updateProvider(req, res) {
 async function deleteProvider(req, res) {
   const { id } = req.params;
   try {
-    await providerService.deleteProvider(id);
-    res.status(204).send(); // No content
+    const deletedProvider = await providerService.deleteProvider(id);
+    if (!deletedProvider) {
+      return res.status(404).json({ message: 'Provider không tồn tại để xóa.' });
+    }
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -59,5 +65,5 @@ module.exports = {
   getProviderById,
   createProvider,
   updateProvider,
-  deleteProvider,
+  deleteProvider
 };
