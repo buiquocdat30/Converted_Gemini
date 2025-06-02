@@ -114,3 +114,163 @@
 
 }
 
+.list_api_key {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.list_api_key p {
+  margin-bottom: 15px;
+  font-weight: 500;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-bottom: 15px;
+}
+
+.key-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.key-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.key-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.key-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.key-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.key-item:hover {
+  background: #f8f8f8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.key-item.selected {
+  background: #e8f5e9;
+  border-color: #4caf50;
+}
+
+.key-item input[type="checkbox"] {
+    margin-top: 0;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #32744f;
+}
+
+.key-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    gap: 5px;
+    flex: 1;
+}
+
+.key-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.key-preview {
+  color: #666;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.key-status {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.select-all-key-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #32744f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 1em;
+}
+
+.select-all-key-btn:hover {
+  background-color: #2a6142;
+}
+
+/* Dark mode */
+.dark .list_api_key {
+  background: #2a2a2a;
+}
+
+.dark .list_api_key p {
+  color: #fff;
+}
+
+.dark .key-item {
+  background: #333;
+  border-color: #444;
+}
+
+.dark .key-item:hover {
+  background: #3a3a3a;
+}
+
+.dark .key-item.selected {
+  background: #1b5e20;
+  border-color: #4caf50;
+}
+
+.dark .key-label {
+  color: #fff;
+}
+
+.dark .key-preview {
+  color: #aaa;
+}
+
+.dark .key-status {
+  color: #aaa;
+}
+
+.dark .select-all-key-btn {
+  background-color: #4a8c6d;
+}
+
+.dark .select-all-key-btn:hover {
+  background-color: #3d7559;
+}
+

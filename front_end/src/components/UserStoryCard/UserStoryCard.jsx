@@ -131,7 +131,7 @@ const UserStoryCard = React.memo(({ story, onHide, onDelete, onUpdate, showCompl
           ) : (
             <img 
               src={story.storyAvatar || defaultAvatar} 
-              onClick={(e) => e.stopPropagation()} 
+              //onClick={(e) => e.stopPropagation()} 
               alt={story.name}
             />
           )}
@@ -148,7 +148,8 @@ const UserStoryCard = React.memo(({ story, onHide, onDelete, onUpdate, showCompl
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <h3 onClick={(e) => e.stopPropagation()}>
+              <h3 //onClick={(e) => e.stopPropagation()} 
+              >
                 {story.name}
                 {story.isComplete && <span className="completed-badge">✓</span>}
               </h3>
@@ -164,7 +165,8 @@ const UserStoryCard = React.memo(({ story, onHide, onDelete, onUpdate, showCompl
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <p onClick={(e) => e.stopPropagation()}>Tác giả: {story.author}</p>
+              <p //onClick={(e) => e.stopPropagation()}
+              >Tác giả: {story.author} </p>
             )}
           </div>
           <div className="stories-total-chapters">
