@@ -407,6 +407,7 @@ const TranslatingStories = () => {
 };
 
 const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
+  const { addApiKey, fetchApiKey } = useContext(AuthContext);
   const modalRef = useRef(null);
   const [newKey, setNewKey] = useState("");
   const [keyLabel, setKeyLabel] = useState("");
@@ -429,10 +430,13 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
       setNewKey("");
       setKeyLabel("");
       onClose();
+      // Gọi fetchApiKey để cập nhật lại danh sách key
+      fetchApiKey();
     } catch (error) {
       toast.error("Lỗi khi thêm key: " + (error.response?.data?.error || error.message));
+      console.error("Lỗi khi thêm key:",  (error.response?.data?.error || error.message));
     }
-  }, [newKey, keyLabel, selectedProvider, onClose]);
+  }, [newKey, keyLabel, selectedProvider, onClose, fetchApiKey]);
 
   const handleKeyChange = useCallback((e) => {
     setNewKey(e.target.value);
@@ -531,11 +535,16 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
 });
 
 const KeyManagement = () => {
-  const { userData, loading, error, addApiKey, removeApiKey } =
+  const { userData, loading, error, userApiKey, addApiKey, removeApiKey, fetchApiKey } =
     useContext(AuthContext);
-  const [message, setMessage] = useState("");
+
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const inputRef = useRef(null);
+
+  // Thêm useEffect để gọi fetchApiKey khi component mount
+  useEffect(() => {
+    fetchApiKey();
+  }, []);
 
   const handleAddKey = useCallback(() => {
     setIsAddKeyModalOpen(true);
@@ -549,11 +558,11 @@ const KeyManagement = () => {
     if (window.confirm(`Bạn có chắc muốn xóa key này?`)) {
       try {
         await removeApiKey(keyId);
-        setMessage("Xóa key thành công!");
+        toast.success("Xóa key thành công!");
+        // Gọi lại fetchApiKey sau khi xóa để cập nhật danh sách
+        fetchApiKey();
       } catch (error) {
-        setMessage(
-          "Lỗi khi xóa key: " + (error.response?.data?.error || error.message)
-        );
+        toast.error("Lỗi khi xóa key: " + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -564,12 +573,10 @@ const KeyManagement = () => {
   return (
     <div className="key-management">
       <h2>Quản Lý Khóa (API Key Gemini)</h2>
-      {message && <div className="message">{message}</div>}
 
       <button
         className="use-btn"
         onClick={handleAddKey}
-        style={{ marginBottom: "20px" }}
       >
         Thêm Key Mới
       </button>
@@ -592,7 +599,7 @@ const KeyManagement = () => {
           </tr>
         </thead>
         <tbody>
-          {userData.userApiKeys.map((key) => (
+          {userApiKey.map((key) => (
             <tr key={key.id}>
               <td>{key.key.substring(0, 10)}...</td>
               <td>{key.label || "Không có nhãn"}</td>
