@@ -23,17 +23,16 @@ const userApiKeyController = {
             const userId = req.user.id;
             const { key, modelId, label } = req.body;
 
-            // Kiểm tra key và model đã tồn tại chưa
+            // Kiểm tra key đã tồn tại chưa (chỉ kiểm tra userId và key)
             const existingKey = await prisma.userApiKey.findFirst({
                 where: {
                     userId,
-                    key,
-                    modelId
+                    key
                 }
             });
 
             if (existingKey) {
-                return res.status(400).json({ error: 'API key đã tồn tại cho model này' });
+                return res.status(400).json({ error: 'API key đã tồn tại' });
             }
 
             const newKey = await prisma.userApiKey.create({
@@ -41,9 +40,16 @@ const userApiKeyController = {
                     key,
                     modelId,
                     label,
-                    userId
+                    user: {
+                        connect: {
+                            id: userId
+                        }
+                    }
                 },
-                include: { model: true }
+                include: { 
+                    model: true,
+                    user: true 
+                }
             });
 
             res.status(201).json(newKey);

@@ -261,8 +261,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const [userApiKey, setUserApiKey] = useState([]);
+
+  const fetchApiKey = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/user/keys`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('response',response.data)
+      setUserApiKey(response.data);
+      console.log('userApiKey',userApiKey)
+      setError(null);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách API key:", err);
+      setError(
+        "Lỗi khi tải danh sách API key: " +
+          (err.response?.data?.error || err.message)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ===== STORY MANAGEMENT =====
   const [stories, setStories] = useState([]);
+ 
 
   const fetchStories = async () => {
     try {
@@ -659,6 +685,7 @@ export const AuthProvider = ({ children }) => {
         error,
         userData,
         stories,
+        userApiKey,
         getAuthToken,
 
         // User Functions
@@ -672,6 +699,7 @@ export const AuthProvider = ({ children }) => {
         // API Key Functions
         addApiKey,
         removeApiKey,
+        fetchApiKey,
 
         // Story Functions
         fetchStories,
