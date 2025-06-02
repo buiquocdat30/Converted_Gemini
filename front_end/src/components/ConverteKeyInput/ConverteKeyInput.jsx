@@ -1,12 +1,22 @@
 // src/components/ConverteKeyInput.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { AuthContext } from "../../context/ConverteContext";
 import "./ConverteKeyInput.css"; // dùng luôn css cũ
 
 const ConverteKeyInput = ({ apiKey, setApiKey }) => {
+  const { isLoggedIn, onLogout, userData, menu, setMenu, loading, userApiKey, fetchApiKey } =
+    useContext(AuthContext);
   const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState([]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchApiKey();
+    }
+  }, [isLoggedIn]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -34,6 +44,26 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
     };
 
     reader.readAsText(file);
+  };
+
+  const handleKeySelect = (key) => {
+    setApiKey(key);
+    setSelectedKeys([key]);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedKeys.length === userApiKey.length) {
+      // Nếu đã chọn tất cả thì bỏ chọn
+      setSelectedKeys([]);
+      setApiKey("");
+    } else {
+      // Nếu chưa chọn tất cả thì chọn key đầu tiên
+      const firstKey = userApiKey[0]?.key;
+      if (firstKey) {
+        setSelectedKeys([firstKey]);
+        setApiKey(firstKey);
+      }
+    }
   };
 
   return (
@@ -68,6 +98,46 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
           />
         </div>
       </div>
+
+      {/* Hiển thị danh sách key của user */}
+      {isLoggedIn && userApiKey && userApiKey.length > 0 && (
+        <div className="list_api_key">
+          <p>API Key đã lưu:</p>
+          <div className="key-list">
+            {userApiKey.map((key) => (
+              <div 
+                key={key.id} 
+                className={`key-item ${apiKey === key.key ? 'selected' : ''}`}
+                onClick={() => handleKeySelect(key.key)}
+              >
+                <input 
+                  type="checkbox" 
+                  checked={selectedKeys.includes(key.key)}
+                  onChange={() => {}}
+                  onClick={(e) => e.stopPropagation()}
+                />
+
+                <div className="key-info">
+                  <span className="key-label">{key.label || 'Không có nhãn'}</span>
+                  <span className="key-preview">{key.key.substring(0, 10)}...</span>
+                  <span className="key-status">
+                    {key.status === 'ACTIVE' ? '🟢 Hoạt động' : 
+                     key.status === 'COOLDOWN' ? '🟡 Đang nghỉ' : 
+                     '🔴 Đã hết hạn'}
+                  </span>
+                </div>
+               
+              </div>
+            ))}
+          </div>
+           <button 
+              className="select-all-key-btn"
+              onClick={handleSelectAll}
+            >
+              {selectedKeys.length === userApiKey.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+            </button>
+        </div>
+      )}
 
       {/* Button hướng dẫn */}
       <button className="guide-button" onClick={() => setShowGuide(true)}>
