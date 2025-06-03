@@ -234,7 +234,9 @@ const ChapterList = ({
     console.log("Sorted chapters:", sortedChapters);
 
     // Tìm index thực tế trong mảng chapters dựa trên chapterNumber
-    const actualIndex = chapters.findIndex(ch => ch.chapterNumber === chapterNumber);
+    const actualIndex = chapters.findIndex(
+      (ch) => ch.chapterNumber === chapterNumber
+    );
     console.log("Index thực tế trong mảng chapters:", actualIndex);
 
     if (page) {
@@ -267,7 +269,9 @@ const ChapterList = ({
         {currentChapters.map((ch, idxOnPage) => {
           const calculatedChapterNumber = calculateChapterNumber(idxOnPage);
           // Tìm index thực tế trong mảng chapters dựa trên chapterNumber
-          const idx = chapters.findIndex(chapter => chapter.chapterNumber === ch.chapterNumber);
+          const idx = chapters.findIndex(
+            (chapter) => chapter.chapterNumber === ch.chapterNumber
+          );
           const isTranslated = !!results[idx];
 
           return (
@@ -311,26 +315,30 @@ const ChapterList = ({
                     >
                       📝 Dịch
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteChapter(ch.chapterNumber);
-                      }} 
+                      }}
                       className="delete-chapter-button"
-                      style={isTranslated ? { width: "100%",height: "100%" } : { width: "50%" }}
+                      style={
+                        isTranslated
+                          ? { width: "100%", height: "100%" }
+                          : { width: "50%" }
+                      }
                     >
                       ❌ Xoá
                     </button>
                   </div>
                 </div>
                 {progress[idx] !== undefined && !isTranslatingAll && (
-                    <div className="chapter-progress-bar-container">
-                      <div
-                        className="chapter-progress-bar"
-                        style={{ width: `${progress[idx]}%` }}
-                      ></div>
-                    </div>
-                  )}
+                  <div className="chapter-progress-bar-container">
+                    <div
+                      className="chapter-progress-bar"
+                      style={{ width: `${progress[idx]}%` }}
+                    ></div>
+                  </div>
+                )}
                 {errorMessages[idx] && (
                   <div className="error-message">
                     <p>{errorMessages[idx]}</p>
@@ -347,37 +355,51 @@ const ChapterList = ({
           ⏮️ Trang đầu
         </button>
 
-        {currentPage > 3 && (
-          <>
-            <button onClick={() => setCurrentPage(1)}>1</button>
-            {currentPage > 4 && <span>...</span>}
-          </>
+        {/* Hiển thị trang đầu tiên */}
+        {currentPage > 2 && (
+          <button onClick={() => setCurrentPage(1)}>1</button>
         )}
 
-        {Array.from({ length: totalPages }, (_, i) => i + 1)
-          .filter(
-            (pageNum) =>
-              pageNum === 1 ||
-              pageNum === totalPages ||
-              Math.abs(pageNum - currentPage) <= 1
-          )
-          .map((pageNum) => (
-            <button
-              key={pageNum}
-              className={currentPage === pageNum ? "active" : ""}
-              onClick={() => setCurrentPage(pageNum)}
-            >
-              {pageNum}
-            </button>
-          ))}
+        {/* Hiển thị dấu ... khi cần */}
+        {currentPage > 3 && <span>...</span>}
 
-        {currentPage < totalPages - 2 && (
-          <>
-            {currentPage < totalPages - 3 && <span>...</span>}
-            <button onClick={() => setCurrentPage(totalPages)}>
-              {totalPages}
-            </button>
-          </>
+        {/* Hiển thị các trang xung quanh trang hiện tại */}
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((pageNum) => {
+            // Luôn hiển thị trang đầu và trang cuối
+            if (pageNum === 1 || pageNum === totalPages) return true;
+            // Hiển thị các trang xung quanh trang hiện tại (trước và sau 1 trang)
+            return Math.abs(pageNum - currentPage) <= 1;
+          })
+          .map((pageNum, index, array) => {
+            // Thêm dấu ... giữa các khoảng trống
+            const showEllipsisBefore =
+              index > 0 && array[index - 1] !== pageNum - 1;
+            const showEllipsisAfter =
+              index < array.length - 1 && array[index + 1] !== pageNum + 1;
+
+            return (
+              <React.Fragment key={pageNum}>
+                {showEllipsisBefore && <span>...</span>}
+                <button
+                  className={currentPage === pageNum ? "active" : ""}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+                {showEllipsisAfter && <span>...</span>}
+              </React.Fragment>
+            );
+          })}
+
+        {/* Hiển thị dấu ... khi cần */}
+        {currentPage < totalPages - 2 && <span>...</span>}
+
+        {/* Hiển thị trang cuối cùng */}
+        {currentPage < totalPages - 1 && (
+          <button onClick={() => setCurrentPage(totalPages)}>
+            {totalPages}
+          </button>
         )}
 
         <button

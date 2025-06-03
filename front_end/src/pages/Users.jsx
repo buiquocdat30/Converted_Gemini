@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useContext, useRef, useCallback, memo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useRef,
+  useCallback,
+  memo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/ConverteContext";
 import axios from "axios";
@@ -256,8 +263,15 @@ const ProfileSettings = () => {
 };
 
 const TranslatedStories = () => {
-  const { stories, loading, error, fetchStories, editStories, hideStories, deleteStories } =
-    useContext(AuthContext);
+  const {
+    stories,
+    loading,
+    error,
+    fetchStories,
+    editStories,
+    hideStories,
+    deleteStories,
+  } = useContext(AuthContext);
   const [storiesList, setStoriesList] = useState([]);
 
   useEffect(() => {
@@ -267,7 +281,7 @@ const TranslatedStories = () => {
   useEffect(() => {
     if (stories) {
       // Lọc các truyện đã dịch xong (isComplete == true)
-      const translatedStories = stories.filter(story => story.isComplete);
+      const translatedStories = stories.filter((story) => story.isComplete);
       setStoriesList(translatedStories);
     }
   }, [stories]);
@@ -276,18 +290,22 @@ const TranslatedStories = () => {
   const handleHideStory = async (storyId) => {
     await hideStories(storyId);
     // Cập nhật state local sau khi ẩn thành công
-    setStoriesList(prevStories => 
-      prevStories.filter(story => story.id !== storyId)
+    setStoriesList((prevStories) =>
+      prevStories.filter((story) => story.id !== storyId)
     );
   };
 
   //xoá cứng dùng trong thùng rác
   const handleDeleteStory = async (storyId) => {
-    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+    if (
+      window.confirm(
+        "Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác."
+      )
+    ) {
       await deleteStories(storyId);
       // Cập nhật state local sau khi xóa thành công
-      setStoriesList(prevStories => 
-        prevStories.filter(story => story.id !== storyId)
+      setStoriesList((prevStories) =>
+        prevStories.filter((story) => story.id !== storyId)
       );
     }
   };
@@ -328,8 +346,15 @@ const TranslatedStories = () => {
 };
 
 const TranslatingStories = () => {
-  const { stories, loading, error, fetchStories, editStories, hideStories, deleteStories } =
-    useContext(AuthContext);
+  const {
+    stories,
+    loading,
+    error,
+    fetchStories,
+    editStories,
+    hideStories,
+    deleteStories,
+  } = useContext(AuthContext);
   const [storiesList, setStoriesList] = useState([]);
   const navigate = useNavigate();
 
@@ -340,7 +365,7 @@ const TranslatingStories = () => {
   useEffect(() => {
     if (stories) {
       // Lọc các truyện đang dịch (isComplete == false)
-      const translatingStories = stories.filter(story => !story.isComplete);
+      const translatingStories = stories.filter((story) => !story.isComplete);
       setStoriesList(translatingStories);
     }
   }, [stories]);
@@ -349,18 +374,22 @@ const TranslatingStories = () => {
   const handleHideStory = async (storyId) => {
     await hideStories(storyId);
     // Cập nhật state local sau khi ẩn thành công
-    setStoriesList(prevStories => 
-      prevStories.filter(story => story.id !== storyId)
+    setStoriesList((prevStories) =>
+      prevStories.filter((story) => story.id !== storyId)
     );
   };
 
   //xoá cứng dùng trong thùng rác
   const handleDeleteStory = async (storyId) => {
-    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+    if (
+      window.confirm(
+        "Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác."
+      )
+    ) {
       await deleteStories(storyId);
       // Cập nhật state local sau khi xóa thành công
-      setStoriesList(prevStories => 
-        prevStories.filter(story => story.id !== storyId)
+      setStoriesList((prevStories) =>
+        prevStories.filter((story) => story.id !== storyId)
       );
     }
   };
@@ -376,8 +405,8 @@ const TranslatingStories = () => {
   };
 
   const handleStoryClick = (storyId) => {
-    // Chuyển hướng đến trang Translate với storyId
-    navigate(`/translate?storyId=${storyId}`);
+    // Chuyển hướng đến trang Translate với storyId và tab translating
+    navigate(`/translate?storyId=${storyId}&tab=translating`);
   };
 
   if (loading) return <div>Đang tải danh sách truyện...</div>;
@@ -416,63 +445,81 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
   const [fileContent, setFileContent] = useState("");
   const [fileError, setFileError] = useState("");
 
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    
-    if (activeTab === "single") {
-      if (!newKey.trim()) {
-        toast.error("Vui lòng nhập API Key!");
-        return;
-      }
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-      try {
-        await addApiKey({
-          key: newKey,
-          label: keyLabel || "Key Gemini mới",
-          provider: selectedProvider
-        });
-        toast.success("Thêm key thành công!");
-        setNewKey("");
-        setKeyLabel("");
-        onClose();
-        fetchApiKey();
-      } catch (error) {
-        toast.error("Lỗi khi thêm key: " + (error.response?.data?.error || error.message));
-      }
-    } else {
-      // Xử lý thêm nhiều key từ file
-      if (!fileContent.trim()) {
-        toast.error("Vui lòng chọn file chứa API Key!");
-        return;
-      }
-
-      const keys = fileContent.split("\n")
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-
-      if (keys.length === 0) {
-        toast.error("File không chứa key hợp lệ!");
-        return;
-      }
-
-      try {
-        // Thêm từng key một
-        for (const key of keys) {
-          await addApiKey({
-            key: key,
-            label: `Key từ file ${new Date().toLocaleDateString()}`,
-            provider: selectedProvider
-          });
+      if (activeTab === "single") {
+        if (!newKey.trim()) {
+          toast.error("Vui lòng nhập API Key!");
+          return;
         }
-        toast.success(`Đã thêm ${keys.length} key thành công!`);
-        setFileContent("");
-        onClose();
-        fetchApiKey();
-      } catch (error) {
-        toast.error("Lỗi khi thêm key từ file: " + (error.response?.data?.error || error.message));
+
+        try {
+          await addApiKey({
+            key: newKey,
+            label: keyLabel || "Key Gemini mới",
+            provider: selectedProvider,
+          });
+          toast.success("Thêm key thành công!");
+          setNewKey("");
+          setKeyLabel("");
+          onClose();
+          fetchApiKey();
+        } catch (error) {
+          toast.error(
+            "Lỗi khi thêm key: " +
+              (error.response?.data?.error || error.message)
+          );
+        }
+      } else {
+        // Xử lý thêm nhiều key từ file
+        if (!fileContent.trim()) {
+          toast.error("Vui lòng chọn file chứa API Key!");
+          return;
+        }
+
+        const keys = fileContent
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0);
+
+        if (keys.length === 0) {
+          toast.error("File không chứa key hợp lệ!");
+          return;
+        }
+
+        try {
+          // Thêm từng key một
+          for (const key of keys) {
+            await addApiKey({
+              key: key,
+              label: `Key từ file ${new Date().toLocaleDateString()}`,
+              provider: selectedProvider,
+            });
+          }
+          toast.success(`Đã thêm ${keys.length} key thành công!`);
+          setFileContent("");
+          onClose();
+          fetchApiKey();
+        } catch (error) {
+          toast.error(
+            "Lỗi khi thêm key từ file: " +
+              (error.response?.data?.error || error.message)
+          );
+        }
       }
-    }
-  }, [newKey, keyLabel, selectedProvider, activeTab, fileContent, onClose, fetchApiKey]);
+    },
+    [
+      newKey,
+      keyLabel,
+      selectedProvider,
+      activeTab,
+      fileContent,
+      onClose,
+      fetchApiKey,
+    ]
+  );
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -515,25 +562,25 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
       <div className="key-modal-content" ref={modalRef}>
         <form onSubmit={handleSubmit}>
           <h3>Thêm API Key Mới</h3>
-          
+
           <div className="key-modal-tabs">
-            <button 
+            <button
               type="button"
-              className={`key-tab ${activeTab === 'single' ? 'active' : ''}`}
-              onClick={() => setActiveTab('single')}
+              className={`key-tab ${activeTab === "single" ? "active" : ""}`}
+              onClick={() => setActiveTab("single")}
             >
               Thêm một key
             </button>
-            <button 
+            <button
               type="button"
-              className={`key-tab ${activeTab === 'file' ? 'active' : ''}`}
-              onClick={() => setActiveTab('file')}
+              className={`key-tab ${activeTab === "file" ? "active" : ""}`}
+              onClick={() => setActiveTab("file")}
             >
               Thêm từ file
             </button>
           </div>
 
-          {activeTab === 'single' ? (
+          {activeTab === "single" ? (
             <>
               <div className="key-form-group">
                 <label htmlFor="apiKey">API Key:</label>
@@ -543,7 +590,7 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
                   id="apiKey"
                   value={newKey}
                   onChange={handleKeyChange}
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                   placeholder="Nhập API Key của Gemini"
                   required
                 />
@@ -556,7 +603,7 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
                   id="keyLabel"
                   value={keyLabel}
                   onChange={handleLabelChange}
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                   placeholder="Ví dụ: Key chính, Key dự phòng..."
                 />
               </div>
@@ -569,12 +616,19 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
                 id="keyFile"
                 accept=".txt"
                 onChange={handleFileUpload}
-                onClick={e => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               />
               {fileError && <div className="file-error">{fileError}</div>}
               {fileContent && (
                 <div className="file-preview">
-                  <p>Số lượng key trong file: {fileContent.split("\n").filter(line => line.trim().length > 0).length}</p>
+                  <p>
+                    Số lượng key trong file:{" "}
+                    {
+                      fileContent
+                        .split("\n")
+                        .filter((line) => line.trim().length > 0).length
+                    }
+                  </p>
                 </div>
               )}
             </div>
@@ -618,7 +672,7 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
 
           <div className="key-modal-buttons">
             <button type="submit" className="key-use-btn">
-              {activeTab === 'single' ? 'Thêm Key' : 'Thêm Keys từ File'}
+              {activeTab === "single" ? "Thêm Key" : "Thêm Keys từ File"}
             </button>
             <button type="button" className="key-cancel-btn" onClick={onClose}>
               Hủy
@@ -631,8 +685,15 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
 });
 
 const KeyManagement = () => {
-  const { userData, loading, error, userApiKey, addApiKey, removeApiKey, fetchApiKey } =
-    useContext(AuthContext);
+  const {
+    userData,
+    loading,
+    error,
+    userApiKey,
+    addApiKey,
+    removeApiKey,
+    fetchApiKey,
+  } = useContext(AuthContext);
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const inputRef = useRef(null);
@@ -658,7 +719,9 @@ const KeyManagement = () => {
         // Gọi lại fetchApiKey sau khi xóa để cập nhật danh sách
         fetchApiKey();
       } catch (error) {
-        toast.error("Lỗi khi xóa key: " + (error.response?.data?.error || error.message));
+        toast.error(
+          "Lỗi khi xóa key: " + (error.response?.data?.error || error.message)
+        );
       }
     }
   };
@@ -670,15 +733,12 @@ const KeyManagement = () => {
     <div className="key-management">
       <h2>Quản Lý Khóa (API Key Gemini)</h2>
 
-      <button
-        className="use-btn"
-        onClick={handleAddKey}
-      >
+      <button className="use-btn" onClick={handleAddKey}>
         Thêm Key Mới
       </button>
 
-      <AddKeyModal 
-        isOpen={isAddKeyModalOpen} 
+      <AddKeyModal
+        isOpen={isAddKeyModalOpen}
         onClose={handleCloseModal}
         inputRef={inputRef}
       />
@@ -833,7 +893,15 @@ const Users = () => {
   const [activeMenu, setActiveMenu] = useState("profile");
   const [activeTab, setActiveTab] = useState("translated");
   const navigate = useNavigate();
-  const { userData, onLogout, userStories, handleEditStories, handleDeleteStories, hideStory, deleteStory } = useContext(AuthContext);
+  const {
+    userData,
+    onLogout,
+    userStories,
+    handleEditStories,
+    handleDeleteStories,
+    hideStory,
+    deleteStory,
+  } = useContext(AuthContext);
   const [username, setUsername] = useState(userData.username || "");
   const [avatar, setAvatar] = useState(
     `http://localhost:8000/data/upload/avatar/${userData.avatar}`
@@ -908,13 +976,17 @@ const Users = () => {
   };
 
   const handleHideStory = async (storyId) => {
-    if (window.confirm('Bạn có chắc muốn ẩn truyện này?')) {
+    if (window.confirm("Bạn có chắc muốn ẩn truyện này?")) {
       await hideStory(storyId);
     }
   };
 
   const handleDeleteStory = async (storyId) => {
-    if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác.')) {
+    if (
+      window.confirm(
+        "Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác."
+      )
+    ) {
       await deleteStory(storyId);
     }
   };
