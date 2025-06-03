@@ -247,6 +247,7 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
             : "🔓 Chế độ miễn phí - Chỉ dịch được 2 chương đầu tiên."}
         </small>
       </div>
+      <h3>Nhập file và tải truyện cần dịch:</h3>
       <div className="file-container">
         <input
           ref={fileInputRef}

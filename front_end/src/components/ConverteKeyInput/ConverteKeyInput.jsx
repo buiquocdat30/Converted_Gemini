@@ -11,6 +11,7 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
   const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState([]);
+  const [showKeyList, setShowKeyList] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -73,8 +74,8 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
           <label className="label">🔑 Nhập Google Gemini API Key </label>
           <input
             type={showKey ? "text" : "password"}
-            value={apiKey || ""} // Thêm kiểm tra null/undefined
-            onChange={(e) => setApiKey(e.target.value)} // Sửa lại để truyền giá trị trực tiếp
+            value={apiKey || ""}
+            onChange={(e) => setApiKey(e.target.value)}
             placeholder="API Key..."
             className="api-input"
           />
@@ -97,45 +98,81 @@ const ConverteKeyInput = ({ apiKey, setApiKey }) => {
             className="upload-input"
           />
         </div>
+
+        {/* Nút xem danh sách key */}
+        {isLoggedIn && userApiKey && userApiKey.length > 0 && (
+          <button 
+            className="view-keys-btn"
+            onClick={() => setShowKeyList(!showKeyList)}
+          >
+            {showKeyList ? 'Ẩn danh sách key' : 'Xem danh sách key'}
+          </button>
+        )}
       </div>
 
       {/* Hiển thị danh sách key của user */}
-      {isLoggedIn && userApiKey && userApiKey.length > 0 && (
-        <div className="list_api_key">
-          <p>API Key đã lưu:</p>
-          <div className="key-list">
-            {userApiKey.map((key) => (
-              <div 
-                key={key.id} 
-                className={`key-item ${apiKey === key.key ? 'selected' : ''}`}
-                onClick={() => handleKeySelect(key.key)}
-              >
-                <input 
-                  type="checkbox" 
-                  checked={selectedKeys.includes(key.key)}
-                  onChange={() => {}}
-                  onClick={(e) => e.stopPropagation()}
-                />
+      {isLoggedIn && userApiKey && userApiKey.length > 0 && showKeyList && (
+        <div className="modal">
+          <div className="modal-content key-list-modal">
+            <h3>Danh sách API Key</h3>
+            <div className="key-list">
+              {userApiKey.map((key) => (
+                <div 
+                  key={key.id} 
+                  className={`key-item ${selectedKeys.includes(key.key) ? 'selected' : ''}`}
+                  onClick={() => {
+                    if (selectedKeys.includes(key.key)) {
+                      setSelectedKeys(selectedKeys.filter(k => k !== key.key));
+                    } else {
+                      setSelectedKeys([...selectedKeys, key.key]);
+                    }
+                  }}
+                >
+                  <input 
+                    type="checkbox" 
+                    checked={selectedKeys.includes(key.key)}
+                    onChange={() => {}}
+                    onClick={(e) => e.stopPropagation()}
+                  />
 
-                <div className="key-info">
-                  <span className="key-label">{key.label || 'Không có nhãn'}</span>
-                  <span className="key-preview">{key.key.substring(0, 10)}...</span>
-                  <span className="key-status">
-                    {key.status === 'ACTIVE' ? '🟢 Hoạt động' : 
-                     key.status === 'COOLDOWN' ? '🟡 Đang nghỉ' : 
-                     '🔴 Đã hết hạn'}
-                  </span>
+                  <div className="key-info">
+                    <span className="key-label">{key.label || 'Không có nhãn'}</span>
+                    <span className="key-preview">{key.key.substring(0, 10)}...</span>
+                    <span className="key-status">
+                      {key.status === 'ACTIVE' ? '🟢 Hoạt động' : 
+                       key.status === 'COOLDOWN' ? '🟡 Đang nghỉ' : 
+                       '🔴 Đã hết hạn'}
+                    </span>
+                  </div>
                 </div>
-               
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="key-actions">
+              <button 
+                className="select-all-key-btn"
+                onClick={handleSelectAll}
+              >
+                {selectedKeys.length === userApiKey.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+              </button>
+              <button 
+                className="apply-selected-keys-btn"
+                onClick={() => {
+                  if (selectedKeys.length > 0) {
+                    setApiKey(selectedKeys[0]);
+                  }
+                  setShowKeyList(false);
+                }}
+              >
+                Áp dụng key đã chọn
+              </button>
+              <button 
+                className="close-button"
+                onClick={() => setShowKeyList(false)}
+              >
+                Đóng
+              </button>
+            </div>
           </div>
-           <button 
-              className="select-all-key-btn"
-              onClick={handleSelectAll}
-            >
-              {selectedKeys.length === userApiKey.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-            </button>
         </div>
       )}
 
