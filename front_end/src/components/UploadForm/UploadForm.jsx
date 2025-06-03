@@ -90,6 +90,9 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   // Thêm state local để quản lý apiKey
   const [localApiKey, setLocalApiKey] = useState(apiKey || "");
 
+  // Thêm state để lưu danh sách key đã chọn
+  const [selectedApiKeys, setSelectedApiKeys] = useState([]);
+
   // Thêm useEffect để đồng bộ apiKey từ context
   useEffect(() => {
     if (apiKey) {
@@ -102,6 +105,16 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
     setLocalApiKey(newKey);
     if (setApiKey) {
       setApiKey(newKey);
+    }
+  };
+
+  // Hàm xử lý khi có key được chọn
+  const handleKeysSelected = (keys) => {
+    setSelectedApiKeys(keys);
+    // Nếu có key đầu tiên, sử dụng nó làm key hiện tại
+    if (keys.length > 0) {
+      setLocalApiKey(keys[0]);
+      if (setApiKey) setApiKey(keys[0]);
     }
   };
 
@@ -154,10 +167,12 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
     reader.readAsText(file);
   };
 
+  // Cập nhật hàm handleSubmit để sử dụng tất cả các key đã chọn
   const handleSubmit = async () => {
     console.log("🚀 Bắt đầu xử lý submit form");
     console.log("📁 File đã chọn:", selectedFile);
     console.log("🔑 Trạng thái đăng nhập:", isLoggedIn);
+    console.log("🔑 Danh sách key đã chọn:", selectedApiKeys);
 
     if (!selectedFile) {
       console.warn("⚠️ Chưa chọn file");
@@ -179,7 +194,8 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
       console.log(
         "👥 Người dùng chưa đăng nhập, chuyển sang chế độ dịch thông thường"
       );
-      onFileParsed([], apiKey, model);
+      // Truyền danh sách key đã chọn vào hàm onFileParsed
+      onFileParsed([], selectedApiKeys, model);
     }
   };
 
@@ -239,7 +255,11 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   return (
     <div className={`wrapper ${isDarkMode ? 'dark' : ''}`}>
       <h2>📘 Gemini Converte</h2>
-      <ConverteKeyInput apiKey={localApiKey} setApiKey={handleApiKeyChange} />
+      <ConverteKeyInput 
+        apiKey={localApiKey} 
+        setApiKey={handleApiKeyChange} 
+        onKeysSelected={handleKeysSelected}
+      />
       <div className="notify">
         <small>
           {apiKey

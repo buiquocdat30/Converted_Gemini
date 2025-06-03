@@ -105,7 +105,7 @@
 
 .modal-content button {
     margin-top: 10px;
-    padding: 6px 12px;
+    padding: 12px 12px;
     background-color: rgb(104, 146, 119);
     color: white;
     border: none;
@@ -181,7 +181,6 @@
 }
 
 .key-info {
-  margin-left: 10px;
   justify-content: space-between  ;
   align-items: center;
   flex-grow: 1;
@@ -313,17 +312,128 @@
 }
 
 .key-list-modal .key-list {
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  padding: 15px;
   overflow-y: auto;
   margin-bottom: 20px;
-  padding-right: 10px;
+}
+
+.key-list-modal .key-item {
+  position: relative;
+  padding: 4px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.key-list-modal .key-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.key-list-modal .key-item .key-info {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  position: relative;
+}
+
+.key-list-modal .key-item .key-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.key-list-modal .key-item .key-preview {
+  font-family: monospace;
+  color: #666;
+  font-size: 0.9em;
+  opacity: 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.key-list-modal .key-item .key-info:hover .key-preview {
+  opacity: 1;
+}
+
+.key-list-modal .key-item .key-status {
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.key-list-modal .key-item .key-status:has(🟢) {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.key-list-modal .key-item .key-status:has(🟡) {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.key-list-modal .key-item .key-status:has(🔴) {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* Dark mode styles */
+.dark .key-list-modal .key-item {
+  background: #2d2d2d;
+  border-color: #444;
+}
+
+.dark .key-list-modal .key-item:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.dark .key-list-modal .key-item .key-label {
+  color: #fff;
+}
+
+.dark .key-list-modal .key-item .key-preview {
+  background: #2d2d2d;
+  color: #aaa;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.dark .key-list-modal .key-item .key-status:has(🟢) {
+  background-color: #1b5e20;
+  color: #81c784;
+}
+
+.dark .key-list-modal .key-item .key-status:has(🟡) {
+  background-color: #e65100;
+  color: #ffb74d;
+}
+
+.dark .key-list-modal .key-item .key-status:has(🔴) {
+  background-color: #b71c1c;
+  color: #ef9a9a;
 }
 
 .key-list-modal .key-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .key-list-modal .close-button {
