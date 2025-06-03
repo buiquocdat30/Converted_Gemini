@@ -412,31 +412,89 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
   const [newKey, setNewKey] = useState("");
   const [keyLabel, setKeyLabel] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("google");
+  const [activeTab, setActiveTab] = useState("single"); // 'single' hoặc 'file'
+  const [fileContent, setFileContent] = useState("");
+  const [fileError, setFileError] = useState("");
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!newKey.trim()) {
-      toast.error("Vui lòng nhập API Key!");
+    
+    if (activeTab === "single") {
+      if (!newKey.trim()) {
+        toast.error("Vui lòng nhập API Key!");
+        return;
+      }
+
+      try {
+        await addApiKey({
+          key: newKey,
+          label: keyLabel || "Key Gemini mới",
+          provider: selectedProvider
+        });
+        toast.success("Thêm key thành công!");
+        setNewKey("");
+        setKeyLabel("");
+        onClose();
+        fetchApiKey();
+      } catch (error) {
+        toast.error("Lỗi khi thêm key: " + (error.response?.data?.error || error.message));
+      }
+    } else {
+      // Xử lý thêm nhiều key từ file
+      if (!fileContent.trim()) {
+        toast.error("Vui lòng chọn file chứa API Key!");
+        return;
+      }
+
+      const keys = fileContent.split("\n")
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      if (keys.length === 0) {
+        toast.error("File không chứa key hợp lệ!");
+        return;
+      }
+
+      try {
+        // Thêm từng key một
+        for (const key of keys) {
+          await addApiKey({
+            key: key,
+            label: `Key từ file ${new Date().toLocaleDateString()}`,
+            provider: selectedProvider
+          });
+        }
+        toast.success(`Đã thêm ${keys.length} key thành công!`);
+        setFileContent("");
+        onClose();
+        fetchApiKey();
+      } catch (error) {
+        toast.error("Lỗi khi thêm key từ file: " + (error.response?.data?.error || error.message));
+      }
+    }
+  }, [newKey, keyLabel, selectedProvider, activeTab, fileContent, onClose, fetchApiKey]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ["text/plain"];
+    if (!allowedTypes.includes(file.type)) {
+      setFileError("Chỉ chấp nhận file .txt");
       return;
     }
 
-    try {
-      await addApiKey({
-        key: newKey,
-        label: keyLabel || "Key Gemini mới",
-        provider: selectedProvider
-      });
-      toast.success("Thêm key thành công!");
-      setNewKey("");
-      setKeyLabel("");
-      onClose();
-      // Gọi fetchApiKey để cập nhật lại danh sách key
-      fetchApiKey();
-    } catch (error) {
-      toast.error("Lỗi khi thêm key: " + (error.response?.data?.error || error.message));
-      console.error("Lỗi khi thêm key:",  (error.response?.data?.error || error.message));
-    }
-  }, [newKey, keyLabel, selectedProvider, onClose, fetchApiKey]);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      setFileContent(content);
+      setFileError("");
+    };
+    reader.onerror = () => {
+      setFileError("Lỗi khi đọc file");
+    };
+    reader.readAsText(file);
+  };
 
   const handleKeyChange = useCallback((e) => {
     setNewKey(e.target.value);
@@ -458,31 +516,69 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
         <form onSubmit={handleSubmit}>
           <h3>Thêm API Key Mới</h3>
           
-          <div className="key-form-group">
-            <label htmlFor="apiKey">API Key:</label>
-            <input
-              ref={inputRef}
-              type="text"
-              id="apiKey"
-              value={newKey}
-              onChange={handleKeyChange}
-              onClick={e => e.stopPropagation()}
-              placeholder="Nhập API Key của Gemini"
-              required
-            />
+          <div className="key-modal-tabs">
+            <button 
+              type="button"
+              className={`key-tab ${activeTab === 'single' ? 'active' : ''}`}
+              onClick={() => setActiveTab('single')}
+            >
+              Thêm một key
+            </button>
+            <button 
+              type="button"
+              className={`key-tab ${activeTab === 'file' ? 'active' : ''}`}
+              onClick={() => setActiveTab('file')}
+            >
+              Thêm từ file
+            </button>
           </div>
 
-          <div className="key-form-group">
-            <label htmlFor="keyLabel">Nhãn (tùy chọn):</label>
-            <input
-              type="text"
-              id="keyLabel"
-              value={keyLabel}
-              onChange={handleLabelChange}
-              onClick={e => e.stopPropagation()}
-              placeholder="Ví dụ: Key chính, Key dự phòng..."
-            />
-          </div>
+          {activeTab === 'single' ? (
+            <>
+              <div className="key-form-group">
+                <label htmlFor="apiKey">API Key:</label>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  id="apiKey"
+                  value={newKey}
+                  onChange={handleKeyChange}
+                  onClick={e => e.stopPropagation()}
+                  placeholder="Nhập API Key của Gemini"
+                  required
+                />
+              </div>
+
+              <div className="key-form-group">
+                <label htmlFor="keyLabel">Nhãn (tùy chọn):</label>
+                <input
+                  type="text"
+                  id="keyLabel"
+                  value={keyLabel}
+                  onChange={handleLabelChange}
+                  onClick={e => e.stopPropagation()}
+                  placeholder="Ví dụ: Key chính, Key dự phòng..."
+                />
+              </div>
+            </>
+          ) : (
+            <div className="key-form-group">
+              <label htmlFor="keyFile">Chọn file chứa API Key (.txt):</label>
+              <input
+                type="file"
+                id="keyFile"
+                accept=".txt"
+                onChange={handleFileUpload}
+                onClick={e => e.stopPropagation()}
+              />
+              {fileError && <div className="file-error">{fileError}</div>}
+              {fileContent && (
+                <div className="file-preview">
+                  <p>Số lượng key trong file: {fileContent.split("\n").filter(line => line.trim().length > 0).length}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="key-form-group">
             <label>Nhà cung cấp:</label>
@@ -522,7 +618,7 @@ const AddKeyModal = memo(({ isOpen, onClose, inputRef }) => {
 
           <div className="key-modal-buttons">
             <button type="submit" className="key-use-btn">
-              Thêm Key
+              {activeTab === 'single' ? 'Thêm Key' : 'Thêm Keys từ File'}
             </button>
             <button type="button" className="key-cancel-btn" onClick={onClose}>
               Hủy

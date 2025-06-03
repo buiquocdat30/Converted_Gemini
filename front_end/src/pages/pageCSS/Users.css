@@ -865,6 +865,49 @@ input[type="file"] {
   font-size: 1.5rem;
 }
 
+.key-modal-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.key-modal-tabs button {
+  background-color: #fff !important;
+  color: #333 !important;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.key-modal-tabs button:hover {
+  background-color: #f0f0f0 !important;
+}
+
+.key-modal-tabs button.active {
+  background-color: #32744f !important;
+  color: white !important;
+}
+
+/* Dark mode styles */
+.dark .key-modal-tabs button {
+  background-color: #2d2d2d !important;
+  color: #aaa !important;
+}
+
+.dark .key-modal-tabs button:hover {
+  background-color: #3a3a3a !important;
+}
+
+.dark .key-modal-tabs button.active {
+  background-color: #32744f !important;
+  color: white !important;
+}
+
 .key-form-group {
   margin-bottom: 1.5rem;
 }
@@ -919,23 +962,63 @@ input[type="file"] {
 }
 
 .key-provider-option input[type="radio"]:checked + .key-provider-badge {
-  color: #689277;
+  background-color: #fff;
 }
 
 .key-modal-buttons {
   display: flex;
   justify-content: flex-end;
-  align-items: baseline;
   gap: 1rem;
   margin-top: 2rem;
 }
-.key-modal-content .key-use-btn,
-.key-modal-content .key-cancel-btn{
-  width: 100%;
-  height: 40px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+
+.key-use-btn {
+  background-color: #32744f;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
+
+.key-use-btn:hover {
+  background-color: #064409;
+}
+
+.key-cancel-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.key-cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.file-error {
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.file-preview {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.file-preview p {
+  margin: 0;
+  color: #666;
+}
+
 /* Dark mode styles */
 .dark .key-modal-content {
   background-color: #2d2d2d;
@@ -944,6 +1027,19 @@ input[type="file"] {
 
 .dark .key-modal-content h3 {
   color: #fff;
+}
+
+.dark .key-tab {
+  color: #aaa;
+}
+
+.dark .key-tab:hover {
+  background-color: #3a3a3a;
+}
+
+.dark .key-tab.active {
+  background-color: #32744f;
+  color: white;
 }
 
 .dark .key-form-group label {
@@ -956,21 +1052,64 @@ input[type="file"] {
   color: #fff;
 }
 
+.dark .key-form-group input:focus {
+  border-color: #32744f;
+}
+
 .dark .key-provider-badge {
   background-color: #3d3d3d;
   color: #e0e0e0;
 }
 
 .dark .key-provider-option input[type="radio"]:checked + .key-provider-badge {
+  background-color: #32744f;
   color: white;
 }
 
-.dark .cancel-btn {
+.dark .key-cancel-btn {
   background-color: #3d3d3d;
   color: #e0e0e0;
-  border: 1px solid #555;
+  border-color: #555;
 }
 
-.dark .cancel-btn:hover {
+.dark .key-cancel-btn:hover {
   background-color: #4d4d4d;
+}
+
+.dark .file-preview {
+  background-color: #2a2a2a;
+}
+
+.dark .file-preview p {
+  color: #aaa;
+}
+
+/* Disabled states */
+.key-use-btn:disabled,
+.key-cancel-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.key-form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.dark .key-form-group input:disabled {
+  background-color: #2a2a2a;
+  color: #888;
+}
+
+/* File input specific styles */
+.key-form-group input[type="file"] {
+  padding: 8px;
+  background-color: #f8f9fa;
+  border: 1px dashed #ddd;
+}
+
+.dark .key-form-group input[type="file"] {
+  background-color: #2a2a2a;
+  border-color: #444;
+  color: #e0e0e0;
 }
