@@ -127,10 +127,14 @@
   /* white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; */
-  white-space: normal; /* Cho phép xuống dòng */
-  overflow: visible;   /* Hiển thị nội dung tràn */
-  text-overflow: unset; /* Không cắt nội dung bằng dấu ba chấm */
-  word-break: break-word; /* Ngắt từ nếu cần thiết để xuống dòng */
+  white-space: normal;
+  /* Cho phép xuống dòng */
+  overflow: visible;
+  /* Hiển thị nội dung tràn */
+  text-overflow: unset;
+  /* Không cắt nội dung bằng dấu ba chấm */
+  word-break: break-word;
+  /* Ngắt từ nếu cần thiết để xuống dòng */
 }
 
 .translated-label {
@@ -158,11 +162,13 @@
   width: 50%;
 }
 
-.translate-button:hover, .delete-chapter-button:hover {
+.translate-button:hover,
+.delete-chapter-button:hover {
   background-color: #0056b3;
 }
 
-.translate-button:disabled, .delete-chapter-button:disabled {
+.translate-button:disabled,
+.delete-chapter-button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
 }
@@ -197,6 +203,7 @@
 
 .pagination button {
   padding: 4px 8px;
+  height: 2.8125rem;
 }
 
 .pagination .active {

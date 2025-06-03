@@ -6,8 +6,16 @@ import { AuthContext } from "../../context/ConverteContext";
 import "./ConverteKeyInput.css"; // dùng luôn css cũ
 
 const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
-  const { isLoggedIn, onLogout, userData, menu, setMenu, loading, userApiKey, fetchApiKey } =
-    useContext(AuthContext);
+  const {
+    isLoggedIn,
+    onLogout,
+    userData,
+    menu,
+    setMenu,
+    loading,
+    userApiKey,
+    fetchApiKey,
+  } = useContext(AuthContext);
   const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState([]);
@@ -60,7 +68,7 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
       if (onKeysSelected) onKeysSelected([]);
     } else {
       // Nếu chưa chọn tất cả thì chọn tất cả các key
-      const allKeys = userApiKey.map(key => key.key);
+      const allKeys = userApiKey.map((key) => key.key);
       setSelectedKeys(allKeys);
       // Gọi callback với tất cả các key đã chọn
       if (onKeysSelected) onKeysSelected(allKeys);
@@ -73,6 +81,7 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
     if (selectedKeys.length > 0) {
       // Nếu có nhiều key được chọn, gọi callback với tất cả các key
       if (onKeysSelected) onKeysSelected(selectedKeys);
+      console.log("Đây là các key đã được chọn selectedKeys", selectedKeys);
       // Vẫn giữ key đầu tiên làm key đang sử dụng
       setApiKey(selectedKeys[0]);
     }
@@ -113,11 +122,11 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
 
         {/* Nút xem danh sách key */}
         {isLoggedIn && userApiKey && userApiKey.length > 0 && (
-          <button 
+          <button
             className="view-keys-btn"
             onClick={() => setShowKeyList(!showKeyList)}
           >
-            {showKeyList ? 'Ẩn danh sách key' : 'Xem danh sách key'}
+            {showKeyList ? "Ẩn danh sách key" : "Xem danh sách key"}
           </button>
         )}
       </div>
@@ -129,12 +138,16 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
             <h3>Danh sách API Key</h3>
             <div className="key-list">
               {userApiKey.map((key) => (
-                <div 
-                  key={key.id} 
-                  className={`key-item ${selectedKeys.includes(key.key) ? 'selected' : ''}`}
+                <div
+                  key={key.id}
+                  className={`key-item ${
+                    selectedKeys.includes(key.key) ? "selected" : ""
+                  }`}
                   onClick={() => {
                     if (selectedKeys.includes(key.key)) {
-                      const newSelectedKeys = selectedKeys.filter(k => k !== key.key);
+                      const newSelectedKeys = selectedKeys.filter(
+                        (k) => k !== key.key
+                      );
                       setSelectedKeys(newSelectedKeys);
                       if (onKeysSelected) onKeysSelected(newSelectedKeys);
                     } else {
@@ -144,8 +157,8 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
                     }
                   }}
                 >
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={selectedKeys.includes(key.key)}
                     onChange={(e) => {
                       e.stopPropagation();
@@ -154,7 +167,9 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
                         setSelectedKeys(newSelectedKeys);
                         if (onKeysSelected) onKeysSelected(newSelectedKeys);
                       } else {
-                        const newSelectedKeys = selectedKeys.filter(k => k !== key.key);
+                        const newSelectedKeys = selectedKeys.filter(
+                          (k) => k !== key.key
+                        );
                         setSelectedKeys(newSelectedKeys);
                         if (onKeysSelected) onKeysSelected(newSelectedKeys);
                       }
@@ -162,31 +177,36 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
                   />
 
                   <div className="key-info">
-                    <span className="key-label">{key.label || 'Không có nhãn'}</span>
-                    <span className="key-preview">{key.key.substring(0, 33)}...</span>
+                    <span className="key-label">
+                      {key.label || "Không có nhãn"}
+                    </span>
+                    <span className="key-preview">
+                      {key.key.substring(0, 33)}...
+                    </span>
                     <span className="key-status">
-                      {key.status === 'ACTIVE' ? '🟢 Hoạt động' : 
-                       key.status === 'COOLDOWN' ? '🟡 Đang nghỉ' : 
-                       '🔴 Đã hết hạn'}
+                      {key.status === "ACTIVE"
+                        ? "🟢 Hoạt động"
+                        : key.status === "COOLDOWN"
+                        ? "🟡 Đang nghỉ"
+                        : "🔴 Đã hết hạn"}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
             <div className="key-actions">
-              <button 
-                className="select-all-key-btn"
-                onClick={handleSelectAll}
-              >
-                {selectedKeys.length === userApiKey.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+              <button className="select-all-key-btn" onClick={handleSelectAll}>
+                {selectedKeys.length === userApiKey.length
+                  ? "Bỏ chọn tất cả"
+                  : "Chọn tất cả"}
               </button>
-              <button 
+              <button
                 className="apply-selected-keys-btn"
                 onClick={handleApplySelectedKeys}
               >
                 Áp dụng key đã chọn
               </button>
-              <button 
+              <button
                 className="close-button"
                 onClick={() => setShowKeyList(false)}
               >

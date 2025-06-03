@@ -7,7 +7,7 @@ import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "../pages/pageCSS/Translate.css";
-import { FaBook, FaHistory, FaSpinner } from 'react-icons/fa';
+import { FaBook, FaHistory, FaSpinner } from "react-icons/fa";
 
 const Translate = () => {
   const {
@@ -37,6 +37,13 @@ const Translate = () => {
 
   useEffect(() => {
     const storyId = searchParams.get("storyId");
+    const tab = searchParams.get("tab");
+
+    // Nếu có tab trong URL, set active tab
+    if (tab === "translating") {
+      setActiveTab("translating");
+    }
+
     if (storyId) {
       loadTranslatingStory(storyId);
     }
@@ -181,7 +188,7 @@ const Translate = () => {
     try {
       const chapter = chapters[index];
       await updateChapterContent(chapter.id, newContent);
-      
+
       // Cập nhật state local
       setChapters((prev) =>
         prev.map((ch, i) =>
@@ -284,7 +291,11 @@ const Translate = () => {
 
   // Xử lý khi click vào một truyện
   const handleStoryClick = (storyId) => {
-    setActiveTab("translating"); // Set tab translating active
+    // Cập nhật URL với storyId
+    navigate(`/translate?storyId=${storyId}`);
+    // Set tab translating active
+    setActiveTab("translating");
+    // Load truyện được chọn
     loadTranslatingStory(storyId);
   };
 
@@ -344,7 +355,7 @@ const Translate = () => {
   }
 
   return (
-    <div className={`translate-page ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`translate-page ${isDarkMode ? "dark" : ""}`}>
       <div className="translate-tabs">
         <button
           className={`tab-button ${activeTab === "new" ? "active" : ""}`}
@@ -360,6 +371,21 @@ const Translate = () => {
         >
           Truyện đang dịch
         </button>
+        {activeTab === "translating" && currentStory && (
+          <button
+            className="tab-button"
+            onClick={() => {
+              setActiveTab("translating");
+              // Khi bấm quay lại, load lại danh sách truyện đang dịch
+              setCurrentStory(null);
+              setChapters([]);
+              // Xóa storyId khỏi URL
+              navigate("/translate");
+            }}
+          >
+            Quay lại chọn truyện
+          </button>
+        )}
       </div>
       <div className="tab-content">
         {activeTab === "new" ? (

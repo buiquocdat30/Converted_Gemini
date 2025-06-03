@@ -202,11 +202,16 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   const handleCreateStory = async () => {
     console.log("📝 Thông tin truyện:", storyInfo);
     console.log("📁 Thông tin File:", selectedFile);
+    console.log("🔑 Danh sách key đã chọn:", selectedApiKeys);
 
     try {
       setIsCreatingStory(true);
       console.log("📁 Thông tin File:", selectedFile);
-      const response = await createStory(selectedFile, storyInfo);
+      const response = await createStory(
+        selectedFile,
+        storyInfo,
+        selectedApiKeys
+      );
 
       console.log("✅ Tạo truyện thành công:", response);
       setSuccess("✅ Tạo truyện thành công! Đang chuyển hướng...");
@@ -253,11 +258,11 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   };
 
   return (
-    <div className={`wrapper ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`wrapper ${isDarkMode ? "dark" : ""}`}>
       <h2>📘 Gemini Converte</h2>
-      <ConverteKeyInput 
-        apiKey={localApiKey} 
-        setApiKey={handleApiKeyChange} 
+      <ConverteKeyInput
+        apiKey={localApiKey}
+        setApiKey={handleApiKeyChange}
         onKeysSelected={handleKeysSelected}
       />
       <div className="notify">
