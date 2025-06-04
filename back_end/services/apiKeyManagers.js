@@ -3,7 +3,7 @@ const prisma = require("../config/prismaConfig");
 class ApiKeyManager {
   constructor(modelValue) {
     this.modelValue = modelValue;
-    this.aliveKeys = [];
+    this.defaultKeys = [];
   }
 
   // Lấy default keys từ database
@@ -24,72 +24,50 @@ class ApiKeyManager {
         where: { modelId: model.id }
       });
 
-      // Thêm default keys vào danh sách aliveKeys
-      const defaultKeyValues = defaultKeys.map(k => k.key);
-      this.aliveKeys = [...new Set([...this.aliveKeys, ...defaultKeyValues])];
-      
-      console.log(`📥 Đã tải ${defaultKeyValues.length} default keys`);
+      this.defaultKeys = defaultKeys.map(k => k.key);
+      console.log(`📥 Đã tải ${this.defaultKeys.length} default keys`);
     } catch (error) {
       console.error("❌ Lỗi khi tải default keys:", error);
     }
   }
 
-  // Lấy keys của user từ database
-  async loadUserKeys(userId) {
+  // Lấy key để sử dụng
+  async getKeyToUse(userId, userKey = null) {
     try {
-      const userKeys = await prisma.userApiKey.findMany({
-        where: {
-          userId,
-          status: "ACTIVE",
-          model: {
-            value: this.modelValue
+      // Nếu có userKey, kiểm tra xem key có hợp lệ không
+      if (userKey) {
+        const userKeyRecord = await prisma.userApiKey.findFirst({
+          where: {
+            userId,
+            key: userKey,
+            status: "ACTIVE",
+            model: {
+              value: this.modelValue
+            }
           }
-        },
-        select: {
-          key: true
+        });
+
+        if (userKeyRecord) {
+          console.log("🔑 Sử dụng key của user");
+          return userKey;
         }
-      });
-
-      // Thêm keys của user vào danh sách aliveKeys
-      const userKeyValues = userKeys.map(k => k.key);
-      this.aliveKeys = [...new Set([...this.aliveKeys, ...userKeyValues])];
-      
-      console.log(`📥 Đã tải ${userKeyValues.length} keys của user`);
-    } catch (error) {
-      console.error("❌ Lỗi khi tải keys của user:", error);
-    }
-  }
-
-  // Lưu key mới của user vào database
-  async saveUserKey(userId, key) {
-    try {
-      // Tìm model ID dựa trên modelValue
-      const model = await prisma.model.findFirst({
-        where: { value: this.modelValue }
-      });
-
-      if (!model) {
-        throw new Error("Không tìm thấy model");
       }
 
-      // Lưu key vào database
-      await prisma.userApiKey.create({
-        data: {
-          key,
-          userId,
-          modelId: model.id,
-          status: "ACTIVE"
-        }
-      });
-
-      // Thêm vào danh sách aliveKeys nếu chưa có
-      if (!this.aliveKeys.includes(key)) {
-        this.aliveKeys.push(key);
+      // Nếu không có userKey hoặc key không hợp lệ, sử dụng default key
+      if (this.defaultKeys.length === 0) {
+        await this.loadDefaultKeys();
       }
 
-      console.log("✅ Đã lưu key mới của user");
+      if (this.defaultKeys.length === 0) {
+        throw new Error("Không có key nào khả dụng");
+      }
+
+      // Lấy một key ngẫu nhiên từ danh sách default keys
+      const key = this.defaultKeys[Math.floor(Math.random() * this.defaultKeys.length)];
+      console.log("🔑 Sử dụng default key");
+      return key;
     } catch (error) {
-      console.error("❌ Lỗi khi lưu key của user:", error);
+      console.error("❌ Lỗi khi lấy key:", error);
       throw error;
     }
   }
@@ -97,24 +75,37 @@ class ApiKeyManager {
   // Xử lý lỗi 429 (Too Many Requests)
   async handle429Error(userId, key) {
     try {
-      // Cập nhật trạng thái key trong database
-      await prisma.userApiKey.updateMany({
+      // Kiểm tra xem key có phải là key của user không
+      const userKeyRecord = await prisma.userApiKey.findFirst({
         where: {
           userId,
           key,
           model: {
             value: this.modelValue
           }
-        },
-        data: {
-          status: "COOLDOWN"
         }
       });
 
-      // Xóa khỏi danh sách aliveKeys
-      const index = this.aliveKeys.indexOf(key);
-      if (index !== -1) {
-        this.aliveKeys.splice(index, 1);
+      if (userKeyRecord) {
+        // Nếu là key của user, cập nhật trạng thái
+        await prisma.userApiKey.updateMany({
+          where: {
+            userId,
+            key,
+            model: {
+              value: this.modelValue
+            }
+          },
+          data: {
+            status: "COOLDOWN"
+          }
+        });
+      } else {
+        // Nếu là default key, xóa khỏi danh sách
+        const index = this.defaultKeys.indexOf(key);
+        if (index !== -1) {
+          this.defaultKeys.splice(index, 1);
+        }
       }
     } catch (error) {
       console.error("❌ Lỗi khi xử lý lỗi 429:", error);
@@ -124,35 +115,41 @@ class ApiKeyManager {
   // Đánh dấu key đã hết quota
   async exhaustKey(userId, key) {
     try {
-      // Cập nhật trạng thái key trong database
-      await prisma.userApiKey.updateMany({
+      // Kiểm tra xem key có phải là key của user không
+      const userKeyRecord = await prisma.userApiKey.findFirst({
         where: {
           userId,
           key,
           model: {
             value: this.modelValue
           }
-        },
-        data: {
-          status: "EXHAUSTED"
         }
       });
 
-      // Xóa khỏi danh sách aliveKeys
-      const index = this.aliveKeys.indexOf(key);
-      if (index !== -1) {
-        this.aliveKeys.splice(index, 1);
+      if (userKeyRecord) {
+        // Nếu là key của user, cập nhật trạng thái
+        await prisma.userApiKey.updateMany({
+          where: {
+            userId,
+            key,
+            model: {
+              value: this.modelValue
+            }
+          },
+          data: {
+            status: "EXHAUSTED"
+          }
+        });
+      } else {
+        // Nếu là default key, xóa khỏi danh sách
+        const index = this.defaultKeys.indexOf(key);
+        if (index !== -1) {
+          this.defaultKeys.splice(index, 1);
+        }
       }
     } catch (error) {
       console.error("❌ Lỗi khi đánh dấu key hết quota:", error);
     }
-  }
-
-  // Lấy key theo vòng tròn
-  getAroundKeyFrom(keys, type = "default") {
-    if (!keys || keys.length === 0) return null;
-    const key = keys[Math.floor(Math.random() * keys.length)];
-    return key;
   }
 }
 

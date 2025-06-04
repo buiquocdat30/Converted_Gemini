@@ -33,6 +33,26 @@ async function createDefaultKey(req, res) {
   }
 }
 
+async function addKeyToProviderModels(req, res) {
+  const { key, providerId, modelValues } = req.body;
+  
+  if (!key || !providerId || !modelValues || !Array.isArray(modelValues)) {
+    return res.status(400).json({ 
+      error: 'Thiếu thông tin cần thiết. Cần có: key, providerId, và modelValues (mảng)' 
+    });
+  }
+
+  try {
+    const results = await defaultKeyService.addKeyToProviderModels(key, providerId, modelValues);
+    res.status(201).json({
+      message: `Đã thêm key cho ${results.length} models`,
+      results
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 async function updateDefaultKey(req, res) {
   const { id } = req.params;
   const defaultKeyData = req.body;
@@ -70,11 +90,23 @@ async function getDefaultKeysByModel(req, res) {
   }
 }
 
+async function getDefaultKeysByProvider(req, res) {
+  const { providerId } = req.params;
+  try {
+    const defaultKeys = await defaultKeyService.getDefaultKeysByProvider(providerId);
+    res.json(defaultKeys);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 module.exports = {
   getAllDefaultKeys,
   getDefaultKeyById,
   createDefaultKey,
+  addKeyToProviderModels,
   updateDefaultKey,
   deleteDefaultKey,
-  getDefaultKeysByModel
+  getDefaultKeysByModel,
+  getDefaultKeysByProvider
 };

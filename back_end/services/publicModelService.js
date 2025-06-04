@@ -1,14 +1,20 @@
 const prisma = require("../config/prismaConfig");
 
-// Cache để lưu trữ dữ liệu models
-let modelsCache = null;
+// Cache để lưu trữ dữ liệu providers và models
+let providersCache = null;
 let lastFetchTime = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
 
 const publicModelService = {
-    // Lấy tất cả providers
-    getActiveProviders: async () => {
+    // Lấy tất cả providers và models của họ
+    getAllProviderModels: async () => {
         try {
+            // Kiểm tra cache
+            if (providersCache && lastFetchTime && (Date.now() - lastFetchTime < CACHE_DURATION)) {
+                console.log("📦 Sử dụng dữ liệu providers từ cache");
+                return providersCache;
+            }
+
             console.log("🔄 Đang lấy danh sách providers...");
             
             // Lấy tất cả providers
@@ -47,6 +53,10 @@ const publicModelService = {
                 })
             );
 
+            // Cập nhật cache
+            providersCache = providersWithModels;
+            lastFetchTime = Date.now();
+
             console.log("🔍 Danh sách providers với models:", providersWithModels);
             
             // Log chi tiết từng provider và models
@@ -77,51 +87,6 @@ const publicModelService = {
             } else {
                 throw new Error(`Lỗi database: ${error.message}`);
             }
-        }
-    },
-
-    // Lấy tất cả models từ tất cả providers
-    getAllModels: async () => {
-        try {
-            // Kiểm tra cache
-            if (modelsCache && lastFetchTime && (Date.now() - lastFetchTime < CACHE_DURATION)) {
-                console.log("📦 Sử dụng dữ liệu models từ cache");
-                return modelsCache;
-            }
-
-            console.log("🔄 Đang tải dữ liệu models từ database...");
-
-            // Lấy tất cả providers và models
-            const providers = await prisma.provider.findMany({
-                include: {
-                    models: true
-                }
-            });
-
-            // Chuyển đổi dữ liệu thành định dạng mong muốn
-            const formattedModels = {};
-            providers.forEach(provider => {
-                formattedModels[provider.name] = {};
-                provider.models.forEach(model => {
-                    formattedModels[provider.name][model.value] = {
-                        value: model.value,
-                        rpm: model.rpm,
-                        tpm: model.tpm,
-                        rpd: model.rpd,
-                        label: model.label,
-                        description: model.description
-                    };
-                });
-            });
-
-            // Cập nhật cache
-            modelsCache = formattedModels;
-            lastFetchTime = Date.now();
-
-            return formattedModels;
-        } catch (error) {
-            console.error("❌ Lỗi khi tải dữ liệu models:", error);
-            throw error;
         }
     },
 
@@ -182,26 +147,31 @@ const publicModelService = {
     // Lấy danh sách tất cả models dạng phẳng
     getModelsList: async () => {
         try {
-            const models = await prisma.model.findMany({
+            const providers = await prisma.provider.findMany({
                 include: {
-                    provider: {
+                    models: {
                         select: {
-                            name: true
+                            id: true,
+                            value: true,
+                            label: true,
+                            description: true,
+                            rpm: true,
+                            tpm: true,
+                            rpd: true
                         }
                     }
                 }
             });
 
-            return models.map(model => ({
-                id: model.id,
-                value: model.value,
-                label: model.label,
-                description: model.description,
-                rpm: model.rpm,
-                tpm: model.tpm,
-                rpd: model.rpd,
-                provider: model.provider.name
-            }));
+            // Chuyển đổi thành mảng phẳng các models
+            const modelsList = providers.flatMap(provider => 
+                provider.models.map(model => ({
+                    ...model,
+                    provider: provider.name
+                }))
+            );
+
+            return modelsList;
         } catch (error) {
             console.error("Error getting models list:", error);
             throw error;

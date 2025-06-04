@@ -9,5 +9,7 @@ router.get('/:id', defaultKeyController.getDefaultKeyById);
 router.put('/:id', defaultKeyController.updateDefaultKey);
 router.delete('/:id', defaultKeyController.deleteDefaultKey);
 router.get('/model/:modelId', defaultKeyController.getDefaultKeysByModel);
+router.post('/provider', defaultKeyController.addKeyToProviderModels);
+router.get('/provider/:providerId', defaultKeyController.getDefaultKeysByProvider);
 
 module.exports = router;
