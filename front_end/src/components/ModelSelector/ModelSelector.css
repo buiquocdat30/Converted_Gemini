@@ -1,0 +1,150 @@
+.model-selector {
+    width: 100%;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.provider-selector {
+    margin-bottom: 20px;
+}
+
+.provider-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.provider-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: #fff;
+}
+
+.model-list {
+    margin-top: 20px;
+}
+
+.model-label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+.model-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.model-option {
+    padding: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fff;
+}
+
+.model-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.model-option.selected {
+    border-color: #4a90e2;
+    background-color: #f0f7ff;
+}
+
+.model-info h4 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.model-info p {
+    margin: 0 0 12px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.model-limits {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #666;
+}
+
+.model-limits span {
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.model-selector-loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.model-selector-error {
+    text-align: center;
+    padding: 20px;
+    color: #dc3545;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #dc3545;
+}
+
+/* Dark mode */
+.dark .model-selector {
+    background: #2d2d2d;
+}
+
+.dark .provider-label,
+.dark .model-label {
+    color: #fff;
+}
+
+.dark .provider-select {
+    background: #3d3d3d;
+    color: #fff;
+    border-color: #444;
+}
+
+.dark .model-option {
+    background: #3d3d3d;
+    border-color: #444;
+}
+
+.dark .model-option:hover {
+    background: #4d4d4d;
+}
+
+.dark .model-option.selected {
+    background: #1a3a5f;
+    border-color: #4a90e2;
+}
+
+.dark .model-info h4 {
+    color: #fff;
+}
+
+.dark .model-info p {
+    color: #aaa;
+}
+
+.dark .model-limits {
+    color: #aaa;
+}
+
+.dark .model-limits span {
+    background: #4d4d4d;
+    color: #fff;
+} 

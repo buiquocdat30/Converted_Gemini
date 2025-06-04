@@ -1,5 +1,4 @@
 const prisma = require("../config/prismaConfig");
-const { getModelInfo } = require("./modelAIManagers");
 
 class ApiKeyManager {
   constructor(modelValue) {

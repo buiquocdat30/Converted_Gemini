@@ -5,42 +5,15 @@ import StoryInfoModal from "../StoryInfoModal/StoryInfoModal.jsx";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
 import { AuthContext } from "../../context/ConverteContext";
 import TranslationInfoPanel from "../TranslationInfoPanel/TranslationInfoPanel.jsx";
+import ModelSelector from "../ModelSelector/ModelSelector.jsx";
 import axios from "axios";
+import { modelService } from '../../services/modelService';
 
 import {
   handleEpubFile,
   handleTxtFile,
   checkFileFormatFromText,
 } from "../../utils/fileHandlers.js";
-
-const models = [
-  {
-    value: "gemini-1.5-pro", //ok
-    label: "Gemini 1.5 Pro",
-    description: "Giới hạn miễn phí: 2 lần/phút, 50 lần một ngày.",
-  },
-  {
-    value: "gemini-1.5-flash", //ok
-    label: "Gemini 1.5 Flash",
-    description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
-  },
-  {
-    value: "gemini-1.5-flash-8b", //ok
-    label: "Gemini 1.5 Flash-8B",
-    description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
-  },
-  {
-    value: "gemini-2.0-flash-lite", //ok
-    label: "Gemini 2.0 Flash-Lite",
-    description: "Giới hạn miễn phí: 30 lần/phút, 1500 lần một ngày.",
-  },
-
-  {
-    value: "gemini-2.0-flash", //ok
-    label: "Gemini 2.0 Flash",
-    description: "Giới hạn miễn phí: 15 lần/phút, 1500 lần một ngày.",
-  },
-];
 
 const UploadForm = ({ onFileParsed, isDarkMode }) => {
   const {
@@ -83,40 +56,13 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
 
   //selected model
-  const [selectedModel, setSelectedModel] = useState(
-    model || "gemini-2.0-flash"
-  );
+  const [selectedModel, setSelectedModel] = useState(model || "gemini-2.0-flash");
 
   // Thêm state local để quản lý apiKey
   const [localApiKey, setLocalApiKey] = useState(apiKey || "");
 
   // Thêm state để lưu danh sách key đã chọn
   const [selectedApiKeys, setSelectedApiKeys] = useState([]);
-
-  // Thêm useEffect để đồng bộ apiKey từ context
-  useEffect(() => {
-    if (apiKey) {
-      setLocalApiKey(apiKey);
-    }
-  }, [apiKey]);
-
-  // Thêm hàm xử lý khi apiKey thay đổi
-  const handleApiKeyChange = (newKey) => {
-    setLocalApiKey(newKey);
-    if (setApiKey) {
-      setApiKey(newKey);
-    }
-  };
-
-  // Hàm xử lý khi có key được chọn
-  const handleKeysSelected = (keys) => {
-    setSelectedApiKeys(keys);
-    // Nếu có key đầu tiên, sử dụng nó làm key hiện tại
-    if (keys.length > 0) {
-      setLocalApiKey(keys[0]);
-      if (setApiKey) setApiKey(keys[0]);
-    }
-  };
 
   const fileInputRef = useRef(null);
 
@@ -257,6 +203,24 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
     reader.readAsText(selectedFile);
   };
 
+  // Thêm hàm xử lý khi apiKey thay đổi
+  const handleApiKeyChange = (newKey) => {
+    setLocalApiKey(newKey);
+    if (setApiKey) {
+      setApiKey(newKey);
+    }
+  };
+
+  // Hàm xử lý khi có key được chọn
+  const handleKeysSelected = (keys) => {
+    setSelectedApiKeys(keys);
+    // Nếu có key đầu tiên, sử dụng nó làm key hiện tại
+    if (keys.length > 0) {
+      setLocalApiKey(keys[0]);
+      if (setApiKey) setApiKey(keys[0]);
+    }
+  };
+
   return (
     <div className={`wrapper ${isDarkMode ? "dark" : ""}`}>
       <h2>📘 Gemini Converte</h2>
@@ -281,16 +245,20 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
           accept=".epub, .txt"
           onChange={handleFileChange}
         />
-        {/* <button className="btn-check-file" onClick={handleCheckFileFormat}>
-          Kiểm tra File
-        </button> */}
       </div>
-      {loading && <p>⏳ Đang xử lý tệp...</p>}{" "}
-      {/* Hiển thị thông báo khi đang tải lên */}
-      {error && <p style={{ color: "red" }}>{error}</p>}{" "}
-      {/* Hiển thị thông báo thành công */}
-      {success && <p style={{ color: "red" }}>{success}</p>}{" "}
-      {/* Hướng dẫn định dạng gile */}
+      {loading && <p>⏳ Đang xử lý tệp...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {success && <p style={{ color: "red" }}>{success}</p>}
+      
+      <ModelSelector
+        selectedModel={selectedModel}
+        onModelChange={(newModel) => {
+          setSelectedModel(newModel);
+          if (setModel) setModel(newModel);
+        }}
+        isDarkMode={isDarkMode}
+      />
+
       <div className="chapter-guide">
         <div className="chapter-guide-title">
           <h4>📌 Các định dạng chương được hỗ trợ:</h4>
@@ -321,7 +289,6 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
           </ul>
         </div>
       </div>
-      {/* Hiển thị thông báo khi file dùng được */}
       <div>
         <TranslationInfoPanel
           books={books}
@@ -332,32 +299,6 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
           setBooks={setBooks}
           setAuthor={setAuthor}
         />
-      </div>
-      <div className="tip-model-select">
-        <label className="tip-label">🤖 Chọn Mô Hình AI:</label>
-        <div className="tip-radio-group">
-          {models.map((m) => (
-            <label key={m.value} className="tip-radio-option">
-              <input
-                type="radio"
-                name="modelSelect"
-                value={m.value}
-                checked={selectedModel === m.value}
-                onChange={(e) => {
-                  setSelectedModel(e.target.value);
-                  if (setModel) setModel(e.target.value);
-                }}
-              />
-              {m.label}
-            </label>
-          ))}
-        </div>
-
-        {selectedModel && (
-          <p className="tip-model-description">
-            {models.find((m) => m.value === selectedModel)?.description}
-          </p>
-        )}
       </div>
       <div className="converter-btn">
         <button className="btn-submit" onClick={handleSubmit}>

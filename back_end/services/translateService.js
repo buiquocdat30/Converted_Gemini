@@ -1,7 +1,10 @@
 require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const ApiKeyManager = require("./apiKeyManagers");
-const { DEFAULT_MODEL } = require("./modelAIManagers");
+const publicModelService = require("./publicModelService");
+
+// Mặc định sử dụng Gemini Pro
+const DEFAULT_MODEL = "gemini-pro";
 
 // ⏳ Delay helper
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
