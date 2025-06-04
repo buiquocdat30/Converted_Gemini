@@ -3,10 +3,10 @@ import React, { createContext, useState, useEffect, useMemo, useCallback } from 
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { handleEpubFile, checkFileFormatFromText, handleTxtFile } from "../utils/fileHandlers";
+import { API_URL } from '../config/config';
 
-// Định nghĩa API_URL
-const API_URL = "http://localhost:8000";
 
+console.log("API_URL",API_URL);
 // Helper function để lấy token
 export const getAuthToken = () => localStorage.getItem("auth-token");
 

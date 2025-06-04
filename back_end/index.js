@@ -8,6 +8,7 @@ const authRoute = require("./routes/authRoute");
 const userRoute = require("./routes/userRoute");
 const userApiKeyRoute = require("./routes/userApiKeyRoute");
 const userLibraryRoute = require("./routes/userLibraryRoute");
+const publicModelRoute = require("./routes/publicModelRoute");
 const path = require("path");
 
 //quản lý admin-panel
@@ -16,6 +17,7 @@ const modelRoutes = require("./admin/adminRoutes/modelRoutes");
 const defaultKeyRoutes = require("./admin/adminRoutes/defaultKeyRoutes");
 const tudienRoutes = require("./admin/adminRoutes/tudienRoutes");
 const userRoutes = require("./admin/adminRoutes/userRoutes");
+const apiKeyRoutes = require("./admin/adminRoutes/apiKeyRoutes");
 
 require("dotenv").config();
 
@@ -44,6 +46,8 @@ app.use("/auth", authRoute);
 //coverte file
 app.use("/converte", converteRoute);
 
+// Public API routes
+app.use("/models", publicModelRoute);
 
 // Quản lý tài nguyên của user
 app.use("/user/keys", userApiKeyRoute); // API keys của user
@@ -52,14 +56,13 @@ app.use("/user/library", userLibraryRoute); // Thư viện truyện của user
 //quản lý user
 app.use("/user", userRoute);
 
-
-
 //quản lý admin-panel
 app.use("/admin/providers", providerRoutes);
 app.use("/admin/models", modelRoutes);
 app.use("/admin/default-keys", defaultKeyRoutes);
 app.use("/admin/han-viet", tudienRoutes);
 app.use("/admin/users", userRoutes);
+app.use("/admin/api-keys", apiKeyRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

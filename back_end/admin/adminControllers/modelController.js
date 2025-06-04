@@ -11,6 +11,15 @@ async function getAllModels(req, res) {
   }
 }
 
+async function getModelsList(req, res) {
+  try {
+    const modelsList = await modelService.getModelsList();
+    res.json(modelsList);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 async function getModelById(req, res) {
   const { id } = req.params;
   try {
@@ -65,6 +74,7 @@ async function deleteModel(req, res) {
 
 module.exports = {
   getAllModels,
+  getModelsList,
   getModelById,
   createModel,
   updateModel,

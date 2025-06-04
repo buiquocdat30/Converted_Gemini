@@ -16,6 +16,27 @@ async function getAllModels(providerId = null) {
   }
 }
 
+async function getModelsList() {
+  try {
+    return await prisma.model.findMany({
+      select: {
+        id: true,
+        value: true,
+        label: true,
+        provider: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách models:", error);
+    throw error;
+  }
+}
+
 async function getModelById(id) {
   try {
     return await prisma.model.findUnique({
@@ -64,6 +85,7 @@ async function deleteModel(id) {
 
 module.exports = {
     getAllModels,
+    getModelsList,
     getModelById,
     createModel,
     updateModel,
