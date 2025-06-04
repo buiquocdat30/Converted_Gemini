@@ -11,55 +11,62 @@ const publicModelService = {
         try {
             console.log("🔄 Đang lấy danh sách providers...");
             
-            // Tìm provider Google
-            const googleProvider = await prisma.provider.findFirst({
-                where: { name: 'Google' }
-            });
+            // Lấy tất cả providers
+            const providers = await prisma.provider.findMany();
+            console.log("📦 Danh sách providers:", providers);
 
-            if (!googleProvider) {
-                console.log("⚠️ Không tìm thấy provider Google");
+            if (providers.length === 0) {
+                console.log("⚠️ Không tìm thấy providers nào");
                 return [];
             }
 
-            console.log("📌 Thông tin provider Google:", googleProvider);
+            // Lấy models cho từng provider
+            const providersWithModels = await Promise.all(
+                providers.map(async (provider) => {
+                    // Lấy models của provider
+                    const models = await prisma.model.findMany({
+                        where: { providerId: provider.id },
+                        select: {
+                            id: true,
+                            value: true,
+                            label: true,
+                            description: true,
+                            rpm: true,
+                            tpm: true,
+                            rpd: true
+                        }
+                    });
 
-            // Kiểm tra tất cả models trong database
-            const allModels = await prisma.model.findMany();
-            console.log("📚 Tất cả models trong database:", allModels);
+                    console.log(`📚 Models của ${provider.name}:`, models);
 
-            // Lấy models của Google bằng cách filter thủ công
-            const models = allModels.filter(model => model.providerId === googleProvider.id);
-            console.log("🔍 Models của Google (sau khi filter):", models);
+                    // Tạo provider object với models
+                    return {
+                        ...provider,
+                        models: models
+                    };
+                })
+            );
 
-            // Tạo provider object với models
-            const providerWithModels = {
-                ...googleProvider,
-                models: models.map(model => ({
-                    id: model.id,
-                    value: model.value,
-                    label: model.label,
-                    description: model.description,
-                    rpm: model.rpm,
-                    tpm: model.tpm,
-                    rpd: model.rpd
-                }))
-            };
-
-            console.log("🔍 Provider với models:", providerWithModels);
-            console.log(`✅ Đã tìm thấy provider Google với ${models.length} models`);
+            console.log("🔍 Danh sách providers với models:", providersWithModels);
             
-            // Log chi tiết từng model
-            models.forEach(model => {
-                console.log(`\n  Model: ${model.label} (${model.value})`);
-                console.log(`  - ID: ${model.id}`);
-                console.log(`  - ProviderId: ${model.providerId}`);
-                console.log(`  - Description: ${model.description || 'Không có'}`);
-                console.log(`  - RPM: ${model.rpm || 'Không giới hạn'}`);
-                console.log(`  - TPM: ${model.tpm || 'Không giới hạn'}`);
-                console.log(`  - RPD: ${model.rpd || 'Không giới hạn'}`);
+            // Log chi tiết từng provider và models
+            providersWithModels.forEach(provider => {
+                console.log(`\n📌 Provider: ${provider.name}`);
+                console.log(`- ID: ${provider.id}`);
+                console.log(`- Số lượng models: ${provider.models.length}`);
+                
+                provider.models.forEach(model => {
+                    console.log(`\n  Model: ${model.label} (${model.value})`);
+                    console.log(`  - ID: ${model.id}`);
+                    console.log(`  - ProviderId: ${model.providerId}`);
+                    console.log(`  - Description: ${model.description || 'Không có'}`);
+                    console.log(`  - RPM: ${model.rpm || 'Không giới hạn'}`);
+                    console.log(`  - TPM: ${model.tpm || 'Không giới hạn'}`);
+                    console.log(`  - RPD: ${model.rpd || 'Không giới hạn'}`);
+                });
             });
 
-            return [providerWithModels];
+            return providersWithModels;
         } catch (error) {
             console.error("❌ Lỗi khi lấy danh sách providers:", error);
             console.error("Chi tiết lỗi:", error);
