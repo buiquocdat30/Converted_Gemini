@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { modelService } from '../../services/modelService';
 import './ModelSelector.css';
 
-const ModelSelector = ({ onModelSelect, selectedModel }) => {
+const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
     const [providers, setProviders] = useState([]);
     const [models, setModels] = useState([]);
     const [selectedProvider, setSelectedProvider] = useState(null);
@@ -60,7 +60,7 @@ const ModelSelector = ({ onModelSelect, selectedModel }) => {
     }
 
     return (
-        <div className="model-selector">
+        <div className={`model-selector ${isDarkMode ? 'dark' : ''}`}>
             <div className="provider-selector">
                 <label className="provider-label">🤖 Chọn Provider:</label>
                 <select 
@@ -83,7 +83,7 @@ const ModelSelector = ({ onModelSelect, selectedModel }) => {
                         <div 
                             key={model.id} 
                             className={`model-option ${selectedModel === model.value ? 'selected' : ''}`}
-                            onClick={() => onModelSelect(model.value)}
+                            onClick={() => onModelChange(model.value)}
                         >
                             <div className="model-info">
                                 <h4>{model.label}</h4>
