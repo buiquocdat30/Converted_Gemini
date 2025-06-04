@@ -6,10 +6,10 @@ export const modelService = {
     getProviders: async () => {
         try {
             const response = await axios.get(`${API_URL}/models/providers`);
-            console.log("providers",response.data);
+            console.log("📦 Response từ API providers:", response.data);
             return response.data;
         } catch (error) {
-            console.error('Error fetching providers:', error);
+            console.error('❌ Error fetching providers:', error);
             throw error;
         }
     },
@@ -18,10 +18,10 @@ export const modelService = {
     getModels: async () => {
         try {
             const response = await axios.get(`${API_URL}/models`);
-            
+            console.log("📦 Response từ API models:", response.data);
             return response.data;
         } catch (error) {
-            console.error('Error fetching models:', error);
+            console.error('❌ Error fetching models:', error);
             throw error;
         }
     },
@@ -29,10 +29,24 @@ export const modelService = {
     // Lấy models theo provider
     getModelsByProvider: async (providerId) => {
         try {
-            const response = await axios.get(`${API_URL}/models/by-provider/${providerId}`);
-            return response.data;
+            console.log("🔍 Đang lấy models cho provider:", providerId);
+            // Lấy tất cả providers trước
+            const providersResponse = await axios.get(`${API_URL}/models/providers`);
+            console.log("📦 Danh sách providers:", providersResponse.data);
+
+            // Tìm provider cần lấy models
+            const provider = providersResponse.data.find(p => p.id === providerId);
+            if (!provider) {
+                console.error("❌ Không tìm thấy provider với ID:", providerId);
+                return [];
+            }
+
+            console.log("✅ Tìm thấy provider:", provider);
+            console.log("📚 Models của provider:", provider.models);
+
+            return provider.models || [];
         } catch (error) {
-            console.error('Error fetching models by provider:', error);
+            console.error('❌ Error fetching models by provider:', error);
             throw error;
         }
     },
@@ -41,9 +55,10 @@ export const modelService = {
     getModelInfo: async (modelValue) => {
         try {
             const response = await axios.get(`${API_URL}/models/${modelValue}`);
+            console.log("📦 Response từ API model info:", response.data);
             return response.data;
         } catch (error) {
-            console.error('Error fetching model info:', error);
+            console.error('❌ Error fetching model info:', error);
             throw error;
         }
     },
@@ -52,9 +67,10 @@ export const modelService = {
     getModelsList: async () => {
         try {
             const response = await axios.get(`${API_URL}/models/list/all`);
+            console.log("📦 Response từ API models list:", response.data);
             return response.data;
         } catch (error) {
-            console.error('Error fetching models list:', error);
+            console.error('❌ Error fetching models list:', error);
             throw error;
         }
     }

@@ -11,27 +11,58 @@ const publicModelService = {
         try {
             console.log("🔄 Đang lấy danh sách providers...");
             
-            const providers = await prisma.provider.findMany({
-                include: {
-                    models: {
-                        select: {
-                            id: true,
-                            value: true,
-                            label: true,
-                            description: true,
-                            rpm: true,
-                            tpm: true,
-                            rpd: true
-                        }
-                    }
-                }
+            // Tìm provider Google
+            const googleProvider = await prisma.provider.findFirst({
+                where: { name: 'Google' }
             });
 
-            console.log(`✅ Đã lấy được ${providers.length} providers`);
-            console.log("📊 Thông tin chi tiết:", JSON.stringify(providers, null, 2));
-            return providers;
+            if (!googleProvider) {
+                console.log("⚠️ Không tìm thấy provider Google");
+                return [];
+            }
+
+            console.log("📌 Thông tin provider Google:", googleProvider);
+
+            // Kiểm tra tất cả models trong database
+            const allModels = await prisma.model.findMany();
+            console.log("📚 Tất cả models trong database:", allModels);
+
+            // Lấy models của Google bằng cách filter thủ công
+            const models = allModels.filter(model => model.providerId === googleProvider.id);
+            console.log("🔍 Models của Google (sau khi filter):", models);
+
+            // Tạo provider object với models
+            const providerWithModels = {
+                ...googleProvider,
+                models: models.map(model => ({
+                    id: model.id,
+                    value: model.value,
+                    label: model.label,
+                    description: model.description,
+                    rpm: model.rpm,
+                    tpm: model.tpm,
+                    rpd: model.rpd
+                }))
+            };
+
+            console.log("🔍 Provider với models:", providerWithModels);
+            console.log(`✅ Đã tìm thấy provider Google với ${models.length} models`);
+            
+            // Log chi tiết từng model
+            models.forEach(model => {
+                console.log(`\n  Model: ${model.label} (${model.value})`);
+                console.log(`  - ID: ${model.id}`);
+                console.log(`  - ProviderId: ${model.providerId}`);
+                console.log(`  - Description: ${model.description || 'Không có'}`);
+                console.log(`  - RPM: ${model.rpm || 'Không giới hạn'}`);
+                console.log(`  - TPM: ${model.tpm || 'Không giới hạn'}`);
+                console.log(`  - RPD: ${model.rpd || 'Không giới hạn'}`);
+            });
+
+            return [providerWithModels];
         } catch (error) {
             console.error("❌ Lỗi khi lấy danh sách providers:", error);
+            console.error("Chi tiết lỗi:", error);
             if (error.code === 'P1001') {
                 throw new Error("Không thể kết nối đến database");
             } else if (error.code === 'P2025') {
