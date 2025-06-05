@@ -111,12 +111,26 @@ class ApiKeyManager {
           where: {
             userId,
             key: userKey,
-            status: "ACTIVE",
-            model: {
-              value: this.modelValue
+            models: {
+              some: {
+                model: {
+                  value: this.modelValue
+                },
+                status: "ACTIVE"
+              }
             }
           },
           include: {
+            models: {
+              where: {
+                model: {
+                  value: this.modelValue
+                }
+              },
+              include: {
+                model: true
+              }
+            },
             usageStats: {
               orderBy: {
                 lastUsedAt: 'desc'
@@ -127,46 +141,53 @@ class ApiKeyManager {
         });
 
         if (userKeyRecord) {
-          console.log("✅ User key hợp lệ");
-          console.log(`- Label: ${userKeyRecord.label || 'Không có nhãn'}`);
-          console.log(`- Lần sử dụng cuối: ${userKeyRecord.usageStats[0]?.lastUsedAt ? new Date(userKeyRecord.usageStats[0].lastUsedAt).toLocaleString() : 'Chưa sử dụng'}`);
-          console.log(`- Số request: ${userKeyRecord.usageStats[0]?.requestCount || 0}`);
-          return userKey;
+          const modelStatus = userKeyRecord.models.find(m => m.model.value === this.modelValue);
+          if (modelStatus && modelStatus.status === "ACTIVE") {
+            console.log("✅ User key hợp lệ và đang hoạt động cho model này");
+            console.log(`- Label: ${userKeyRecord.label || 'Không có nhãn'}`);
+            console.log(`- Model: ${this.modelValue}`);
+            console.log(`- Trạng thái: ${modelStatus.status}`);
+            console.log(`- Lần sử dụng cuối: ${userKeyRecord.usageStats[0]?.lastUsedAt ? new Date(userKeyRecord.usageStats[0].lastUsedAt).toLocaleString() : 'Chưa sử dụng'}`);
+            console.log(`- Số request: ${userKeyRecord.usageStats[0]?.requestCount || 0}`);
+            return userKey;
+          } else {
+            this.lastError = `⚠️ Key của user không khả dụng cho model ${this.modelValue} (Trạng thái: ${modelStatus?.status || 'Không tìm thấy'})`;
+            console.log(this.lastError);
+          }
         } else {
-          this.lastError = "⚠️ Key của user không hợp lệ hoặc đã bị vô hiệu hóa";
+          this.lastError = `⚠️ Key của user không tồn tại hoặc chưa được liên kết với model ${this.modelValue}`;
           console.log(this.lastError);
         }
       }
 
       // Nếu không có userKey hoặc key không hợp lệ, sử dụng default key
-      if (this.defaultKeys.length === 0) {
-        console.log("📥 Đang tải default keys...");
-        const loaded = await this.loadDefaultKeys();
-        if (!loaded) {
-          throw new Error(this.lastError || "Không thể tải default keys");
+      console.log("📥 Đang tìm default key...");
+      const defaultKeyRecord = await prisma.defaultKeyToModel.findFirst({
+        where: {
+          model: {
+            value: this.modelValue
+          },
+          status: "ACTIVE"
+        },
+        include: {
+          defaultKey: true,
+          model: true
+        },
+        orderBy: {
+          updatedAt: 'asc'
         }
-      }
-
-      if (this.defaultKeys.length === 0) {
-        this.lastError = `⚠️ Không có key nào khả dụng cho model "${this.modelValue}". Vui lòng thêm key mới hoặc liên hệ admin.`;
-        throw new Error(this.lastError);
-      }
-
-      // Sắp xếp keys theo thời gian sử dụng cuối (key chưa dùng sẽ được ưu tiên)
-      this.defaultKeys.sort((a, b) => {
-        if (!a.lastUsed) return -1;
-        if (!b.lastUsed) return 1;
-        return new Date(a.lastUsed) - new Date(b.lastUsed);
       });
 
-      // Lấy key đầu tiên (ít được sử dụng nhất)
-      const selectedKey = this.defaultKeys[0];
-      console.log("\n✅ Đã chọn default key để sử dụng:");
-      console.log(`- Key: ${selectedKey.key.substring(0, 10)}...`);
-      console.log(`- Lần sử dụng cuối: ${selectedKey.lastUsed ? new Date(selectedKey.lastUsed).toLocaleString() : 'Chưa sử dụng'}`);
-      console.log(`- Số request: ${selectedKey.requestCount}`);
+      if (defaultKeyRecord) {
+        console.log("\n✅ Đã tìm thấy default key khả dụng:");
+        console.log(`- Key: ${defaultKeyRecord.defaultKey.key.substring(0, 10)}...`);
+        console.log(`- Model: ${defaultKeyRecord.model.value}`);
+        console.log(`- Trạng thái: ${defaultKeyRecord.status}`);
+        return defaultKeyRecord.defaultKey.key;
+      }
 
-      return selectedKey.key;
+      this.lastError = `⚠️ Không có key nào khả dụng cho model "${this.modelValue}". Vui lòng thêm key mới hoặc liên hệ admin.`;
+      throw new Error(this.lastError);
     } catch (error) {
       this.lastError = error.message;
       console.error("❌ Lỗi khi lấy key:", error);
