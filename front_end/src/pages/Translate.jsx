@@ -89,20 +89,7 @@ const Translate = () => {
       }
 
       const story = response.data;
-      console.log("📚 Dữ liệu truyện nhận được:", story);
 
-      // Log chi tiết từng chương để debug
-      if (story.chapters && Array.isArray(story.chapters)) {
-        story.chapters.forEach((chapter, index) => {
-          console.log(`📖 Chương ${index + 1}:`, {
-            id: chapter.id,
-            chapterName: chapter.chapterName,
-            chapterNumber: chapter.chapterNumber,
-            rawText: chapter.rawText,
-            translation: chapter.translation,
-          });
-        });
-      }
 
       if (!story.chapters || !Array.isArray(story.chapters)) {
         console.error("❌ Dữ liệu chương không hợp lệ:", story.chapters);
@@ -114,14 +101,6 @@ const Translate = () => {
 
       // Chuyển đổi dữ liệu chương từ UserLibraryChapter sang định dạng phù hợp
       const formattedChapters = story.chapters.map((chapter) => {
-        // Log để debug
-        console.log("🔄 Đang format chương:", {
-          id: chapter.id,
-          chapterName: chapter.chapterName,
-          chapterNumber: chapter.chapterNumber,
-          rawText: chapter.rawText,
-          translation: chapter.translation,
-        });
 
         return {
           id: chapter.id,
@@ -140,7 +119,6 @@ const Translate = () => {
         };
       });
 
-      console.log("📝 Chương đã được format:", formattedChapters);
       setChapters(formattedChapters);
     } catch (error) {
       console.error("❌ Lỗi khi tải truyện đang dịch:", error);
