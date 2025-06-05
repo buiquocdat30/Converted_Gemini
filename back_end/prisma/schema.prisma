@@ -108,25 +108,18 @@ model UserApiKey {
   userId      String        @db.ObjectId
   user        User          @relation(fields: [userId], references: [id])
   label       String?       // Tên tùy chọn để user dễ phân biệt: "Key Gemini chính", "Dự phòng", v.v.
-  modelId     String?        @db.ObjectId
-  model       Model?         @relation(fields: [modelId], references: [id])
   status      ApiKeyStatus  @default(ACTIVE)
   usageCount  Int           @default(0)
   lastUsedAt  DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  models      UserApiKeyToModel[] // Quan hệ many-to-many với Model thông qua bảng trung gian
  
-  @@unique([userId, key, modelId])
-  @@map("User_api_keys") // Tên collection trong MongoDB
+  @@unique([userId, key])  // Chỉ unique trên userId và key
+  @@map("User_api_keys")
 }
 
-
-
-
-
-
 //admin panel
-
 
 //quản lý các nhà cung cấp và mô hình AI
 model Provider {
@@ -147,8 +140,8 @@ model Model {
   rpd           Int?
   label         String
   description   String?
-  userApiKeys   UserApiKey[]
-  defaultKeys   DefaultKey[]  @relation("ModelToDefaultKey") // 👈 thêm dòng này
+  userApiKeys   UserApiKeyToModel[] // Quan hệ many-to-many với UserApiKey
+  defaultKeys   DefaultKeyToModel[] // Quan hệ many-to-many với DefaultKey
 
   @@unique([providerId, value])
   @@map("Model")
@@ -156,13 +149,17 @@ model Model {
 
 model DefaultKey {
   id       String  @id @default(auto()) @map("_id") @db.ObjectId
-  key      String  @unique
-  value    String
-  modelId  String  @db.ObjectId
-  model    Model   @relation("ModelToDefaultKey", fields: [modelId], references: [id])
+  key      String  // Bỏ unique constraint
+  models   DefaultKeyToModel[] // Quan hệ many-to-many với Model thông qua bảng trung gian
+  status   ApiKeyStatus @default(ACTIVE) // Thêm trạng thái key
+  usageCount Int @default(0) // Thêm số lần sử dụng
+  lastUsedAt DateTime? // Thêm thời gian sử dụng cuối
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key]) // Chỉ unique trên key
   @@map("DefaultKey")
 }
-
 
 //từ điển
 model Dictionary {
@@ -171,4 +168,38 @@ model Dictionary {
   pinyin     String?
   nghiaViet  String
   @@map("Dictionary")
+}
+
+// Bảng trung gian cho quan hệ UserApiKey - Model
+model UserApiKeyToModel {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userApiKey  UserApiKey @relation(fields: [userApiKeyId], references: [id])
+  userApiKeyId String   @db.ObjectId
+  model       Model     @relation(fields: [modelId], references: [id])
+  modelId     String    @db.ObjectId
+  status      ApiKeyStatus @default(ACTIVE) // Thêm trạng thái cho từng model
+  usageCount  Int       @default(0) // Số lần sử dụng cho model này
+  lastUsedAt  DateTime? // Thời gian sử dụng cuối cho model này
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userApiKeyId, modelId])
+  @@map("UserApiKeyToModel")
+}
+
+// Bảng trung gian cho quan hệ DefaultKey - Model
+model DefaultKeyToModel {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  defaultKey  DefaultKey @relation(fields: [defaultKeyId], references: [id])
+  defaultKeyId String   @db.ObjectId
+  model       Model     @relation(fields: [modelId], references: [id])
+  modelId     String    @db.ObjectId
+  status      ApiKeyStatus @default(ACTIVE) // Thêm trạng thái cho từng model
+  usageCount  Int       @default(0) // Số lần sử dụng cho model này
+  lastUsedAt  DateTime? // Thời gian sử dụng cuối cho model này
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([defaultKeyId, modelId])
+  @@map("DefaultKeyToModel")
 }

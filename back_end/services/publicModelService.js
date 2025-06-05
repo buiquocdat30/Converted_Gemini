@@ -11,11 +11,10 @@ const publicModelService = {
         try {
             // Kiểm tra cache
             if (providersCache && lastFetchTime && (Date.now() - lastFetchTime < CACHE_DURATION)) {
-                console.log("📦 Sử dụng dữ liệu providers từ cache");
+
                 return providersCache;
             }
 
-            console.log("🔄 Đang lấy danh sách providers...");
             
             // Lấy tất cả providers
             const providers = await prisma.provider.findMany();
@@ -43,8 +42,6 @@ const publicModelService = {
                         }
                     });
 
-                    console.log(`📚 Models của ${provider.name}:`, models);
-
                     // Tạo provider object với models
                     return {
                         ...provider,
@@ -57,24 +54,6 @@ const publicModelService = {
             providersCache = providersWithModels;
             lastFetchTime = Date.now();
 
-            console.log("🔍 Danh sách providers với models:", providersWithModels);
-            
-            // Log chi tiết từng provider và models
-            providersWithModels.forEach(provider => {
-                console.log(`\n📌 Provider: ${provider.name}`);
-                console.log(`- ID: ${provider.id}`);
-                console.log(`- Số lượng models: ${provider.models.length}`);
-                
-                provider.models.forEach(model => {
-                    console.log(`\n  Model: ${model.label} (${model.value})`);
-                    console.log(`  - ID: ${model.id}`);
-                    console.log(`  - ProviderId: ${model.providerId}`);
-                    console.log(`  - Description: ${model.description || 'Không có'}`);
-                    console.log(`  - RPM: ${model.rpm || 'Không giới hạn'}`);
-                    console.log(`  - TPM: ${model.tpm || 'Không giới hạn'}`);
-                    console.log(`  - RPD: ${model.rpd || 'Không giới hạn'}`);
-                });
-            });
 
             return providersWithModels;
         } catch (error) {

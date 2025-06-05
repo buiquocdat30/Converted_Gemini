@@ -45,7 +45,16 @@ exports.translateText = async (req, res) => {
   try {
     // Khởi tạo ApiKeyManager cho model này
     const keyManager = new ApiKeyManager(model);
-    await keyManager.loadDefaultKeys();
+    
+    // Kiểm tra xem có key khả dụng không
+    const hasKeys = await keyManager.hasAvailableKeys(userId, userKey);
+    if (!hasKeys) {
+      const error = keyManager.getLastError();
+      return res.status(400).json({ 
+        error: error || "Không có key nào khả dụng cho model này",
+        details: "Vui lòng thêm key mới hoặc liên hệ admin để được hỗ trợ."
+      });
+    }
 
     const translationPromises = validChapters.map(async (ch, index) => {
       const startTime = Date.now();
@@ -127,12 +136,22 @@ exports.translateText = async (req, res) => {
       failed: failedChapters.length
     });
 
+    // Kiểm tra xem còn key khả dụng không sau khi dịch
+    const stillHasKeys = await keyManager.hasAvailableKeys(userId, userKey);
+    if (!stillHasKeys) {
+      console.warn("⚠️ Đã hết key khả dụng sau khi dịch");
+    }
+
     res.json({ 
       chapters: translatedChapters,
       stats: {
         total: validChapters.length,
         success: successfulChapters.length,
         failed: failedChapters.length
+      },
+      keyStatus: {
+        hasAvailableKeys: stillHasKeys,
+        lastError: keyManager.getLastError()
       }
     });
   } catch (err) {
