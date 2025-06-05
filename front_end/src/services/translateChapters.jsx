@@ -41,7 +41,12 @@ export const translateAllChapters = async ({
 
       console.log('Request data:', requestData);
       
-      const res = await axios.post("http://localhost:8000/translate", requestData);
+      const token = localStorage.getItem("auth-token");
+      const res = await axios.post("http://localhost:8000/translate", requestData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       console.log("Response data:", res.data);
 
       const translated = res?.data?.chapters?.[0]?.translated || "";

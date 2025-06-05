@@ -11,7 +11,7 @@ const TranslateViewer = ({
   onRetranslate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  console.log('vị trí chương hiện tại:',currentIndex)
+ 
   const [history, setHistory] = useState([
       chapters[currentIndex]?.translated ||
       chapters[currentIndex]?.content ||
@@ -22,16 +22,13 @@ const TranslateViewer = ({
   const currentContent = history[historyIndex];
 
   useEffect(() => {
-    console.log("TranslateViewer - Current Index:", currentIndex);
+
     const chapter = chapters[currentIndex];
-    console.log("TranslateViewer - Chapter data:", chapter);
+
 
     // Lấy nội dung và tiêu đề từ chapter hiện tại
     const newContent = chapter?.translated || chapter?.content || "";
     const title = chapter?.chapterName || chapter?.title || `Chương ${currentIndex + 1}`;
-
-    console.log(`📌 Nội dung tiêu đề chương: ${currentIndex + 1}: ${title}`);
-    console.log(`📌 Nội dung chương:`, newContent);
 
     setHistory([newContent]);
     setHistoryIndex(0);
@@ -190,9 +187,6 @@ const TranslateViewer = ({
         <h3 className="viewr-content-title">
           {(() => {
             const chapter = chapters[currentIndex];
-            console.log("📌 vị trí  đang hiển thị:", currentIndex);
-            console.log('chương hiện tại:',chapters[currentIndex-1])
-            console.log("📌 vị trí chương đang hiển thị:", chapter);
             const translatedTitle = chapter?.translatedTitle;
             const displayTitle =
               translatedTitle ||
