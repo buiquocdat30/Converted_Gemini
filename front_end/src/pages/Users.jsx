@@ -697,8 +697,8 @@ const KeyManagement = () => {
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const inputRef = useRef(null);
+  const [expandedKey, setExpandedKey] = useState(null); // Thêm state để theo dõi key đang mở rộng
 
-  // Thêm useEffect để gọi fetchApiKey khi component mount
   useEffect(() => {
     fetchApiKey();
   }, []);
@@ -716,13 +716,40 @@ const KeyManagement = () => {
       try {
         await removeApiKey(keyId);
         toast.success("Xóa key thành công!");
-        // Gọi lại fetchApiKey sau khi xóa để cập nhật danh sách
         fetchApiKey();
       } catch (error) {
         toast.error(
           "Lỗi khi xóa key: " + (error.response?.data?.error || error.message)
         );
       }
+    }
+  };
+
+  // Hàm helper để lấy màu trạng thái
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "ACTIVE":
+        return "status-active";
+      case "COOLDOWN":
+        return "status-cooldown";
+      case "EXHAUSTED":
+        return "status-exhausted";
+      default:
+        return "";
+    }
+  };
+
+  // Hàm helper để hiển thị text trạng thái
+  const getStatusText = (status) => {
+    switch (status) {
+      case "ACTIVE":
+        return "🟢 Hoạt động";
+      case "COOLDOWN":
+        return "🟡 Đang nghỉ";
+      case "EXHAUSTED":
+        return "🔴 Đã hết quota";
+      default:
+        return "⚪ Không xác định";
     }
   };
 
@@ -743,52 +770,112 @@ const KeyManagement = () => {
         inputRef={inputRef}
       />
 
-      <table>
-        <thead>
-          <tr>
-            <th>Key ID (một phần)</th>
-            <th>Label</th>
-            <th>Trạng thái</th>
-            <th>Số lần sử dụng</th>
-            <th>Lần sử dụng cuối</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {userApiKey.map((key) => (
-            <tr key={key.id}>
-              <td>{key.key.substring(0, 10)}...</td>
-              <td>{key.label || "Không có nhãn"}</td>
-              <td className={`status-${key.status.toLowerCase()}`}>
-                {key.status === "ACTIVE"
-                  ? "Hoạt động"
-                  : key.status === "COOLDOWN"
-                  ? "Đang nghỉ"
-                  : "Đã hết hạn"}
-              </td>
-              <td>{key.usageCount}</td>
-              <td>
-                {key.lastUsedAt
-                  ? new Date(key.lastUsedAt).toLocaleString()
-                  : "Chưa sử dụng"}
-              </td>
-              <td>
-                <button
-                  className="use-btn"
-                  onClick={() => handleRemoveKey(key.id)}
-                >
-                  Xóa
-                </button>
-              </td>
+      <div className="keys-table-container">
+        <table className="keys-table">
+          <thead>
+            <tr>
+              <th>Key ID</th>
+              <th>Label</th>
+              <th>Models</th>
+              <th>Hành động</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p style={{ marginTop: "20px" }}>
-        <strong>Lưu ý:</strong> RPM (Requests Per Minute) và TPD (Tokens Per
-        Day) là các giới hạn của API Key. Hãy kiểm tra tài liệu của Gemini API
-        để biết thông tin chính xác.
-      </p>
+          </thead>
+          <tbody>
+            {userApiKey.map((key) => (
+              <React.Fragment key={key.id}>
+                <tr 
+                  className={`key-row ${expandedKey === key.id ? 'expanded' : ''}`}
+                  onClick={() => setExpandedKey(expandedKey === key.id ? null : key.id)}
+                >
+                  <td>
+                    <div className="key-preview">
+                      {key.key.substring(0, 10)}...
+                      <span className="expand-icon">
+                        {expandedKey === key.id ? '▼' : '▶'}
+                      </span>
+                    </div>
+                  </td>
+                  <td>{key.label || "Không có nhãn"}</td>
+                  <td>
+                    <div className="models-summary">
+                      {key.models?.length || 0} models
+                      {key.models?.some(m => m.status === "EXHAUSTED") && 
+                        <span className="warning-badge">⚠️ Có model đã hết quota</span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <button
+                      className="use-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveKey(key.id);
+                      }}
+                    >
+                      Xóa
+                    </button>
+                  </td>
+                </tr>
+                {expandedKey === key.id && (
+                  <tr className="key-details">
+                    <td colSpan="4">
+                      <div className="models-details">
+                        <h4>Chi tiết trạng thái theo model:</h4>
+                        <div className="models-grid">
+                          {key.models?.map((modelStatus) => (
+                            <div key={modelStatus.model.id} className="model-status-card">
+                              <div className="model-header">
+                                <h5>{modelStatus.model.label}</h5>
+                                <span className={`status-badge ${getStatusColor(modelStatus.status)}`}>
+                                  {getStatusText(modelStatus.status)}
+                                </span>
+                              </div>
+                              <div className="model-info">
+                                <p>Model ID: {modelStatus.model.value}</p>
+                                <p>Số lần sử dụng: {modelStatus.usageCount || 0}</p>
+                                <p>Lần sử dụng cuối: {
+                                  modelStatus.lastUsedAt 
+                                    ? new Date(modelStatus.lastUsedAt).toLocaleString()
+                                    : "Chưa sử dụng"
+                                }</p>
+                                {modelStatus.status === "EXHAUSTED" && (
+                                  <p className="exhausted-warning">
+                                    ⚠️ Key đã hết quota cho model này. 
+                                    Vui lòng thêm key mới hoặc sử dụng model khác.
+                                  </p>
+                                )}
+                                {modelStatus.status === "COOLDOWN" && (
+                                  <p className="cooldown-info">
+                                    ℹ️ Key đang trong thời gian nghỉ. 
+                                    Sẽ tự động kích hoạt lại sau một thời gian.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="key-management-info">
+        <h3>📝 Hướng dẫn sử dụng:</h3>
+        <ul>
+          <li>🟢 <strong>Hoạt động:</strong> Key đang hoạt động bình thường</li>
+          <li>🟡 <strong>Đang nghỉ:</strong> Key đang trong thời gian cooldown do vượt quá giới hạn</li>
+          <li>🔴 <strong>Đã hết quota:</strong> Key đã hết quota cho model cụ thể</li>
+        </ul>
+        <p>
+          <strong>Lưu ý:</strong> Một key có thể có trạng thái khác nhau cho từng model. 
+          Nếu key hết quota cho một model, bạn vẫn có thể sử dụng nó cho các model khác.
+        </p>
+      </div>
     </div>
   );
 };
