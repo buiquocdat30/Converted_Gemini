@@ -1,8 +1,9 @@
 // prismaConfig.js
 const { PrismaClient } = require('@prisma/client');
 
+// Tắt log query của Prisma
 const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
+  log: ['error', 'warn'], // Chỉ log lỗi và cảnh báo
 });
 
 // Xử lý lỗi kết nối

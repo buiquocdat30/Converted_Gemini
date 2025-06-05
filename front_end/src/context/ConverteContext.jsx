@@ -88,7 +88,6 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("response", response.data);
       if (response.data) {
         setUserData({
           id: response.data.id,
@@ -271,9 +270,9 @@ export const AuthProvider = ({ children }) => {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log('response',response.data)
+
       setUserApiKey(response.data);
-      console.log('userApiKey',userApiKey)
+
       setError(null);
     } catch (err) {
       console.error("Lỗi khi tải danh sách API key:", err);

@@ -35,7 +35,7 @@ export const translateAllChapters = async ({
           content: chapter.rawText || chapter.content,
           chapterNumber: chapter.chapterNumber || originalIndex + 1
         }],
-        key: apiKey || "",
+        userKey: apiKey || "",
         model: model,
       };
 

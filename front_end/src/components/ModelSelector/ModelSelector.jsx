@@ -19,10 +19,10 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
                 // Nếu có provider đầu tiên, lấy models của provider đó
                 if (providersData.length > 0) {
                     const firstProvider = providersData[0];
-                    console.log("dây là firstProvider",firstProvider);
+
                     setSelectedProvider(firstProvider);
                     const modelsData = await modelService.getModelsByProvider(firstProvider.id);
-                    console.log("dây là modelsData",modelsData);
+
                     setModels(modelsData);
                 }
             } catch (error) {
