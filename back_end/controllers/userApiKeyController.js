@@ -8,9 +8,27 @@ const userApiKeyController = {
             const userId = req.user.id;
             const keys = await prisma.userApiKey.findMany({
                 where: { userId },
-                include: { model: true }
+                include: { 
+                    models: {
+                        include: {
+                            model: true
+                        }
+                    }
+                }
             });
-            res.json(keys);
+
+            // Chuyển đổi dữ liệu để hiển thị trạng thái theo từng model
+            const formattedKeys = keys.map(key => ({
+                ...key,
+                models: key.models.map(modelStatus => ({
+                    ...modelStatus.model,
+                    status: modelStatus.status,
+                    usageCount: modelStatus.usageCount,
+                    lastUsedAt: modelStatus.lastUsedAt
+                }))
+            }));
+
+            res.json(formattedKeys);
         } catch (error) {
             console.error('Error getting API keys:', error);
             res.status(500).json({ error: 'Lỗi khi lấy danh sách API keys' });
@@ -21,9 +39,9 @@ const userApiKeyController = {
     createKey: async (req, res) => {
         try {
             const userId = req.user.id;
-            const { key, modelId, label } = req.body;
+            const { key, modelIds, label } = req.body;
 
-            // Kiểm tra key đã tồn tại chưa (chỉ kiểm tra userId và key)
+            // Kiểm tra key đã tồn tại chưa
             const existingKey = await prisma.userApiKey.findFirst({
                 where: {
                     userId,
@@ -35,20 +53,34 @@ const userApiKeyController = {
                 return res.status(400).json({ error: 'API key đã tồn tại' });
             }
 
+            // Tạo key mới với các model được chọn
             const newKey = await prisma.userApiKey.create({
                 data: {
                     key,
-                    modelId,
                     label,
                     user: {
                         connect: {
                             id: userId
                         }
+                    },
+                    models: {
+                        create: modelIds.map(modelId => ({
+                            model: {
+                                connect: {
+                                    id: modelId
+                                }
+                            },
+                            status: "ACTIVE",
+                            usageCount: 0
+                        }))
                     }
                 },
                 include: { 
-                    model: true,
-                    user: true 
+                    models: {
+                        include: {
+                            model: true
+                        }
+                    }
                 }
             });
 
@@ -59,33 +91,35 @@ const userApiKeyController = {
         }
     },
 
-    // Cập nhật API key
-    updateKey: async (req, res) => {
+    // Cập nhật trạng thái API key cho một model cụ thể
+    updateKeyStatus: async (req, res) => {
         try {
             const { id } = req.params;
+            const { modelId, status } = req.body;
             const userId = req.user.id;
-            const { label, status } = req.body;
 
-            const updatedKey = await prisma.userApiKey.updateMany({
+            const updatedKey = await prisma.userApiKeyToModel.updateMany({
                 where: {
-                    id,
-                    userId // Đảm bảo user chỉ có thể cập nhật key của mình
+                    userApiKeyId: id,
+                    modelId,
+                    userApiKey: {
+                        userId // Đảm bảo user chỉ có thể cập nhật key của mình
+                    }
                 },
                 data: {
-                    label,
                     status,
                     updatedAt: new Date()
                 }
             });
 
             if (updatedKey.count === 0) {
-                return res.status(404).json({ error: 'Không tìm thấy API key' });
+                return res.status(404).json({ error: 'Không tìm thấy API key hoặc model' });
             }
 
-            res.json({ message: 'Cập nhật API key thành công' });
+            res.json({ message: 'Cập nhật trạng thái API key thành công' });
         } catch (error) {
-            console.error('Error updating API key:', error);
-            res.status(500).json({ error: 'Lỗi khi cập nhật API key' });
+            console.error('Error updating API key status:', error);
+            res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái API key' });
         }
     },
 
@@ -122,12 +156,31 @@ const userApiKeyController = {
             const keys = await prisma.userApiKey.findMany({
                 where: {
                     userId,
-                    modelId
+                    models: {
+                        some: {
+                            modelId
+                        }
+                    }
                 },
-                include: { model: true }
+                include: {
+                    models: {
+                        where: {
+                            modelId
+                        },
+                        include: {
+                            model: true
+                        }
+                    }
+                }
             });
 
-            res.json(keys);
+            // Chuyển đổi dữ liệu để hiển thị trạng thái theo model
+            const formattedKeys = keys.map(key => ({
+                ...key,
+                modelStatus: key.models[0] // Lấy trạng thái cho model cụ thể
+            }));
+
+            res.json(formattedKeys);
         } catch (error) {
             console.error('Error getting API keys by model:', error);
             res.status(500).json({ error: 'Lỗi khi lấy API keys theo model' });
