@@ -1,4 +1,5 @@
 const prisma = require("../config/prismaConfig");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 class ApiKeyManager {
   constructor(modelValue) {
@@ -6,6 +7,7 @@ class ApiKeyManager {
     this.defaultKeys = [];
     this.lastError = null;
     this.modelInfo = null;
+    this.providerModels = null; // Cache danh sách models của provider
   }
 
   // Lấy thông tin model và kiểm tra default keys
@@ -505,9 +507,311 @@ class ApiKeyManager {
     }
   }
 
+  // Lấy danh sách models của provider từ database
+  async getProviderModels(key) {
+    try {
+      if (!this.providerModels) {
+        // Xác định provider từ format key
+        const isOpenAI = key.startsWith('sk-');
+        
+        // Tìm provider dựa vào format key
+        const provider = await prisma.provider.findFirst({
+          where: {
+            models: {
+              some: {
+                value: {
+                  contains: isOpenAI ? 'gpt' : 'gemini'
+                }
+              }
+            }
+          },
+          include: {
+            models: {
+              select: {
+                id: true,
+                value: true,
+                label: true,
+                description: true
+              }
+            }
+          }
+        });
+
+        if (!provider) {
+          throw new Error(`Không tìm thấy provider cho key ${key.substring(0, 10)}...`);
+        }
+
+        this.providerModels = provider.models;
+        console.log(`\n✅ Đã lấy ${this.providerModels.length} models của provider ${provider.name}:`);
+        this.providerModels.forEach(model => {
+          console.log(`  • ${model.label} (${model.value})`);
+        });
+      }
+      return this.providerModels;
+    } catch (error) {
+      this.lastError = `❌ Lỗi khi lấy danh sách models: ${error.message}`;
+      console.error(this.lastError);
+      throw error;
+    }
+  }
+
+  // Xác định provider và model từ key
+  async determineProviderAndModel(key) {
+    try {
+      // Lấy danh sách models của provider
+      const models = await this.getProviderModels(key);
+      
+      if (!models || models.length === 0) {
+        throw new Error(`Không tìm thấy models cho key ${key.substring(0, 10)}...`);
+      }
+
+      // Lấy model mặc định (model đầu tiên trong danh sách)
+      const defaultModel = models[0];
+      
+      // Xác định provider từ model
+      const provider = await prisma.provider.findFirst({
+        where: {
+          models: {
+            some: {
+              id: defaultModel.id
+            }
+          }
+        }
+      });
+
+      if (!provider) {
+        throw new Error(`Không tìm thấy provider cho model ${defaultModel.value}`);
+      }
+
+      return {
+        provider: provider.name,
+        model: defaultModel,
+        models: models // Trả về cả danh sách models để sử dụng sau này
+      };
+    } catch (error) {
+      this.lastError = `❌ Lỗi khi xác định provider và model: ${error.message}`;
+      console.error(this.lastError);
+      throw error;
+    }
+  }
+
+  // Kiểm tra key có hợp lệ không
+  async validateKey(key) {
+    try {
+      console.log(`\n🔍 Đang kiểm tra key ${key.substring(0, 10)}...`);
+      
+      // Xác định provider và model từ key
+      const { provider, model } = await this.determineProviderAndModel(key);
+      
+      if (provider === 'google') {
+        try {
+          // Khởi tạo model Gemini với model value từ database
+          const genAI = new GoogleGenerativeAI(key);
+          const geminiModel = genAI.getGenerativeModel({ model: model.value });
+
+          // Thử một request đơn giản
+          const prompt = "Test connection";
+          const result = await geminiModel.generateContent(prompt);
+          const response = await result.response;
+          
+          console.log(`✅ Key Google hợp lệ và có thể sử dụng với model ${model.label}`);
+          return true;
+        } catch (error) {
+          console.error(`❌ Key Google không hợp lệ với model ${model.label}:`, error.message);
+          return false;
+        }
+      } else {
+        // TODO: Thêm validation cho OpenAI key
+        console.log("⚠️ Chưa hỗ trợ validate OpenAI key");
+        return true; // Tạm thời cho phép luôn
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi validate key:", error.message);
+      return false;
+    }
+  }
+
   // Lấy thông báo lỗi cuối cùng
   getLastError() {
     return this.lastError;
+  }
+
+  // Lấy tất cả API keys của user
+  async getUserKeys(userId) {
+    try {
+      console.log(`\n🔍 Đang lấy danh sách API keys của user ${userId}...`);
+      
+      const keys = await prisma.userApiKey.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          key: true,
+          label: true,
+          status: true,
+          modelIds: true,
+          usageCount: true,
+          lastUsedAt: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      // Lấy thông tin chi tiết về models cho mỗi key
+      const keysWithModels = await Promise.all(keys.map(async (key) => {
+        const models = await prisma.model.findMany({
+          where: { id: { in: key.modelIds } },
+          select: {
+            id: true,
+            value: true,
+            label: true,
+            description: true
+          }
+        });
+        return { ...key, models };
+      }));
+
+      console.log(`✅ Đã lấy ${keysWithModels.length} keys của user`);
+      return keysWithModels;
+    } catch (error) {
+      this.lastError = `❌ Lỗi khi lấy danh sách keys: ${error.message}`;
+      console.error(this.lastError);
+      throw error;
+    }
+  }
+
+  // Tạo API key mới cho user
+  async createUserKey(userId, key, label = null) {
+    try {
+      console.log(`\n🔑 Đang tạo API key mới cho user ${userId}...`);
+      
+      // Kiểm tra key đã tồn tại chưa
+      const existingKey = await prisma.userApiKey.findFirst({
+        where: { 
+          key: key,
+          OR: [
+            { userId: userId },
+            { userId: { not: userId } }
+          ]
+        }
+      });
+
+      if (existingKey) {
+        if (existingKey.userId === userId) {
+          throw new Error('Bạn đã thêm key này trước đó');
+        } else {
+          throw new Error('Key này đã được sử dụng bởi người dùng khác');
+        }
+      }
+
+      // Xác định provider và models từ key
+      const { provider, models } = await this.determineProviderAndModel(key);
+      
+      // Kiểm tra key có hợp lệ không
+      const isValid = await this.validateKey(key);
+      if (!isValid) {
+        throw new Error('Key không hợp lệ hoặc không có quyền truy cập model này');
+      }
+
+      console.log(`\n📝 Đang tạo key mới cho provider ${provider}:`);
+      console.log(`- Số lượng models sẽ kết nối: ${models.length}`);
+      console.log("- Danh sách models:");
+      models.forEach(model => {
+        console.log(`  • ${model.label} (${model.value})`);
+      });
+
+      // Tạo key mới với tất cả models của provider
+      const newKey = await prisma.userApiKey.create({
+        data: {
+          userId,
+          key,
+          label: label || `${provider.toUpperCase()} Key`,
+          status: 'ACTIVE',
+          modelIds: models.map(model => model.id),
+          usageCount: 0
+        }
+      });
+
+      console.log(`\n✅ Đã tạo key mới thành công:`);
+      console.log(`- Key: ${newKey.key.substring(0, 10)}...`);
+      console.log(`- Provider: ${provider}`);
+      console.log(`- Số lượng models: ${newKey.modelIds.length}`);
+
+      return { ...newKey, models };
+    } catch (error) {
+      this.lastError = `❌ Lỗi khi tạo key: ${error.message}`;
+      console.error(this.lastError);
+      throw error;
+    }
+  }
+
+  // Xóa API key của user
+  async deleteUserKey(userId, keyId) {
+    try {
+      if (!keyId) {
+        throw new Error('ID của key không được để trống');
+      }
+
+      console.log(`\n🗑️ Đang xóa API key ${keyId} của user ${userId}...`);
+      
+      // Kiểm tra key có tồn tại và thuộc về user không
+      const key = await prisma.userApiKey.findUnique({
+        where: {
+          id: keyId
+        }
+      });
+
+      if (!key) {
+        throw new Error('Không tìm thấy key');
+      }
+
+      if (key.userId !== userId) {
+        throw new Error('Bạn không có quyền xóa key này');
+      }
+
+      // Xóa key
+      await prisma.userApiKey.delete({
+        where: {
+          id: keyId
+        }
+      });
+
+      console.log(`✅ Đã xóa key thành công`);
+      return true;
+    } catch (error) {
+      this.lastError = `❌ Lỗi khi xóa key: ${error.message}`;
+      console.error(this.lastError);
+      throw error;
+    }
+  }
+
+  // Cập nhật trạng thái API key
+  async updateKeyStatus(userId, keyId, status) {
+    try {
+      console.log(`\n🔄 Đang cập nhật trạng thái key ${keyId} thành ${status}...`);
+      
+      const key = await prisma.userApiKey.findFirst({
+        where: {
+          id: keyId,
+          userId: userId
+        }
+      });
+
+      if (!key) {
+        throw new Error('Không tìm thấy key hoặc bạn không có quyền cập nhật key này');
+      }
+
+      const updatedKey = await prisma.userApiKey.update({
+        where: { id: keyId },
+        data: { status }
+      });
+
+      console.log(`✅ Đã cập nhật trạng thái key thành công`);
+      return updatedKey;
+    } catch (error) {
+      this.lastError = `❌ Lỗi khi cập nhật trạng thái key: ${error.message}`;
+      console.error(this.lastError);
+      throw error;
+    }
   }
 }
 

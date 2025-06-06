@@ -6,7 +6,8 @@
     "start": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "import-models": "node scripts/importModels.js",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "seed:keys": "node prisma/seedKeyData.js"
   },
   "keywords": [],
   "author": "",
