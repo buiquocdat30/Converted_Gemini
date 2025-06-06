@@ -7,6 +7,16 @@ async function seedDefaultKeys() {
         console.log("\n🔍 Bắt đầu quá trình seed keys...");
         console.log("📡 Đang kết nối database...");
 
+        // Xóa các bảng trung gian cũ nếu còn tồn tại
+        console.log("\n🧹 Đang dọn dẹp dữ liệu cũ...");
+        try {
+            await prisma.$executeRaw`DROP TABLE IF EXISTS "DefaultKeyToModel"`;
+            await prisma.$executeRaw`DROP TABLE IF EXISTS "UserApiKeyToModel"`;
+            console.log("✅ Đã xóa các bảng trung gian cũ");
+        } catch (error) {
+            console.log("ℹ️ Không tìm thấy bảng trung gian để xóa");
+        }
+
         // Lấy tất cả providers và models
         console.log("\n📦 Đang lấy danh sách providers và models...");
         const providers = await prisma.provider.findMany({
@@ -42,6 +52,10 @@ async function seedDefaultKeys() {
             // Google provider
             "google": {
                 keys: (process.env.GOOGLE_API_KEY || "AIzaSyDEFAULT_KEY_GOOGLE").split(',').filter(key => key.trim())
+            },
+            // OpenAI provider
+            "openai": {
+                keys: (process.env.OPENAI_API_KEY || "sk-DEFAULT_KEY_OPENAI").split(',').filter(key => key.trim())
             }
         };
 
@@ -74,7 +88,7 @@ async function seedDefaultKeys() {
                 console.log(`  • ${model.label} (${model.value})`);
             });
 
-            // Thêm từng key cho từng model
+            // Thêm từng key
             for (const key of providerKeys.keys) {
                 const trimmedKey = key.trim();
                 if (!trimmedKey) continue;
@@ -85,72 +99,87 @@ async function seedDefaultKeys() {
                     // Kiểm tra xem key đã tồn tại chưa
                     console.log("🔍 Kiểm tra key đã tồn tại...");
                     const existingKey = await prisma.defaultKey.findUnique({
-                        where: { key: trimmedKey },
-                        include: {
-                            models: {
-                                include: {
-                                    model: true
-                                }
-                            }
-                        }
+                        where: { key: trimmedKey }
                     });
 
                     if (existingKey) {
-                        console.log("✅ Key đã tồn tại, kiểm tra models cần kết nối thêm...");
-                        // Nếu key đã tồn tại, kiểm tra xem có cần thêm kết nối với models mới không
-                        const existingModelIds = existingKey.models.map(m => m.model.id);
-                        const newModelIds = modelsToAdd
-                            .filter(model => !existingModelIds.includes(model.id))
-                            .map(model => model.id);
+                        console.log("✅ Key đã tồn tại, cập nhật danh sách models...");
+                        // Cập nhật modelIds cho key hiện có
+                        const modelIds = modelsToAdd.map(model => model.id);
+                        await prisma.defaultKey.update({
+                            where: { id: existingKey.id },
+                            data: {
+                                modelIds: modelIds
+                            }
+                        });
+                        console.log(`✅ Đã cập nhật key ${trimmedKey.substring(0, 10)}... với ${modelIds.length} models`);
+                    } else {
+                        console.log("📝 Tạo key mới...");
+                        // Tạo key mới với danh sách modelIds
+                        const modelIds = modelsToAdd.map(model => model.id);
+                        const newKey = await prisma.defaultKey.create({
+                            data: {
+                                key: trimmedKey,
+                                status: 'ACTIVE',
+                                modelIds: modelIds
+                            }
+                        });
 
-                        if (newModelIds.length > 0) {
-                            console.log(`📝 Cần kết nối thêm ${newModelIds.length} models mới`);
-                            // Thêm kết nối với các models mới
-                            await prisma.defaultKeyToModel.createMany({
-                                data: newModelIds.map(modelId => ({
-                                    defaultKeyId: existingKey.id,
-                                    modelId
-                                }))
-                            });
-                            console.log(`✅ Đã thêm kết nối cho key ${trimmedKey.substring(0, 10)}... với ${newModelIds.length} models mới`);
-                        } else {
-                            console.log(`⏭️ Key ${trimmedKey.substring(0, 10)}... đã tồn tại và đã kết nối với tất cả models`);
-                        }
-                        continue;
+                        console.log(`✅ Đã thêm key ${trimmedKey.substring(0, 10)}... cho ${modelIds.length} models`);
                     }
-
-                    console.log("📝 Tạo key mới và kết nối với models...");
-                    // Tạo key mới và kết nối với tất cả models của provider
-                    const newKey = await prisma.defaultKey.create({
-                        data: {
-                            key: trimmedKey,
-                            status: 'ACTIVE',
-                            models: {
-                                create: modelsToAdd.map(model => ({
-                                    model: {
-                                        connect: { id: model.id }
-                                    }
-                                }))
-                            }
-                        },
-                        include: {
-                            models: {
-                                include: {
-                                    model: true
-                                }
-                            }
-                        }
-                    });
-
-                    console.log(`✅ Đã thêm key ${trimmedKey.substring(0, 10)}... cho ${modelsToAdd.length} models`);
-                    console.log("📋 Chi tiết models đã kết nối:");
-                    newKey.models.forEach(modelRelation => {
-                        console.log(`  • ${modelRelation.model.label} (${modelRelation.model.value})`);
-                    });
                 } catch (error) {
                     console.error(`❌ Lỗi khi thêm key ${trimmedKey.substring(0, 10)}...:`, error.message);
                 }
             }
+        }
+
+        // Cập nhật UserApiKey để thêm modelIds
+        console.log("\n🔄 Đang cập nhật UserApiKey...");
+        const userApiKeys = await prisma.userApiKey.findMany({
+            where: {
+                modelIds: {
+                    isEmpty: true // Tìm các key chưa có modelIds
+                }
+            }
+        });
+
+        if (userApiKeys.length > 0) {
+            console.log(`📝 Tìm thấy ${userApiKeys.length} UserApiKey cần cập nhật`);
+            
+            for (const userKey of userApiKeys) {
+                try {
+                    // Lấy tất cả models của provider tương ứng
+                    const provider = await prisma.provider.findFirst({
+                        where: {
+                            models: {
+                                some: {
+                                    value: {
+                                        contains: userKey.key.includes('sk-') ? 'gpt' : 'gemini'
+                                    }
+                                }
+                            }
+                        },
+                        include: {
+                            models: true
+                        }
+                    });
+
+                    if (provider) {
+                        const modelIds = provider.models.map(model => model.id);
+                        await prisma.userApiKey.update({
+                            where: { id: userKey.id },
+                            data: {
+                                modelIds: modelIds
+                            }
+                        });
+                        console.log(`✅ Đã cập nhật UserApiKey ${userKey.key.substring(0, 10)}... với ${modelIds.length} models`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Lỗi khi cập nhật UserApiKey ${userKey.key.substring(0, 10)}...:`, error.message);
+                }
+            }
+        } else {
+            console.log("✅ Không có UserApiKey nào cần cập nhật");
         }
 
         // Thống kê cuối cùng
@@ -162,19 +191,8 @@ async function seedDefaultKeys() {
         for (const provider of providers) {
             const providerKeys = await prisma.defaultKey.findMany({
                 where: {
-                    models: {
-                        some: {
-                            model: {
-                                providerId: provider.id
-                            }
-                        }
-                    }
-                },
-                include: {
-                    models: {
-                        include: {
-                            model: true
-                        }
+                    modelIds: {
+                        hasSome: provider.models.map(model => model.id)
                     }
                 },
                 distinct: ['key']
@@ -185,10 +203,14 @@ async function seedDefaultKeys() {
                 console.log(`- Số lượng keys: ${providerKeys.length}`);
                 providerKeys.forEach(key => {
                     console.log(`\n🔑 Key: ${key.key.substring(0, 10)}...`);
-                    console.log(`- Số lượng models đã kết nối: ${key.models.length}`);
+                    console.log(`- Số lượng models: ${key.modelIds.length}`);
+                    // Lấy thông tin chi tiết về các models
+                    const keyModels = provider.models.filter(model => 
+                        key.modelIds.includes(model.id)
+                    );
                     console.log("- Danh sách models:");
-                    key.models.forEach(modelRelation => {
-                        console.log(`  • ${modelRelation.model.label} (${modelRelation.model.value})`);
+                    keyModels.forEach(model => {
+                        console.log(`  • ${model.label} (${model.value})`);
                     });
                 });
             }
