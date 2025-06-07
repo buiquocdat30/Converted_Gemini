@@ -1,4 +1,4 @@
-const prisma = require("../config/prismaConfig");
+const {prisma} = require("../config/prismaConfig");
 const { readEpub } = require("./epubService");
 const { readTxt } = require("./txtServices");
 
