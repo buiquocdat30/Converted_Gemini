@@ -14,6 +14,7 @@ import { faEye, faEyeLowVision } from "@fortawesome/free-solid-svg-icons";
 import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "./pageCSS/Users.css"; // Hãy đảm bảo bạn tạo file này và viết CSS cho nó
 import { toast } from "react-hot-toast";
+import UserModelModals from '../components/UserModelModals/UserModelModals';
 
 // Placeholder components cho nội dung bên phải
 // Bạn có thể tách chúng ra thành các file riêng nếu cần
@@ -696,8 +697,8 @@ const KeyManagement = () => {
   } = useContext(AuthContext);
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState(null);
   const inputRef = useRef(null);
-  const [expandedKey, setExpandedKey] = useState(null); // Thêm state để theo dõi key đang mở rộng
 
   useEffect(() => {
     fetchApiKey();
@@ -711,7 +712,16 @@ const KeyManagement = () => {
     setIsAddKeyModalOpen(false);
   }, []);
 
-  const handleRemoveKey = async (keyId) => {
+  const handleKeyClick = (key) => {
+    setSelectedKey(key);
+  };
+
+  const handleCloseKeyModal = () => {
+    setSelectedKey(null);
+  };
+
+  const handleRemoveKey = async (keyId, e) => {
+    e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài
     if (window.confirm(`Bạn có chắc muốn xóa key này?`)) {
       try {
         await removeApiKey(keyId);
@@ -770,95 +780,56 @@ const KeyManagement = () => {
         inputRef={inputRef}
       />
 
+      {selectedKey && (
+        <UserModelModals
+          keyData={selectedKey}
+          onClose={handleCloseKeyModal}
+        />
+      )}
+
       <div className="keys-table-container">
         <table className="keys-table">
           <thead>
             <tr>
               <th>Key ID</th>
               <th>Label</th>
-              <th>Models</th>
+              <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
             {userApiKey.map((key) => (
-              <React.Fragment key={key.id}>
-                <tr 
-                  className={`key-row ${expandedKey === key.id ? 'expanded' : ''}`}
-                  onClick={() => setExpandedKey(expandedKey === key.id ? null : key.id)}
-                >
-                  <td>
-                    <div className="key-preview">
-                      {key.key.substring(0, 10)}...
-                      <span className="expand-icon">
-                        {expandedKey === key.id ? '▼' : '▶'}
-                      </span>
-                    </div>
-                  </td>
-                  <td>{key.label || "Không có nhãn"}</td>
-                  <td>
-                    <div className="models-summary">
-                      {key.models?.length || 0} models
-                      {key.models?.some(m => m.status === "EXHAUSTED") && 
-                        <span className="warning-badge">⚠️ Có model đã hết quota</span>
-                      }
-                    </div>
-                  </td>
-                  <td>
-                    <button
-                      className="use-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveKey(key.id);
-                      }}
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-                {expandedKey === key.id && (
-                  <tr className="key-details">
-                    <td colSpan="4">
-                      <div className="models-details">
-                        <h4>Chi tiết trạng thái theo model:</h4>
-                        <div className="models-grid">
-                          {key.models?.map((modelStatus) => (
-                            <div key={modelStatus.model.id} className="model-status-card">
-                              <div className="model-header">
-                                <h5>{modelStatus.model.label}</h5>
-                                <span className={`status-badge ${getStatusColor(modelStatus.status)}`}>
-                                  {getStatusText(modelStatus.status)}
-                                </span>
-                              </div>
-                              <div className="model-info">
-                                <p>Model ID: {modelStatus.model.value}</p>
-                                <p>Số lần sử dụng: {modelStatus.usageCount || 0}</p>
-                                <p>Lần sử dụng cuối: {
-                                  modelStatus.lastUsedAt 
-                                    ? new Date(modelStatus.lastUsedAt).toLocaleString()
-                                    : "Chưa sử dụng"
-                                }</p>
-                                {modelStatus.status === "EXHAUSTED" && (
-                                  <p className="exhausted-warning">
-                                    ⚠️ Key đã hết quota cho model này. 
-                                    Vui lòng thêm key mới hoặc sử dụng model khác.
-                                  </p>
-                                )}
-                                {modelStatus.status === "COOLDOWN" && (
-                                  <p className="cooldown-info">
-                                    ℹ️ Key đang trong thời gian nghỉ. 
-                                    Sẽ tự động kích hoạt lại sau một thời gian.
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
+              <tr 
+                key={key.id} 
+                className="key-row"
+                onClick={() => handleKeyClick(key)}
+                style={{ cursor: 'pointer' }}
+              >
+                <td>
+                  <div className="key-preview">
+                    {key.key.substring(0, 10)}...
+                  </div>
+                </td>
+                <td>{key.label || "Không có nhãn"}</td>
+                <td>
+                  <div className="key-status">
+                    <span className={`status-badge ${getStatusColor(key.status)}`}>
+                      {getStatusText(key.status)}
+                    </span>
+                    {key.models?.some(m => m.status === "EXHAUSTED") && 
+                      <span className="warning-badge">⚠️ Có model đã hết quota</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <button
+                    className="use-btn"
+                    onClick={(e) => handleRemoveKey(key.id, e)}
+                  >
+                    Xóa
+                  </button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>

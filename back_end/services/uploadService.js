@@ -4,7 +4,7 @@ const os = require("os");
 const crypto = require("crypto");
 const { readEpub } = require("./epubService");
 const { readTxt } = require("./txtServices");
-const prisma = require("../config/prismaConfig");
+const {prisma} = require("../config/prismaConfig");
 
 const uploadService = {
     // Upload và xử lý file truyện

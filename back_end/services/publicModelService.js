@@ -1,4 +1,4 @@
-const prisma = require("../config/prismaConfig");
+const {prisma} = require("../config/prismaConfig");
 
 // Cache để lưu trữ dữ liệu providers và models
 let providersCache = null;

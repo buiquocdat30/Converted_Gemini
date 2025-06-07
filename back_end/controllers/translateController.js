@@ -47,7 +47,7 @@ exports.translateText = async (req, res) => {
     const keyManager = new ApiKeyManager(model);
     
     // Kiểm tra xem có key khả dụng không
-    const hasKeys = await keyManager.hasAvailableKeys(userId, userKey);
+    const hasKeys = await keyManager.hasAvailableKeys(userKey, userId, model);
     if (!hasKeys) {
       const error = keyManager.getLastError();
       return res.status(400).json({ 
@@ -60,7 +60,10 @@ exports.translateText = async (req, res) => {
       const startTime = Date.now();
       try {
         // Lấy key để sử dụng (userKey hoặc default key)
-        const keyToUse = await keyManager.getKeyToUse(userId, userKey);
+        const keyToUse = await keyManager.getKeyToUse(userId, userKey, model);
+        if (!keyToUse) {
+          throw new Error("Không tìm thấy key khả dụng");
+        }
         console.log(`🔑 Sử dụng key cho chương ${index + 1}`);
 
         // Xử lý nội dung
@@ -69,15 +72,24 @@ exports.translateText = async (req, res) => {
           try {
             translatedContent = await performTranslation(ch.content, keyToUse, model);
           } catch (err) {
-            if (err.response?.status === 429) {
-              // Xử lý lỗi rate limit
-              await keyManager.handle429Error(userId, keyToUse);
-              throw new Error("Rate limit exceeded. Thử lại sau.");
-            } else if (err.response?.status === 400) {
-              // Xử lý lỗi quota hết
-              await keyManager.exhaustKey(userId, keyToUse);
-              throw new Error("API key đã hết quota.");
+            const errorMessage = err.message || err.toString();
+            console.error(`❌ Lỗi dịch nội dung chương ${index + 1}:`, errorMessage);
+
+            // Xử lý các loại lỗi khác nhau
+            if (errorMessage.includes("Too Many Requests") || errorMessage.includes("quotaMetric")) {
+              if (userId && keyToUse) {
+                await keyManager.handle429Error(userId, keyToUse);
+              }
+              throw new Error("Đã vượt quá giới hạn yêu cầu. Vui lòng thử lại sau.");
             }
+
+            if (errorMessage.includes("API key") || errorMessage.includes("permission") || errorMessage.includes("quota")) {
+              if (userId && keyToUse) {
+                await keyManager.exhaustKey(userId, keyToUse);
+              }
+              throw new Error("API key không hợp lệ hoặc đã hết quota.");
+            }
+
             throw err;
           }
         }
@@ -88,13 +100,24 @@ exports.translateText = async (req, res) => {
           try {
             translatedTitle = await performTranslation(ch.title, keyToUse, model);
           } catch (err) {
-            if (err.response?.status === 429) {
-              await keyManager.handle429Error(userId, keyToUse);
-              throw new Error("Rate limit exceeded. Thử lại sau.");
-            } else if (err.response?.status === 400) {
-              await keyManager.exhaustKey(userId, keyToUse);
-              throw new Error("API key đã hết quota.");
+            const errorMessage = err.message || err.toString();
+            console.error(`❌ Lỗi dịch tiêu đề chương ${index + 1}:`, errorMessage);
+
+            // Xử lý các loại lỗi khác nhau
+            if (errorMessage.includes("Too Many Requests") || errorMessage.includes("quotaMetric")) {
+              if (userId && keyToUse) {
+                await keyManager.handle429Error(userId, keyToUse);
+              }
+              throw new Error("Đã vượt quá giới hạn yêu cầu. Vui lòng thử lại sau.");
             }
+
+            if (errorMessage.includes("API key") || errorMessage.includes("permission") || errorMessage.includes("quota")) {
+              if (userId && keyToUse) {
+                await keyManager.exhaustKey(userId, keyToUse);
+              }
+              throw new Error("API key không hợp lệ hoặc đã hết quota.");
+            }
+
             throw err;
           }
         }
@@ -137,7 +160,7 @@ exports.translateText = async (req, res) => {
     });
 
     // Kiểm tra xem còn key khả dụng không sau khi dịch
-    const stillHasKeys = await keyManager.hasAvailableKeys(userId, userKey);
+    const stillHasKeys = await keyManager.hasAvailableKeys(userKey, userId, model);
     if (!stillHasKeys) {
       console.warn("⚠️ Đã hết key khả dụng sau khi dịch");
     }
