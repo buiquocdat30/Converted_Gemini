@@ -393,6 +393,7 @@ const userLibraryService = {
    * @returns {Promise<Object>} Bản dịch đã tạo
    */
   createTranslation: async (storyId, chapterNumber, userId, data) => {
+    console.log("data createTranslation", data)
     try {
       // Kiểm tra chương tồn tại và thuộc về user
       const chapter = await prisma.userLibraryChapter.findFirst({
@@ -450,6 +451,7 @@ const userLibraryService = {
    * @returns {Promise<Object>} Bản dịch đã cập nhật
    */
   updateTranslation: async (storyId, chapterNumber, userId, data) => {
+    console.log("data updateTranslation", data)
     try {
       const chapter = await prisma.userLibraryChapter.findFirst({
         where: {
@@ -464,36 +466,47 @@ const userLibraryService = {
         },
       });
 
-      if (!chapter || !chapter.translation) {
-        throw new Error("Không tìm thấy bản dịch");
+      if (!chapter) {
+        throw new Error("Không tìm thấy chương");
       }
 
-      // Lưu phiên bản cũ trước khi cập nhật
-      await prisma.userTranslationVersion.create({
-        data: {
+      // Nếu đã có bản dịch, lưu phiên bản cũ
+      if (chapter.translation) {
+        await prisma.userTranslationVersion.create({
+          data: {
+            chapterId: chapter.id,
+            translatedText: chapter.translation.translatedContent,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      // Sử dụng upsert để tạo mới hoặc cập nhật bản dịch
+      const updatedTranslation = await prisma.userTranslatedChapter.upsert({
+        where: {
           chapterId: chapter.id,
-          translatedText: chapter.translation.translatedContent,
+        },
+        update: {
+          translatedTitle: data.translatedTitle,
+          translatedContent: data.translatedContent,
+          updatedAt: new Date(),
+        },
+        create: {
+          chapterId: chapter.id,
+          translatedTitle: data.translatedTitle,
+          translatedContent: data.translatedContent,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
       });
 
-      // Cập nhật bản dịch mới
-      const updatedTranslation = await prisma.userTranslatedChapter.update({
-        where: {
-          chapterId: chapter.id,
-        },
-        data: {
-          translatedTitle: data.translatedTitle,
-          translatedContent: data.translatedContent,
-          updatedAt: new Date(),
-        },
-      });
-
-      // Cập nhật trạng thái chương thành REVIEWING
+      // Cập nhật trạng thái chương
       await prisma.userLibraryChapter.update({
         where: { id: chapter.id },
-        data: { status: "REVIEWING" },
+        data: { 
+          status: chapter.translation ? "REVIEWING" : "TRANSLATED" 
+        },
       });
 
       return updatedTranslation;

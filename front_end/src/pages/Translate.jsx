@@ -165,7 +165,13 @@ const Translate = () => {
   const handleUpdateChapterContent = async (index, newContent) => {
     try {
       const chapter = chapters[index];
-      await updateChapterContent(chapter.id, newContent);
+      await updateChapterContent(
+        chapter.id,
+        newContent,
+        'translated',
+        currentStory.id,
+        chapter.chapterNumber
+      );
 
       // Cập nhật state local
       setChapters((prev) =>
