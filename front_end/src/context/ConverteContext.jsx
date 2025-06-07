@@ -649,14 +649,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateChapterContent = async (chapterId, content, type = 'translated') => {
+  const updateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent) => {
     try {
       setLoading(true);
       const response = await axios.put(
-        `${API_URL}/user/library/chapter/${chapterId}/translation`,
+        `${API_URL}/user/library/${storyId}/chapters/${chapterNumber}/translation`,
         {
-          currentText: content,
-          type: type
+          translatedTitle: translatedTitle || '', // Tiêu đề đã dịch
+          translatedContent: translatedContent || '' // Nội dung đã dịch
         },
         {
           headers: {

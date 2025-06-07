@@ -14,22 +14,27 @@ router.use((req, res, next) => {
 });
 
 // Quản lý bản dịch và phiên bản
+// Tạo bản dịch mới
 router.post(
   "/:storyId/chapters/:chapterNumber/translation",
   userLibraryController.createTranslation
-); // Tạo bản dịch mới
+); 
+// Cập nhật bản dịch
 router.put(
   "/:storyId/chapters/:chapterNumber/translation",
   userLibraryController.updateTranslation
-); // Cập nhật bản dịch
+); 
+// Xóa bản dịch
 router.delete(
   "/:storyId/chapters/:chapterNumber/translation",
   userLibraryController.deleteTranslation
-); // Xóa bản dịch
+); 
+
 router.get(
   "/:storyId/chapters/:chapterNumber/versions",
   userLibraryController.getAllTranslationVersion
-); // Lấy danh sách phiên bản
+); 
+// Lấy chi tiết phiên bản
 router.get(
   "/:storyId/chapters/:chapterNumber/versions/:versionId",
   userLibraryController.getOneTranslationVersion
