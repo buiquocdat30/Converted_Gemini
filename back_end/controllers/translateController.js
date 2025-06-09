@@ -69,27 +69,23 @@ exports.translateText = async (req, res) => {
           }
 
           // Xác định provider và model
-          const { provider, modelValue } = await keyManager.determineProviderAndModel(userKey);
-          console.log("provider translateController", provider)
-          console.log("modelValue translateController", modelValue)
-          if (!provider || !modelValue) {
-            throw new Error("Không thể xác định provider hoặc model cho key này");
+          const { provider, models } = await keyManager.determineProviderAndModel(userKey, req.user?.id);
+          console.log("provider translateController", provider);
+          console.log("models translateController", models.map(m => m.value));
+
+          if (!provider || !models || models.length === 0) {
+            throw new Error("Không thể xác định provider hoặc models cho key này");
           }
 
-          // Lấy model ID
-          const modelRecord = await prisma.model.findFirst({
-            where: { value: modelValue }
-          });
-          if (!modelRecord) {
-            throw new Error(`Không tìm thấy model ${modelValue}`);
-          }
+          // Lấy model IDs từ danh sách models
+          const modelIds = models.map(m => m.id);
 
-          // Lưu key mới vào database
+          // Lưu key mới vào database với tất cả model IDs
           const newKey = await prisma.userApiKey.create({
             data: {
               userId: toObjectId(userId),
               key: userKey,
-              modelIds: [modelRecord.id],
+              modelIds: modelIds,
             }
           });
 

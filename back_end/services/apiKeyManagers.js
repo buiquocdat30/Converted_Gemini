@@ -127,7 +127,7 @@ class ApiKeyManager {
   }
 
   // Helper function để lấy thông tin user key
-  async getUserKeyRecord(userId, key) {
+  async getUserKeyRecord(userId, userkey) {
     try {
       if (!userId || !key) {
         console.log("❌ Thiếu userId hoặc key");
@@ -137,7 +137,7 @@ class ApiKeyManager {
       const userKeyRecord = await prisma.userApiKey.findFirst({
         where: {
           userId: toObjectId(userId),
-          key: key,
+          key: userkey,
           status: "ACTIVE"
         },
         select: {
@@ -155,14 +155,27 @@ class ApiKeyManager {
         return null;
       }
 
+      // Lấy thông tin chi tiết về models
+      const models = await prisma.model.findMany({
+        where: {
+          id: { in: userKeyRecord.modelIds }
+        },
+        select: {
+          id: true,
+          value: true,
+          label: true
+        }
+      });
+
       console.log("📝 Thông tin user key:", {
         keyId: userKeyRecord.id,
         modelIds: userKeyRecord.modelIds,
+        models: models.map(m => m.value),
         status: userKeyRecord.status,
         usageCount: userKeyRecord.usageCount
       });
 
-      return userKeyRecord;
+      return { ...userKeyRecord, models };
     } catch (err) {
       console.error("❌ Lỗi khi lấy thông tin user key:", err);
       return null;
@@ -303,6 +316,7 @@ class ApiKeyManager {
           } else {
             return userKey;
           }
+
         }
       }
 
@@ -342,7 +356,7 @@ class ApiKeyManager {
 
       if (!keyRecord) {
         console.log("❌ Không tìm thấy thông tin key");
-        return null;
+        throw new Error("KEY_NOT_FOUND");
       }
 
       // Cập nhật trạng thái key
@@ -361,8 +375,25 @@ class ApiKeyManager {
         const nextKey = await this.getAroundKeyFrom(userId, key, this.modelValue);
         if (nextKey) {
           console.log("✅ Đã tìm thấy user key khác để sử dụng");
-          return nextKey;
+          return { key: nextKey, error: null };
         }
+
+        // Nếu không tìm thấy key khác, trả về lỗi với thông tin chi tiết
+        const availableModels = keyRecord.models
+          .filter(m => m.value !== this.modelValue)
+          .map(m => m.value);
+        
+        throw new Error(JSON.stringify({
+          code: "KEY_EXHAUSTED",
+          message: "Key đã hết quota cho model này",
+          details: {
+            currentModel: this.modelValue,
+            availableModels: availableModels,
+            suggestion: availableModels.length > 0 
+              ? "Vui lòng chọn model khác hoặc thêm key mới" 
+              : "Vui lòng thêm key mới"
+          }
+        }));
       } else {
         // Nếu là default key
         await prisma.defaultKey.update({
@@ -378,14 +409,28 @@ class ApiKeyManager {
         const nextDefaultKey = await this.getNextDefaultKey();
         if (nextDefaultKey) {
           console.log("✅ Đã tìm thấy default key khác để sử dụng");
-          return nextDefaultKey;
+          return { key: nextDefaultKey, error: null };
         }
-      }
 
-      console.log("❌ Không tìm thấy key khác để sử dụng");
-      return null;
+        throw new Error(JSON.stringify({
+          code: "DEFAULT_KEY_EXHAUSTED",
+          message: "Không còn default key khả dụng",
+          details: {
+            suggestion: "Vui lòng thêm key của bạn hoặc thử lại sau"
+          }
+        }));
+      }
     } catch (err) {
       console.error("❌ Lỗi khi xử lý lỗi 429:", err);
+      if (err.message === "KEY_NOT_FOUND") {
+        throw new Error(JSON.stringify({
+          code: "KEY_NOT_FOUND",
+          message: "Không tìm thấy thông tin key",
+          details: {
+            suggestion: "Vui lòng kiểm tra lại key của bạn"
+          }
+        }));
+      }
       throw err;
     }
   }
@@ -400,28 +445,29 @@ class ApiKeyManager {
       );
 
       // Kiểm tra xem key có phải là key của user không
-      const userKeyRecord = await prisma.userApiKey.findFirst({
-        where: {
-          userId,
-          key,
-          models: {
-            some: {
-              model: {
-                value: this.modelValue,
-              },
-            },
-          },
-        },
-        include: {
-          models: {
-            where: {
-              model: {
-                value: this.modelValue,
-              },
-            },
-          },
-        },
-      });
+      // const userKeyRecord = await prisma.userApiKey.findFirst({
+      //   where: {
+      //     userId,
+      //     key,
+      //     models: {
+      //       some: {
+      //         model: {
+      //           value: this.modelValue,
+      //         },
+      //       },
+      //     },
+      //   },
+      //   include: {
+      //     models: {
+      //       where: {
+      //         model: {
+      //           value: this.modelValue,
+      //         },
+      //       },
+      //     },
+      //   },
+      // });
+      const userKeyRecord = await this.getUserKeyRecord(userId, userKey);
 
       if (userKeyRecord) {
         console.log(
@@ -633,69 +679,102 @@ class ApiKeyManager {
   // Xác định provider và model từ key
   async determineProviderAndModel(key, userId = null) {
     try {
-      // Kiểm tra key có phải của Google không
-      if (!key.startsWith('AI')) {
-        throw new Error('Key không hợp lệ, phải là key của Google Gemini');
+      console.log(`\n🔍 Đang xác định provider và model cho key ${key.substring(0, 10)}...`);
+
+      // Xác định provider từ format key
+      let provider;
+      if (key.startsWith('AI')) {
+        provider = 'Google';
+      } else if (key.startsWith('sk-')) {
+        provider = 'OpenAI';
+      } else {
+        throw new Error('Key không hợp lệ, không xác định được provider');
       }
 
-      // Lấy provider Google
-      const provider = await prisma.provider.findFirst({
-        where: { name: 'Google' }
+      // Lấy provider từ database
+      const providerRecord = await prisma.provider.findFirst({
+        where: { name: provider }
       });
 
-      if (!provider) {
-        throw new Error('Không tìm thấy provider Google');
+      if (!providerRecord) {
+        throw new Error(`Không tìm thấy provider ${provider}`);
       }
 
-      // Lấy tất cả models của Google
-      const allModels = await prisma.model.findMany({
+      // Lấy tất cả models của provider
+      const allProviderModels = await prisma.model.findMany({
         where: {
-          providerId: provider.id
+          providerId: providerRecord.id
         }
       });
 
-      if (!allModels || allModels.length === 0) {
-        throw new Error('Không tìm thấy models của Google');
+      if (!allProviderModels || allProviderModels.length === 0) {
+        throw new Error(`Không tìm thấy models của provider ${provider}`);
       }
 
-      // Nếu có userId, lấy modelIds từ các key khác của user
       let modelIds = [];
+
+      // Nếu có userId, thử lấy modelIds từ các key khác của user
       if (userId) {
+        console.log(`\n🔍 Đang tìm các key khác của user ${userId}...`);
+        
+        // Lấy tất cả key khác của user (trừ key hiện tại)
         const userKeys = await prisma.userApiKey.findMany({
           where: {
             userId: toObjectId(userId),
+            key: { not: key },
             status: 'ACTIVE'
-          },
-          select: {
-            modelIds: true
           }
         });
 
-        // Gộp tất cả modelIds từ các key khác
-        modelIds = [...new Set(userKeys.flatMap(k => k.modelIds))];
-        
-        // Nếu không có key nào, lấy tất cả model của Google
-        if (modelIds.length === 0) {
-          modelIds = allModels.map(m => m.id);
+        console.log(`📊 Tìm thấy ${userKeys.length} key khác của user`);
+
+        if (userKeys && userKeys.length > 0) {
+          // Gộp tất cả modelIds từ các key khác
+          modelIds = [...new Set(userKeys.flatMap(k => k.modelIds))];
+          console.log(`✅ Tìm thấy ${modelIds.length} models từ các key khác của user`);
+        } else {
+          console.log('ℹ️ Không tìm thấy key khác của user, thử tìm từ default keys...');
+          
+          // Nếu không có key khác, lấy từ default keys
+          const defaultKeys = await prisma.defaultKey.findMany({
+            where: {
+              status: 'ACTIVE'
+            }
+          });
+
+          if (defaultKeys && defaultKeys.length > 0) {
+            // Gộp tất cả modelIds từ default keys
+            modelIds = [...new Set(defaultKeys.flatMap(k => k.modelIds))];
+            console.log(`✅ Tìm thấy ${modelIds.length} models từ default keys`);
+          }
         }
-      } else {
-        // Nếu không có userId, lấy tất cả model của Google
-        modelIds = allModels.map(m => m.id);
       }
 
-      // Lấy thông tin chi tiết của các model được chọn
-      const selectedModels = allModels.filter(m => modelIds.includes(m.id));
+      // Nếu vẫn không có modelIds, lấy tất cả model của provider
+      if (modelIds.length === 0) {
+        console.log('ℹ️ Không tìm thấy modelIds từ key khác, sử dụng tất cả model của provider');
+        modelIds = allProviderModels.map(m => m.id);
+      }
 
-      console.log("🔍 Xác định provider và model:", {
-        provider: provider.name,
-        selectedModels: selectedModels.map(m => m.value),
-        availableModels: allModels.map(m => m.value)
+      // Lọc các modelIds để chỉ lấy model của provider hiện tại
+      const validModelIds = modelIds.filter(id => 
+        allProviderModels.some(m => m.id === id)
+      );
+
+      // Lấy thông tin chi tiết của các model được chọn
+      const selectedModels = allProviderModels.filter(m => validModelIds.includes(m.id));
+
+      console.log("\n📋 Kết quả xác định provider và model:", {
+        provider: provider,
+        totalModels: allProviderModels.length,
+        selectedModels: selectedModels.length,
+        modelValues: selectedModels.map(m => m.value)
       });
 
       return {
-        provider: provider.name,
-        modelIds: modelIds,
-        models: selectedModels // Trả về danh sách model đã chọn
+        provider: provider,
+        modelIds: validModelIds,
+        models: selectedModels
       };
     } catch (error) {
       this.lastError = `❌ Lỗi khi xác định provider và model: ${error.message}`;
@@ -960,3 +1039,4 @@ class ApiKeyManager {
 }
 
 module.exports = ApiKeyManager;
+
