@@ -65,26 +65,51 @@ const TranslatorApp = ({
   // Khi nhận kết quả dịch từ ChapterList
   const handleTranslationResult = async (index, translated, translatedTitle) => {
     try {
+      const chapter = chapters[index];
+      if (!chapter) {
+        console.error("Không tìm thấy thông tin chương:", index);
+        return;
+      }
+
+      // Log để debug
+      console.log("📝 Cập nhật kết quả dịch:", {
+        index,
+        chapterNumber: chapter.chapterNumber,
+        storyId: chapter.storyId,
+        hasTranslatedTitle: !!translatedTitle,
+        hasTranslatedContent: !!translated
+      });
+
       // Cập nhật state local
       setTranslatedChapters((prev) => {
         const updated = [...prev];
         updated[index] = {
-          ...(chapters[index] || {}),
-          translated,
-          translatedTitle,
+          ...chapter,
+          translatedContent: translated,
+          translatedTitle: translatedTitle,
+          status: "TRANSLATED"
         };
         return updated;
       });
 
       // Lưu vào database
-      if (storyId) {
-        const chapter = chapters[index];
-        await onUpdateChapter(index, translated, 'translated');
+      if (storyId && chapter.chapterNumber) {
+        await onUpdateChapter(
+          storyId,
+          chapter.chapterNumber,
+          translatedTitle || chapter.chapterName,
+          translated || chapter.content
+        );
       }
 
-      setCurrentIndex(index); // Chuyển sang chương vừa dịch
+      // Chuyển sang chương vừa dịch
+      setCurrentIndex(index);
+      
+      // Thông báo thành công
+      toast.success(`✅ Đã dịch xong chương ${chapter.chapterNumber}`);
     } catch (error) {
-      console.error("Lỗi khi lưu kết quả dịch:", error);
+      console.error("❌ Lỗi khi lưu kết quả dịch:", error);
+      toast.error("❌ Lỗi khi lưu kết quả dịch: " + error.message);
     }
   };
 

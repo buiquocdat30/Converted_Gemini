@@ -22,13 +22,11 @@ const TranslateViewer = ({
   const currentContent = history[historyIndex];
 
   useEffect(() => {
-
     const chapter = chapters[currentIndex];
 
-
     // Lấy nội dung và tiêu đề từ chapter hiện tại
-    const newContent = chapter?.translated || chapter?.content || "";
-    const title = chapter?.chapterName || chapter?.title || `Chương ${currentIndex + 1}`;
+    const newContent = chapter?.translatedContent || chapter?.content || "";
+    const title = chapter?.translatedTitle || chapter?.chapterName || chapter?.title || `Chương ${currentIndex + 1}`;
 
     setHistory([newContent]);
     setHistoryIndex(0);
@@ -41,11 +39,28 @@ const TranslateViewer = ({
 
   const handleSave = () => {
     const chapter = chapters[currentIndex];
-    // Nếu chưa có bản dịch thì lưu vào rawText, ngược lại lưu vào translated
-    if (!chapter.translated) {
-      onUpdateChapter(currentIndex, currentContent, 'rawText');
+    // Log để kiểm tra cấu trúc dữ liệu
+    console.log("📖 Thông tin chapter hiện tại:", {
+      chapter,
+      currentIndex,
+      chapterNumber: chapter?.chapterNumber,
+      chapterKeys: chapter ? Object.keys(chapter) : [],
+      allChapters: chapters.map(ch => ({
+        chapterNumber: ch.chapterNumber,
+        title: ch.title,
+        chapterName: ch.chapterName,
+        keys: Object.keys(ch)
+      }))
+    });
+
+    // Lấy chapterNumber từ currentIndex + 1 nếu không có trong chapter
+    const chapterNumber = chapter?.chapterNumber || (currentIndex + 1);
+    
+    // Nếu chưa có bản dịch thì lưu vào content, ngược lại lưu vào translatedContent
+    if (!chapter.translatedContent) {
+      onUpdateChapter(chapter.storyId, chapterNumber, chapter.chapterName || chapter.title, currentContent);
     } else {
-      onUpdateChapter(currentIndex, currentContent, 'translated');
+      onUpdateChapter(chapter.storyId, chapterNumber, chapter.translatedTitle || chapter.title, currentContent);
     }
     setIsEditing(false);
     toast.success("💾 Đã lưu nội dung chương!");
@@ -75,8 +90,8 @@ const TranslateViewer = ({
     // Lọc ra các chương đã dịch
     const translatedChapters = chapters
       .map((ch, i) => ({
-        title: ch.chapterName || `Chương ${i + 1}`,
-        content: ch.translated?.trim(),
+        title: ch.translatedTitle || ch.chapterName || `Chương ${i + 1}`,
+        content: ch.translatedContent?.trim(),
       }))
       .filter((ch) => ch.content); // Chỉ lấy chương có nội dung dịch
 
@@ -160,7 +175,11 @@ const TranslateViewer = ({
         </div>
         <div className="row">
           <button 
-            onClick={() => onUpdateChapter(currentIndex, currentContent, 'translated')}
+            onClick={() => {
+              const chapter = chapters[currentIndex];
+              const chapterNumber = chapter?.chapterNumber || (currentIndex + 1);
+              onUpdateChapter(chapter.storyId, chapterNumber, chapter.translatedTitle || chapter.title, currentContent);
+            }}
             disabled={!chapters[currentIndex]?.translated}
           >
             💾 Lưu 

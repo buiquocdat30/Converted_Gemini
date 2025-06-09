@@ -162,25 +162,53 @@ const Translate = () => {
   };
 
   // Cập nhật nội dung chương đã dịch
-  const handleUpdateChapterContent = async (index, newContent) => {
+  const handleUpdateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent) => {
     try {
-      const chapter = chapters[index];
-      await updateChapterContent(
-        chapter.id,
-        newContent,
-        'translated',
-        currentStory.id,
-        chapter.chapterNumber
+      // Log để debug
+      console.log("📝 Cập nhật nội dung chương:", {
+        storyId,
+        chapterNumber,
+        hasTranslatedTitle: !!translatedTitle,
+        hasTranslatedContent: !!translatedContent
+      });
+
+      // Kiểm tra tham số bắt buộc
+      if (!storyId) throw new Error("Thiếu storyId");
+      if (!chapterNumber) throw new Error("Thiếu chapterNumber");
+      
+      // Gọi API cập nhật
+      const response = await updateChapterContent(
+        storyId,
+        chapterNumber,
+        translatedTitle,
+        translatedContent
       );
 
       // Cập nhật state local
-      setChapters((prev) =>
-        prev.map((ch, i) =>
-          i === index ? { ...ch, translated: newContent } : ch
+      setChapters(prevChapters => 
+        prevChapters.map(chapter => 
+          chapter.storyId === storyId && chapter.chapterNumber === chapterNumber
+            ? {
+                ...chapter,
+                translatedTitle: translatedTitle || chapter.chapterName,
+                translatedContent: translatedContent || chapter.content,
+                status: "TRANSLATED"
+              }
+            : chapter
         )
       );
-    } catch (error) {
-      console.error("Lỗi khi cập nhật nội dung chương:", error);
+
+      console.log("✅ Cập nhật thành công:", response);
+      return response;
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật nội dung chương:", {
+        error: err.message,
+        storyId,
+        chapterNumber,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      throw err;
     }
   };
 
