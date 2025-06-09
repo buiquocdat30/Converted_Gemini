@@ -1,7 +1,7 @@
-const {
-  translateText: performTranslation,
-} = require("../services/translateService");
+const { translateText } = require("../services/translateService");
 const ApiKeyManager = require("../services/apiKeyManagers");
+const { prisma } = require("../config/prismaConfig");
+const { toObjectId } = require("../config/prismaConfig");
 
 exports.translateText = async (req, res) => {
   const { chapters, userKey, model } = req.body;
@@ -48,6 +48,70 @@ exports.translateText = async (req, res) => {
     // Khởi tạo ApiKeyManager cho model này
     const keyManager = new ApiKeyManager(model);
     
+    // Kiểm tra và lưu key mới trước khi sử dụng
+    if (userKey && userId) {
+      try {
+        // Kiểm tra xem key có tồn tại trong database không
+        const existingKey = await prisma.userApiKey.findFirst({
+          where: {
+            userId: toObjectId(userId),
+            key: userKey
+          }
+        });
+
+        if (!existingKey) {
+          console.log("🔑 Phát hiện key mới, đang kiểm tra và lưu...");
+          
+          // Kiểm tra key có hợp lệ không
+          const isValid = await keyManager.validateKey(userKey);
+          if (!isValid) {
+            throw new Error("API key không hợp lệ");
+          }
+
+          // Xác định provider và model
+          const { provider, modelValue } = await keyManager.determineProviderAndModel(userKey);
+          console.log("provider translateController", provider)
+          console.log("modelValue translateController", modelValue)
+          if (!provider || !modelValue) {
+            throw new Error("Không thể xác định provider hoặc model cho key này");
+          }
+
+          // Lấy model ID
+          const modelRecord = await prisma.model.findFirst({
+            where: { value: modelValue }
+          });
+          if (!modelRecord) {
+            throw new Error(`Không tìm thấy model ${modelValue}`);
+          }
+
+          // Lưu key mới vào database
+          const newKey = await prisma.userApiKey.create({
+            data: {
+              userId: toObjectId(userId),
+              key: userKey,
+              modelIds: [modelRecord.id],
+            }
+          });
+
+          console.log("✅ Đã lưu key mới:", {
+            keyId: newKey.id,
+            userId: newKey.userId,
+            modelIds: newKey.modelIds,
+            status: newKey.status,
+            usageCount: newKey.usageCount,
+            createdAt: newKey.createdAt,
+            updatedAt: newKey.updatedAt
+          });
+        }
+      } catch (err) {
+        console.error("❌ Lỗi khi xử lý key mới:", err);
+        return res.status(400).json({
+          error: "Không thể sử dụng key này",
+          details: err.message
+        });
+      }
+    }
+
     // Kiểm tra xem có key khả dụng không
     const hasKeys = await keyManager.hasAvailableKeys(userKey, userId, model);
     if (!hasKeys) {
@@ -83,10 +147,10 @@ exports.translateText = async (req, res) => {
         if (ch.content && typeof ch.content === 'string') {
           try {
             // Dịch tiêu đề chương
-            translatedTitle = await performTranslation(ch.title, keyToUse, model);
+            translatedTitle = await translateText(ch.title, keyToUse, model);
             console.log("translatedTitle translationPromises", translatedTitle)
             // Dịch nội dung chương
-            translatedContent = await performTranslation(ch.content, keyToUse, model);
+            translatedContent = await translateText(ch.content, keyToUse, model);
             console.log("translatedContent translationPromises", translatedContent)
             
           } catch (err) {

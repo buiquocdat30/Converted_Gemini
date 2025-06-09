@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma, toObjectId } = require("../config/prismaConfig");
 const ApiKeyManager = require('../services/apiKeyManagers');
 
 const userApiKeyController = {
