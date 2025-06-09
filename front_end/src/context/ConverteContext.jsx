@@ -651,6 +651,18 @@ export const AuthProvider = ({ children }) => {
 
   const updateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent) => {
     try {
+      // Kiểm tra và log các tham số
+      console.log("📝 Cập nhật nội dung chương:", {
+        storyId,
+        chapterNumber,
+        hasTranslatedTitle: !!translatedTitle,
+        hasTranslatedContent: !!translatedContent
+      });
+
+      // Kiểm tra tham số bắt buộc
+      if (!storyId) throw new Error("Thiếu storyId");
+      if (!chapterNumber) throw new Error("Thiếu chapterNumber");
+      
       setLoading(true);
       const response = await axios.put(
         `${API_URL}/user/library/${storyId}/chapters/${chapterNumber}/translation`,
@@ -664,9 +676,16 @@ export const AuthProvider = ({ children }) => {
           },
         }
       );
+      console.log("✅ Cập nhật thành công:", response.data);
       return response.data;
     } catch (err) {
-      console.error("Lỗi khi cập nhật nội dung chương:", err);
+      console.error("❌ Lỗi khi cập nhật nội dung chương:", {
+        error: err.message,
+        storyId,
+        chapterNumber,
+        status: err.response?.status,
+        data: err.response?.data
+      });
       setError(err.message);
       throw err;
     } finally {

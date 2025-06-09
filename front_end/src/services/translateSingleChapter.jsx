@@ -62,37 +62,61 @@ export const translateSingleChapter = async ({
       }
     });
 
-    console.log("Response data:", res.data);
+    // Log toàn bộ response để debug
+    console.log("Response data translateSingleChapter:", res.data);
 
-    const translated = res?.data?.chapters?.[0]?.translated || "";
-    console.log("📌 dịch hiện tại:", translated || "MISSING");
+    // Lấy dữ liệu từ chapter đầu tiên trong mảng chapters
+    const chapterData = res?.data?.chapters?.[0];
+    if (!chapterData) {
+      console.error("❌ Không tìm thấy dữ liệu chương trong response");
+      return null;
+    }
 
-    const translatedTitle = res?.data?.chapters?.[0]?.translatedTitle || "";
-    console.log("📌 title hiện tại:", translatedTitle || "MISSING");
-    
+    // Log chi tiết dữ liệu chương
+    console.log("📖 Dữ liệu chương:", {
+      chapterNumber: chapterData.chapterNumber,
+      title: chapterData.title,
+      translatedTitle: chapterData.translatedTitle,
+      content: chapterData.content?.substring(0, 100) + "...",
+      translatedContent: chapterData.translatedContent?.substring(0, 100) + "...",
+      status: chapterData.status
+    });
+
+    // Cập nhật state với dữ liệu đã dịch
     setResults((prev) => ({
       ...prev,
-      [index]: { 
-        translated, 
-        translatedTitle,
-        chapterName: translatedTitle || chapter.chapterName
-      },
+      [index]: {
+        translatedContent: chapterData.translatedContent || "",
+        translatedTitle: chapterData.translatedTitle || "",
+        chapterName: chapterData.translatedTitle || chapter.chapterName
+      }
     }));
 
-    onTranslationResult(index, translated, translatedTitle);
-    console.log("📌 Dịch hiện tại:", onTranslationResult);
+    // Gọi callback để thông báo kết quả dịch
+    onTranslationResult?.(index, chapterData.translatedContent, chapterData.translatedTitle);
 
+    // Cập nhật tiến độ
     setProgress((prev) => ({ ...prev, [index]: 100 }));
     setTranslatedCount((prev) => prev + 1);
-
     setErrorMessages((prev) => {
       const newErrors = { ...prev };
       delete newErrors[index];
       return newErrors;
     });
 
+    // Cập nhật tiến độ tổng thể
     const percent = Math.floor(((index + 1) / chapters.length) * 100);
     setTotalProgress(percent);
+
+    // Trả về dữ liệu đã dịch
+    return {
+      chapterNumber: chapterData.chapterNumber,
+      title: chapterData.title,
+      translatedTitle: chapterData.translatedTitle || "",
+      content: chapterData.content || "",
+      translatedContent: chapterData.translatedContent || "",
+      status: chapterData.status
+    };
   } catch (error) {
     console.error("Lỗi khi dịch chương:", error);
     console.error("Error response:", error.response?.data);
