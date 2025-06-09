@@ -1,5 +1,6 @@
 // hàm dịch theo từng chương
 import axios from "axios";
+import { toast } from "react-hot-toast";
 
 export const translateSingleChapter = async ({
   index,
@@ -122,12 +123,50 @@ export const translateSingleChapter = async ({
     console.error("Error response:", error.response?.data);
 
     let errorMessage = "❌ Lỗi khi dịch chương: " + (chapter.chapterName || `Chương ${index + 1}`);
-    if (error.response?.data?.message) {
-      errorMessage += " - " + error.response.data.message;
+    let errorDetails = null;
+
+    // Xử lý các loại lỗi khác nhau
+    if (error.response?.data?.error) {
+      try {
+        const errorData = JSON.parse(error.response.data.error);
+        errorMessage = errorData.message;
+        errorDetails = errorData.details;
+
+        // Xử lý các mã lỗi cụ thể
+        switch (errorData.code) {
+          case "KEY_EXHAUSTED":
+            if (errorDetails.availableModels?.length > 0) {
+              errorMessage += `\n\nCác model khác có thể sử dụng: ${errorDetails.availableModels.join(", ")}`;
+            }
+            break;
+          case "DEFAULT_KEY_EXHAUSTED":
+            errorMessage += "\n\nVui lòng thêm key của bạn hoặc thử lại sau";
+            break;
+          case "KEY_NOT_FOUND":
+            errorMessage += "\n\nVui lòng kiểm tra lại key của bạn";
+            break;
+        }
+      } catch (e) {
+        // Nếu không parse được JSON, sử dụng message gốc
+        errorMessage = error.response.data.error;
+      }
+    } else if (error.message?.includes("API key not valid")) {
+      errorMessage = "❌ API key không hợp lệ. Vui lòng kiểm tra lại key của bạn.";
     }
 
     setErrorMessages((prev) => ({ ...prev, [index]: errorMessage }));
-    alert(errorMessage);
+    
+    // Hiển thị thông báo lỗi với chi tiết
+    if (errorDetails?.suggestion) {
+      toast.error(
+        <div>
+          <p>{errorMessage}</p>
+          <p style={{ marginTop: '8px', color: '#666' }}>{errorDetails.suggestion}</p>
+        </div>
+      );
+    } else {
+      toast.error(errorMessage);
+    }
   } finally {
     clearInterval(interval);
   }

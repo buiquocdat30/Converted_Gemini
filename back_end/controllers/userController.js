@@ -15,8 +15,7 @@ class UserController {
       }
 
       const user = await userService.getUserById(userId);
-      console.log("👤 Kết quả tìm user:", user);
-
+      
       if (!user) {
         console.log("⚠️ Không tìm thấy user");
         return res.status(404).json({ message: "User not found" });
