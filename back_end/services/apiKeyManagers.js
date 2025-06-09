@@ -501,7 +501,7 @@ class ApiKeyManager {
 
           // Lấy thông tin key từ database
           const keyInfo = await prisma.userApiKey.findFirst({
-            where: {
+            where: { 
               userId: toObjectId(userId),
               key: userKey,
               status: 'ACTIVE'
@@ -540,34 +540,39 @@ class ApiKeyManager {
 
       // Nếu không có userKey, kiểm tra default keys
       try {
-        // Kiểm tra default keys cho model
-        const modelWithDefaultKeys = await prisma.model.findFirst({
+        // 1. Kiểm tra model tồn tại
+        if (!modelId) {
+          console.log("❌ Không có modelId để kiểm tra default keys");
+          return false;
+        }
+
+        // 2. Tìm các DefaultKey có chứa modelId trong mảng modelIds
+        const defaultKeys = await prisma.defaultKey.findMany({
           where: {
-            id: modelId
-          },
-          include: {
-            defaultKeys: {
-              where: {
-                status: 'ACTIVE'
-              }
+            status: 'ACTIVE',
+            modelIds: {
+              has: modelId  // Prisma hỗ trợ mảng với toán tử `has`
             }
           }
         });
 
-        if (!modelWithDefaultKeys || !modelWithDefaultKeys.defaultKeys || modelWithDefaultKeys.defaultKeys.length === 0) {
-          console.log("❌ Không có default key nào cho model này");
+        if (!defaultKeys || defaultKeys.length === 0) {
+          console.log("❌ Không có default key nào cho model này:", modelValue);
           return false;
         }
 
-        console.log("📝 Số lượng default keys:", modelWithDefaultKeys.defaultKeys.length);
+        console.log("📝 Số lượng default keys khả dụng:", defaultKeys.length);
         return true;
 
-      } catch (error) {
-        console.error("❌ Lỗi khi kiểm tra default keys:", error);
+      } catch (err) {
+        console.error("❌ Lỗi khi kiểm tra default keys:", err);
+        this.lastError = err.message;
         return false;
       }
-    } catch (error) {
-      console.error("❌ Lỗi khi kiểm tra key khả dụng:", error);
+
+    } catch (err) {
+      console.error("❌ Lỗi khi kiểm tra keys:", err);
+      this.lastError = err.message;
       return false;
     }
   }
