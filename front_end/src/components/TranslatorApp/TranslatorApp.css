@@ -144,7 +144,6 @@
   /* chiếm phần còn lại (75%) */
 }
 
-
 .converter-key-container {
   display: flex;
   flex-direction: column;
@@ -183,9 +182,6 @@
 .check-key-btn:hover {
   background-color: #218838;
 }
-
-
-
 
 .content {
   display: flex;
