@@ -5,7 +5,12 @@ import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { AuthContext } from "../../context/ConverteContext";
 import "./ConverteKeyInput.css"; // dùng luôn css cũ
 
-const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
+const ConverteKeyInput = ({
+  apiKey,
+  setApiKey,
+  onKeysSelected,
+  onCurrentKey,
+}) => {
   const {
     isLoggedIn,
     onLogout,
@@ -83,7 +88,10 @@ const ConverteKeyInput = ({ apiKey, setApiKey, onKeysSelected }) => {
       if (onKeysSelected) onKeysSelected(selectedKeys);
       console.log("Đây là các key đã được chọn selectedKeys", selectedKeys);
       // Vẫn giữ key đầu tiên làm key đang sử dụng
-      setApiKey(selectedKeys[0]);
+      const currentKey = selectedKeys[0];
+      setApiKey(currentKey);
+      // Gọi onCurrentKey với key hiện tại
+      if (onCurrentKey) onCurrentKey(currentKey);
     }
     setShowKeyList(false);
   };

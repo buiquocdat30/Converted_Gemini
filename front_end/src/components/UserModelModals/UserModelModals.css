@@ -50,9 +50,8 @@
 
 .key-info {
   background: #f5f5f5;
-  padding: 15px;
+  padding: 5px;
   border-radius: 6px;
-  margin-bottom: 20px;
 }
 
 .key-info p {
@@ -79,7 +78,7 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .model-header {
@@ -186,4 +185,4 @@
 .dark .status-exhausted {
   background-color: #721c24;
   color: #fff;
-} 
+}

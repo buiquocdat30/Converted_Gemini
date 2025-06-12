@@ -63,7 +63,11 @@ const TranslatorApp = ({
   };
 
   // Khi nhận kết quả dịch từ ChapterList
-  const handleTranslationResult = async (index, translated, translatedTitle) => {
+  const handleTranslationResult = async (
+    index,
+    translated,
+    translatedTitle
+  ) => {
     try {
       const chapter = chapters[index];
       if (!chapter) {
@@ -77,7 +81,7 @@ const TranslatorApp = ({
         chapterNumber: chapter.chapterNumber,
         storyId: chapter.storyId,
         hasTranslatedTitle: !!translatedTitle,
-        hasTranslatedContent: !!translated
+        hasTranslatedContent: !!translated,
       });
 
       // Cập nhật state local
@@ -87,7 +91,7 @@ const TranslatorApp = ({
           ...chapter,
           translatedContent: translated,
           translatedTitle: translatedTitle,
-          status: "TRANSLATED"
+          status: "TRANSLATED",
         };
         return updated;
       });
@@ -104,7 +108,7 @@ const TranslatorApp = ({
 
       // Chuyển sang chương vừa dịch
       setCurrentIndex(index);
-      
+
       // Thông báo thành công
       toast.success(`✅ Đã dịch xong chương ${chapter.chapterNumber}`);
     } catch (error) {
@@ -193,291 +197,296 @@ const TranslatorApp = ({
   };
 
   // Tách modal thành component riêng để tránh re-render
-  const AddChapterModal = React.memo(({ isOpen, onClose, onAdd, onCloseComplete }) => {
-    const [localTitle, setLocalTitle] = useState("");
-    const [localContent, setLocalContent] = useState("");
-    const [localFile, setLocalFile] = useState(null);
-    const [localMode, setLocalMode] = useState("manual");
-    const [processedChapters, setProcessedChapters] = useState([]);
-    const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
-    const [isProcessingFile, setIsProcessingFile] = useState(false);
-    const [selectedChapters, setSelectedChapters] = useState(new Set()); // Thêm state để lưu các chương được chọn
+  const AddChapterModal = React.memo(
+    ({ isOpen, onClose, onAdd, onCloseComplete }) => {
+      const [localTitle, setLocalTitle] = useState("");
+      const [localContent, setLocalContent] = useState("");
+      const [localFile, setLocalFile] = useState(null);
+      const [localMode, setLocalMode] = useState("manual");
+      const [processedChapters, setProcessedChapters] = useState([]);
+      const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
+      const [isProcessingFile, setIsProcessingFile] = useState(false);
+      const [selectedChapters, setSelectedChapters] = useState(new Set()); // Thêm state để lưu các chương được chọn
 
-    // Hàm xử lý khi chọn/bỏ chọn một chương
-    const handleChapterSelect = (index) => {
-      setSelectedChapters((prev) => {
-        const newSelected = new Set(prev);
-        if (newSelected.has(index)) {
-          newSelected.delete(index);
-        } else {
-          newSelected.add(index);
-        }
-        return newSelected;
-      });
-    };
-
-    // Hàm chọn/bỏ chọn tất cả chương
-    const handleSelectAll = () => {
-      if (selectedChapters.size === processedChapters.length) {
-        // Nếu đã chọn hết thì bỏ chọn hết
-        setSelectedChapters(new Set());
-      } else {
-        // Nếu chưa chọn hết thì chọn hết
-        setSelectedChapters(
-          new Set(processedChapters.map((_, index) => index))
-        );
-      }
-    };
-
-    // Reset selected chapters khi đóng modal hoặc chuyển mode
-    const resetSelections = () => {
-      setSelectedChapters(new Set());
-      setSelectedChapterIndex(null);
-      setProcessedChapters([]);
-    };
-
-    const handleFileSelect = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      setLocalFile(file);
-      setIsProcessingFile(true);
-      resetSelections();
-
-      try {
-        const content = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = (e) => reject(e);
-          reader.readAsText(file);
+      // Hàm xử lý khi chọn/bỏ chọn một chương
+      const handleChapterSelect = (index) => {
+        setSelectedChapters((prev) => {
+          const newSelected = new Set(prev);
+          if (newSelected.has(index)) {
+            newSelected.delete(index);
+          } else {
+            newSelected.add(index);
+          }
+          return newSelected;
         });
+      };
 
-        const fileExt = file.name.split(".").pop().toLowerCase();
-        let chapters;
-
-        if (fileExt === "epub") {
-          chapters = await handleEpubFile(
-            content,
-            null,
-            (error) => toast.error(error),
-            (success) => toast.success(success),
-            null,
-            null,
-            null,
-            null,
-            null
+      // Hàm chọn/bỏ chọn tất cả chương
+      const handleSelectAll = () => {
+        if (selectedChapters.size === processedChapters.length) {
+          // Nếu đã chọn hết thì bỏ chọn hết
+          setSelectedChapters(new Set());
+        } else {
+          // Nếu chưa chọn hết thì chọn hết
+          setSelectedChapters(
+            new Set(processedChapters.map((_, index) => index))
           );
-        } else if (fileExt === "txt") {
-          const result = checkFileFormatFromText(content);
-          if (!result.valid) {
-            toast.error("File không đúng định dạng chương!");
+        }
+      };
+
+      // Reset selected chapters khi đóng modal hoặc chuyển mode
+      const resetSelections = () => {
+        setSelectedChapters(new Set());
+        setSelectedChapterIndex(null);
+        setProcessedChapters([]);
+      };
+
+      const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setLocalFile(file);
+        setIsProcessingFile(true);
+        resetSelections();
+
+        try {
+          const content = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file);
+          });
+
+          const fileExt = file.name.split(".").pop().toLowerCase();
+          let chapters;
+
+          if (fileExt === "epub") {
+            chapters = await handleEpubFile(
+              content,
+              null,
+              (error) => toast.error(error),
+              (success) => toast.success(success),
+              null,
+              null,
+              null,
+              null,
+              null
+            );
+          } else if (fileExt === "txt") {
+            const result = checkFileFormatFromText(content);
+            if (!result.valid) {
+              toast.error("File không đúng định dạng chương!");
+              return;
+            }
+            chapters = result.chapters;
+          } else {
+            toast.error("Chỉ hỗ trợ file EPUB và TXT!");
             return;
           }
-          chapters = result.chapters;
+
+          if (!chapters || chapters.length === 0) {
+            toast.error("Không tìm thấy chương nào trong file!");
+            return;
+          }
+
+          setProcessedChapters(chapters);
+          toast.success(`Đã tìm thấy ${chapters.length} chương trong file!`);
+        } catch (error) {
+          console.error("Lỗi khi xử lý file:", error);
+          toast.error(error.message || "Lỗi khi xử lý file!");
+        } finally {
+          setIsProcessingFile(false);
+        }
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (localMode === "manual") {
+          if (!localTitle.trim() || !localContent.trim()) {
+            toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
+            return;
+          }
+          onAdd({
+            title: localTitle,
+            content: localContent,
+            mode: localMode,
+          });
         } else {
-          toast.error("Chỉ hỗ trợ file EPUB và TXT!");
-          return;
+          if (!localFile) {
+            toast.error("Vui lòng chọn file!");
+            return;
+          }
+          if (selectedChapters.size === 0) {
+            toast.error("Vui lòng chọn ít nhất một chương!");
+            return;
+          }
+
+          onAdd({
+            mode: localMode,
+            file: localFile,
+            selectedChapters: selectedChapters,
+            processedChapters: processedChapters,
+            setSelectedChapters: setSelectedChapters,
+          });
         }
+      };
 
-        if (!chapters || chapters.length === 0) {
-          toast.error("Không tìm thấy chương nào trong file!");
-          return;
-        }
+      if (!isOpen) return null;
 
-        setProcessedChapters(chapters);
-        toast.success(`Đã tìm thấy ${chapters.length} chương trong file!`);
-      } catch (error) {
-        console.error("Lỗi khi xử lý file:", error);
-        toast.error(error.message || "Lỗi khi xử lý file!");
-      } finally {
-        setIsProcessingFile(false);
-      }
-    };
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (localMode === "manual") {
-        if (!localTitle.trim() || !localContent.trim()) {
-          toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
-          return;
-        }
-        onAdd({
-          title: localTitle,
-          content: localContent,
-          mode: localMode,
-        });
-      } else {
-        if (!localFile) {
-          toast.error("Vui lòng chọn file!");
-          return;
-        }
-        if (selectedChapters.size === 0) {
-          toast.error("Vui lòng chọn ít nhất một chương!");
-          return;
-        }
-
-        onAdd({
-          mode: localMode,
-          file: localFile,
-          selectedChapters: selectedChapters,
-          processedChapters: processedChapters,
-          setSelectedChapters: setSelectedChapters,
-        });
-      }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-      <div
-        className="modal-overlay"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-      >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <form onSubmit={handleSubmit}>
-            <h3>Thêm chương mới</h3>
-            <div className="add-chapter-tabs">
-              <button
-                type="button"
-                className={localMode === "manual" ? "active" : ""}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocalMode("manual");
-                  setProcessedChapters([]);
-                  setSelectedChapterIndex(null);
-                }}
-              >
-                Nhập thủ công
-              </button>
-              <button
-                type="button"
-                className={localMode === "file" ? "active" : ""}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocalMode("file");
-                }}
-              >
-                Từ file
-              </button>
-            </div>
-
-            {localMode === "manual" ? (
-              <>
-                <input
-                  type="text"
-                  placeholder="Nhập tiêu đề chương"
-                  value={localTitle}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
+      return (
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSubmit}>
+              <h3>Thêm chương mới</h3>
+              <div className="add-chapter-tabs">
+                <button
+                  type="button"
+                  className={localMode === "manual" ? "active" : ""}
+                  onClick={(e) => {
                     e.stopPropagation();
-                    setLocalTitle(e.target.value);
+                    setLocalMode("manual");
+                    setProcessedChapters([]);
+                    setSelectedChapterIndex(null);
                   }}
-                />
-                <textarea
-                  placeholder="Nhập nội dung chương"
-                  value={localContent}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
+                >
+                  Nhập thủ công
+                </button>
+                <button
+                  type="button"
+                  className={localMode === "file" ? "active" : ""}
+                  onClick={(e) => {
                     e.stopPropagation();
-                    setLocalContent(e.target.value);
+                    setLocalMode("file");
                   }}
-                  rows={10}
-                />
-              </>
-            ) : (
-              <div className="file-input-container">
-                <input
-                  type="file"
-                  accept=".txt,.epub"
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={handleFileSelect}
-                  disabled={isProcessingFile}
-                />
-                {isProcessingFile && (
-                  <div className="processing-indicator">Đang xử lý file...</div>
-                )}
-                {processedChapters.length > 0 && (
-                  <div className="chapter-list">
-                    <div className="chapter-list-header">
-                      <h4>Chọn chương muốn thêm:</h4>
-                      <button
-                        type="button"
-                        className="select-all-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectAll();
-                        }}
-                      >
-                        {selectedChapters.size === processedChapters.length
-                          ? "Bỏ chọn tất cả"
-                          : "Chọn tất cả"}
-                      </button>
-                    </div>
-                    <div className="modal-chapter-select">
-                      {processedChapters.map((chapter, index) => (
-                        <div
-                          key={index}
-                          className={`modal-chapter-item ${
-                            selectedChapters.has(index) ? "selected" : ""
-                          }`}
-                          onClick={() => handleChapterSelect(index)}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedChapters.has(index)}
-                            onChange={() => {}}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <span className="modal-chapter-number">
-                            Chương {index + 1}:
-                          </span>
-                          <span className="modal-chapter-title">{chapter.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="selected-count">
-                      Đã chọn {selectedChapters.size} /{" "}
-                      {processedChapters.length} chương
-                    </div>
-                  </div>
-                )}
+                >
+                  Từ file
+                </button>
               </div>
-            )}
 
-            <div className="modal-buttons">
-              <button
-                type="submit"
-                disabled={
-                  isProcessingFile ||
-                  (localMode === "file" && selectedChapters.size === 0)
-                }
-              >
-                {localMode === "file" && selectedChapters.size > 0
-                  ? `Thêm ${selectedChapters.size} chương`
-                  : "Thêm chương"}
+              {localMode === "manual" ? (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Nhập tiêu đề chương"
+                    value={localTitle}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setLocalTitle(e.target.value);
+                    }}
+                  />
+                  <textarea
+                    placeholder="Nhập nội dung chương"
+                    value={localContent}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setLocalContent(e.target.value);
+                    }}
+                    rows={10}
+                  />
+                </>
+              ) : (
+                <div className="file-input-container">
+                  <input
+                    type="file"
+                    accept=".txt,.epub"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={handleFileSelect}
+                    disabled={isProcessingFile}
+                  />
+                  {isProcessingFile && (
+                    <div className="processing-indicator">
+                      Đang xử lý file...
+                    </div>
+                  )}
+                  {processedChapters.length > 0 && (
+                    <div className="chapter-list">
+                      <div className="chapter-list-header">
+                        <h4>Chọn chương muốn thêm:</h4>
+                        <button
+                          type="button"
+                          className="select-all-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectAll();
+                          }}
+                        >
+                          {selectedChapters.size === processedChapters.length
+                            ? "Bỏ chọn tất cả"
+                            : "Chọn tất cả"}
+                        </button>
+                      </div>
+                      <div className="modal-chapter-select">
+                        {processedChapters.map((chapter, index) => (
+                          <div
+                            key={index}
+                            className={`modal-chapter-item ${
+                              selectedChapters.has(index) ? "selected" : ""
+                            }`}
+                            onClick={() => handleChapterSelect(index)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedChapters.has(index)}
+                              onChange={() => {}}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <span className="modal-chapter-number">
+                              Chương {index + 1}:
+                            </span>
+                            <span className="modal-chapter-title">
+                              {chapter.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="selected-count">
+                        Đã chọn {selectedChapters.size} /{" "}
+                        {processedChapters.length} chương
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetSelections();
-                  onClose();
-                }}
-              >
-                Hủy
-              </button>
-            </div>
-          </form>
+              <div className="modal-buttons">
+                <button
+                  type="submit"
+                  disabled={
+                    isProcessingFile ||
+                    (localMode === "file" && selectedChapters.size === 0)
+                  }
+                >
+                  {localMode === "file" && selectedChapters.size > 0
+                    ? `Thêm ${selectedChapters.size} chương`
+                    : "Thêm chương"}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetSelections();
+                    onClose();
+                  }}
+                >
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
-    );
-  });
+      );
+    }
+  );
 
   // Xử lý thêm chương mới
   const handleAddChapter = useCallback(
@@ -490,7 +499,8 @@ const TranslatorApp = ({
 
         // Kiểm tra trùng tên chương
         const isTitleDuplicate = chapters.some(
-          (chapter) => chapter.chapterName.toLowerCase() === data.title.toLowerCase()
+          (chapter) =>
+            chapter.chapterName.toLowerCase() === data.title.toLowerCase()
         );
         if (isTitleDuplicate) {
           toast.error("❌ Tên chương đã tồn tại! Vui lòng chọn tên khác.");
@@ -547,7 +557,9 @@ const TranslatorApp = ({
           }
 
           // Kiểm tra trùng lặp trước khi thêm
-          const existingTitles = new Set(chapters.map(ch => ch.chapterName.toLowerCase()));
+          const existingTitles = new Set(
+            chapters.map((ch) => ch.chapterName.toLowerCase())
+          );
           const duplicateTitles = [];
           const validChapters = new Set();
 
@@ -564,7 +576,9 @@ const TranslatorApp = ({
           }
 
           if (duplicateTitles.length > 0) {
-            toast.error(`❌ Các chương sau đã tồn tại: ${duplicateTitles.join(", ")}`);
+            toast.error(
+              `❌ Các chương sau đã tồn tại: ${duplicateTitles.join(", ")}`
+            );
             // Sử dụng setSelectedChapters được truyền từ AddChapterModal
             data.setSelectedChapters(validChapters);
             return;
@@ -583,7 +597,8 @@ const TranslatorApp = ({
             const chapter = data.processedChapters[index];
             const newChapter = {
               storyId: storyId,
-              chapterName: chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
+              chapterName:
+                chapter.title || data.file.name.replace(/\.[^/.]+$/, ""),
               rawText: chapter.content,
               chapterNumber: maxChapterNumber + i + 1,
             };
@@ -597,7 +612,10 @@ const TranslatorApp = ({
               });
               successCount++;
             } catch (error) {
-              console.error(`Lỗi khi thêm chương ${newChapter.chapterName}:`, error);
+              console.error(
+                `Lỗi khi thêm chương ${newChapter.chapterName}:`,
+                error
+              );
               toast.error(`❌ Lỗi khi thêm chương "${newChapter.chapterName}"`);
             }
           }
@@ -663,22 +681,11 @@ const TranslatorApp = ({
           <div className="modal-content">
             <h3>📘 Menu key</h3>
             <div className="top-menu-body">
-              <button onClick={() => (window.location.href = "/")}>
-                🏠 Trang chủ
-              </button>
-              <ConverteKeyInput apiKey={tempKey} setApiKey={setTempKey} />
-              <div className="converter-key-container">
-                <button
-                  className="confirm-key-btn"
-                  onClick={handleCurrentKey}
-                  disabled={!tempKey || currentApiKey === tempKey}
-                >
-                  🔑 Nhập key
-                </button>
-                <button className="check-key-btn" onClick={handleCheckKey}>
-                  🔑 Kiểm tra key
-                </button>
-              </div>
+              <ConverteKeyInput
+                apiKey={tempKey}
+                setApiKey={setTempKey}
+                onCurrentKey={handleCurrentKey}
+              />
             </div>
             <div className="modal-buttons">
               <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
