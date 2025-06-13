@@ -106,12 +106,15 @@
 .modal-content button {
   margin-top: 10px;
   padding: 12px 12px;
-  background-color: rgb(104, 146, 119);
+  background-color:#32744f;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 
+}
+.modal-content button:hover {
+  background-color: #064409;
 }
 
 .list_api_key {
@@ -204,20 +207,20 @@
   font-size: 12px;
 }
 
-.view-keys-btn {
+.converte-key-wrapper .view-keys-btn {
   margin-top: 10px;
   padding: 8px 16px;
-  background-color: #4a90e2;
+  background-color: #32744f;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 1rem;
   transition: background-color 0.3s;
 }
 
-.view-keys-btn:hover {
-  background-color: #357abd;
+.converte-key-wrapper .view-keys-btn:hover {
+  background-color: #064409;
 }
 
 .key-actions {
@@ -238,12 +241,12 @@
 }
 
 .select-all-key-btn {
-  background-color: #f0f0f0;
+  background-color: #28a745;
   color: #333;
 }
 
 .select-all-key-btn:hover {
-  background-color: #e0e0e0;
+  background-color: #218838;
 }
 
 .apply-selected-keys-btn {
