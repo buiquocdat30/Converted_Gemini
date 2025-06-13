@@ -57,7 +57,7 @@ export const translateSingleChapter = async ({
     console.log('Request data:', requestData);
     
     const token = localStorage.getItem("auth-token");
-    const res = await axios.post("http://localhost:8000/translate", requestData, {
+    const res = await axios.post("http://localhost:8000/translate/queue", requestData, {
       headers: {
         Authorization: `Bearer ${token}`
       }

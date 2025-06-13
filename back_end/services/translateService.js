@@ -2,6 +2,7 @@ require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const ApiKeyManager = require("./apiKeyManagers");
 const publicModelService = require("./publicModelService");
+const { translationQueue } = require('./queueManager');
 
 // Mặc định sử dụng Gemini Pro
 const DEFAULT_MODEL = "gemini-2.0-flash";
@@ -17,7 +18,7 @@ const translateText = async (text, keyToUse, modelAI) => {
     throw new Error("Thiếu thông tin modelAI.");
   }
 
-  const currentModelAI = modelAI || DEFAULT_MODEL;
+  const currentModelAI = modelAI || "gemini-pro";
 
   if (!text) throw new Error("Thiếu nội dung cần dịch.");
 
@@ -50,6 +51,58 @@ const translateText = async (text, keyToUse, modelAI) => {
   }
 };
 
+// Hàm thêm job vào queue
+const addTranslationJob = async (chapter, apiKey, model) => {
+  try {
+    const job = await translationQueue.add({
+      chapter,
+      apiKey,
+      model
+    }, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000
+      },
+      removeOnComplete: true,
+      removeOnFail: false
+    });
+
+    return job;
+  } catch (error) {
+    console.error("❌ Lỗi khi thêm job vào queue:", error);
+    throw error;
+  }
+};
+
+// Hàm lấy trạng thái job
+const getJobStatus = async (jobId) => {
+  try {
+    const job = await translationQueue.getJob(jobId);
+    if (!job) {
+      throw new Error("Không tìm thấy job");
+    }
+
+    const state = await job.getState();
+    const progress = job._progress;
+    const result = job.returnvalue;
+    const error = job.failedReason;
+
+    return {
+      id: job.id,
+      state,
+      progress,
+      result,
+      error
+    };
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy trạng thái job:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   translateText,
+  addTranslationJob,
+  getJobStatus
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faStop } from "@fortawesome/free-solid-svg-icons";
 import { translateAllChapters } from "../../services/translateChapters";
 import { translateSingleChapter } from "../../services/translateSingleChapter";
 import { toast } from "react-hot-toast";
@@ -29,6 +29,7 @@ const ChapterList = ({
   const [isTranslatingAll, setIsTranslatingAll] = useState(false); //Nút quay quay loading
   const [hasTranslatedAll, setHasTranslatedAll] = useState(false); //đã dịch xong
   const isStoppedRef = useRef(false); //dừng dịch
+  const [isStopping, setIsStopping] = useState(false); // Trạng thái đang dừng
 
   //khu vực phân Trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -262,8 +263,75 @@ const ChapterList = ({
     }
   };
 
+  // Hàm dừng dịch
+  const stopTranslation = async () => {
+    try {
+      setIsStopping(true);
+      isStoppedRef.current = true;
+      
+      // Gọi API để dừng job
+      const token = localStorage.getItem("auth-token");
+      await axios.post(`${API_URL}/translate/queue/stop`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      toast.success("Đã dừng quá trình dịch");
+      setIsTranslatingAll(false);
+      setIsTranslateAllDisabled(false);
+    } catch (error) {
+      console.error("Lỗi khi dừng dịch:", error);
+      toast.error("Không thể dừng quá trình dịch");
+    } finally {
+      setIsStopping(false);
+    }
+  };
+
+  // Reset trạng thái dừng khi bắt đầu dịch mới
+  useEffect(() => {
+    if (!isTranslatingAll) {
+      isStoppedRef.current = false;
+    }
+  }, [isTranslatingAll]);
+
   return (
     <div className="chapter-list">
+      <div className="chapter-list-header">
+        <h2>Danh sách chương</h2>
+        <div className="chapter-list-actions">
+          <button
+            className="translate-all-btn"
+            onClick={translateAll}
+            disabled={isTranslateAllDisabled}
+          >
+            {isTranslatingAll ? (
+              <>
+                <FontAwesomeIcon icon={faSpinner} spin /> Đang dịch...
+              </>
+            ) : (
+              "Dịch tất cả"
+            )}
+          </button>
+          {isTranslatingAll && (
+            <button
+              className="stop-translation-btn"
+              onClick={stopTranslation}
+              disabled={isStopping}
+            >
+              {isStopping ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} spin /> Đang dừng...
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faStop} /> Dừng dịch
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
       <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
       <ul>
         {currentChapters.map((ch, idxOnPage) => {

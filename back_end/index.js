@@ -10,6 +10,7 @@ const userApiKeyRoute = require("./routes/userApiKeyRoute");
 const userLibraryRoute = require("./routes/userLibraryRoute");
 const publicModelRoute = require("./routes/publicModelRoute");
 const path = require("path");
+const { serverAdapter } = require('./services/queueManager');
 
 //quản lý admin-panel
 const providerRoutes = require("./admin/adminRoutes/providerRoutes");
@@ -22,7 +23,7 @@ const apiKeyRoutes = require("./admin/adminRoutes/apiKeyRoutes");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 app.use(cors());
 
@@ -64,6 +65,16 @@ app.use("/admin/han-viet", tudienRoutes);
 app.use("/admin/users", userRoutes);
 app.use("/admin/api-keys", apiKeyRoutes);
 
+// Mount Bull Board UI
+app.use('/admin/queues', serverAdapter.getRouter());
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something broke!' });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📊 Bull Board UI available at http://localhost:${PORT}/admin/queues`);
 });
