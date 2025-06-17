@@ -45,7 +45,7 @@
 }
 
 .chapter-list button:hover {
-  background-color: #064409;
+  background-color: #0e8713;
 }
 
 .chapter-list button:disabled {
@@ -150,7 +150,7 @@
   flex-shrink: 0;
 }
 
-.chapter-header .chapter-actions>.translate-button,
+.chapter-header .chapter-actions>.translate-sgn-button,
 .chapter-header .chapter-actions>.delete-chapter-button {
   padding: 5px 2px;
   background-color: #28a745;
@@ -162,9 +162,9 @@
   width: 50%;
 }
 
-.translate-button:hover,
-.delete-chapter-button:hover {
-  background-color: #0056b3;
+.chapter-header .chapter-actions>.translate-sgn-button:hover,
+.chapter-header .chapter-actions>.delete-chapter-button:hover {
+  background-color: #0e8713;
 }
 
 .translate-button:disabled,
@@ -178,18 +178,45 @@
 }
 
 .chapter-progress-bar-container {
-  height: 6px;
-  background: #eee;
-  margin-top: 6px;
-  border-radius: 4px;
-  overflow: hidden;
   width: 100%;
+  height: 4px;
+  background-color: #f0f0f0;
+  border-radius: 2px;
+  margin: 8px 0;
+  overflow: hidden;
 }
 
 .chapter-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #4caf50, #81c784);
-  transition: width 0.2s ease-in-out;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.chapter-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* page chương và nhảy tới chương */
@@ -267,7 +294,7 @@
 
 .chapter-list .stop-translate-button:hover:enabled,
 .chapter-list .translate-all-button:hover:enabled {
-  background-color: #45a049;
+  background-color: #0e8713;
 }
 
 .chapter-list .translate-all-button:disabled,
@@ -305,21 +332,21 @@
   transition: all 0.3s ease;
 } */
 
-.translate-btn {
+.translate-sgn-button{
   background-color: #28a745;
   color: white;
 }
 
-.translate-btn:hover {
-  background-color: #218838;
+.translate-sgn-button:hover {
+  background-color: #45a049;
 }
 
-.dark .translate-btn {
-  background-color: #2ecc71;
+.dark .translate-sgn-button {
+  background-color: #28a745;
 }
 
-.dark .translate-btn:hover {
-  background-color: #27ae60;
+.dark .translate-sgn-button:hover {
+  background-color: #45a049;
 }
 
 /* Responsive styles */

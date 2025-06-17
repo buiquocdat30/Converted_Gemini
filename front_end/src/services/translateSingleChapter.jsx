@@ -14,6 +14,7 @@ export const translateSingleChapter = async ({
   setTotalProgress,
   onTranslationResult,
   onSelectChapter,
+  onComplete,
 }) => {
   const chapter = chapters[index];
   onSelectChapter?.(index); // 👈 gọi để hiển thị chương trước khi dịch
@@ -27,16 +28,7 @@ export const translateSingleChapter = async ({
     return;
   }
 
-  // Bắt đầu tiến độ giả lập
-  let fakeProgress = 0;
-  const interval = setInterval(() => {
-    fakeProgress += 5;
-    if (fakeProgress < 95) {
-      setProgress((prev) => ({ ...prev, [index]: fakeProgress }));
-    } else {
-      clearInterval(interval);
-    }
-  }, 200); // mỗi 200ms tăng 5%
+  const startTime = Date.now(); // Bắt đầu tính thời gian
 
   try {
     console.log('chapter:', chapter)
@@ -73,6 +65,11 @@ export const translateSingleChapter = async ({
       return null;
     }
 
+    // Tính thời gian dịch
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000;
+    console.log(`⏱️ Thời gian dịch chương ${index + 1}: ${duration.toFixed(2)}s`);
+
     // Log chi tiết dữ liệu chương
     console.log("📖 Dữ liệu chương:", {
       chapterNumber: chapterData.chapterNumber,
@@ -80,7 +77,8 @@ export const translateSingleChapter = async ({
       translatedTitle: chapterData.translatedTitle,
       content: chapterData.content?.substring(0, 100) + "...",
       translatedContent: chapterData.translatedContent?.substring(0, 100) + "...",
-      status: chapterData.status
+      status: chapterData.status,
+      duration: duration.toFixed(2) + "s"
     });
 
     // Cập nhật state với dữ liệu đã dịch
@@ -89,12 +87,13 @@ export const translateSingleChapter = async ({
       [index]: {
         translatedContent: chapterData.translatedContent || "",
         translatedTitle: chapterData.translatedTitle || "",
-        chapterName: chapterData.translatedTitle || chapter.chapterName
+        chapterName: chapterData.translatedTitle || chapter.chapterName,
+        duration: duration // Thêm thời gian dịch vào kết quả
       }
     }));
 
     // Gọi callback để thông báo kết quả dịch
-    onTranslationResult?.(index, chapterData.translatedContent, chapterData.translatedTitle);
+    onTranslationResult?.(index, chapterData.translatedContent, chapterData.translatedTitle, duration);
 
     // Cập nhật tiến độ
     setProgress((prev) => ({ ...prev, [index]: 100 }));
@@ -109,6 +108,9 @@ export const translateSingleChapter = async ({
     const percent = Math.floor(((index + 1) / chapters.length) * 100);
     setTotalProgress(percent);
 
+    // Gọi callback khi hoàn thành
+    onComplete?.(duration);
+
     // Trả về dữ liệu đã dịch
     return {
       chapterNumber: chapterData.chapterNumber,
@@ -116,58 +118,18 @@ export const translateSingleChapter = async ({
       translatedTitle: chapterData.translatedTitle || "",
       content: chapterData.content || "",
       translatedContent: chapterData.translatedContent || "",
-      status: chapterData.status
+      status: chapterData.status,
+      duration: duration
     };
   } catch (error) {
-    console.error("Lỗi khi dịch chương:", error);
-    console.error("Error response:", error.response?.data);
-
-    let errorMessage = "❌ Lỗi khi dịch chương: " + (chapter.chapterName || `Chương ${index + 1}`);
-    let errorDetails = null;
-
-    // Xử lý các loại lỗi khác nhau
-    if (error.response?.data?.error) {
-      try {
-        const errorData = JSON.parse(error.response.data.error);
-        errorMessage = errorData.message;
-        errorDetails = errorData.details;
-
-        // Xử lý các mã lỗi cụ thể
-        switch (errorData.code) {
-          case "KEY_EXHAUSTED":
-            if (errorDetails.availableModels?.length > 0) {
-              errorMessage += `\n\nCác model khác có thể sử dụng: ${errorDetails.availableModels.join(", ")}`;
-            }
-            break;
-          case "DEFAULT_KEY_EXHAUSTED":
-            errorMessage += "\n\nVui lòng thêm key của bạn hoặc thử lại sau";
-            break;
-          case "KEY_NOT_FOUND":
-            errorMessage += "\n\nVui lòng kiểm tra lại key của bạn";
-            break;
-        }
-      } catch (e) {
-        // Nếu không parse được JSON, sử dụng message gốc
-        errorMessage = error.response.data.error;
-      }
-    } else if (error.message?.includes("API key not valid")) {
-      errorMessage = "❌ API key không hợp lệ. Vui lòng kiểm tra lại key của bạn.";
-    }
-
-    setErrorMessages((prev) => ({ ...prev, [index]: errorMessage }));
-    
-    // Hiển thị thông báo lỗi với chi tiết
-    if (errorDetails?.suggestion) {
-      toast.error(
-        <div>
-          <p>{errorMessage}</p>
-          <p style={{ marginTop: '8px', color: '#666' }}>{errorDetails.suggestion}</p>
-        </div>
-      );
-    } else {
-      toast.error(errorMessage);
-    }
-  } finally {
-    clearInterval(interval);
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000;
+    console.error(`❌ Lỗi dịch chương ${index + 1} sau ${duration.toFixed(2)}s:`, error);
+    setErrorMessages((prev) => ({
+      ...prev,
+      [index]: `❌ Lỗi khi dịch: ${error.message}`,
+    }));
+    onComplete?.(duration); // Vẫn gọi callback với thời gian lỗi
+    return null;
   }
 };
