@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 const STORAGE_KEY = 'translation_history';
 const MAX_HISTORY = 5;
 
-const useTranslationProgress = (defaultTime = 20) => {
+const useTranslationProgress = (defaultTime = 15) => {
   const [progress, setProgress] = useState(0);
   const [isTranslating, setIsTranslating] = useState(false);
   const [averageTime, setAverageTime] = useState(defaultTime);

@@ -129,8 +129,8 @@ class ApiKeyManager {
   // Helper function để lấy thông tin user key
   async getUserKeyRecord(userId, userkey) {
     try {
-      if (!userId || !key) {
-        console.log("❌ Thiếu userId hoặc key");
+      if (!userId || !userkey) {
+        console.log("❌ Thiếu userId hoặc userkey");
         return null;
       }
 
@@ -281,46 +281,51 @@ class ApiKeyManager {
   }
 
   // Lấy key để sử dụng
-  async getKeyToUse(userId, userKey = null, modelValue = null) {
+  async getKeyToUse(userId, userKeys = null, modelValue = null) {
     try {
-      // Nếu có userKey và userId, kiểm tra user key trước
-      if (userKey && userId) {
-        const userKeyRecord = await this.getUserKeyRecord(userId, userKey);
-        if (!userKeyRecord) {
-          console.log("❌ Không tìm thấy user key, thử tìm key khác...");
-          // Thử lấy key khác từ user
-          const nextKey = await this.getAroundKeyFrom(userId, userKey, modelValue);
-          if (nextKey) {
-            console.log("✅ Đã tìm thấy user key khác để sử dụng");
-            return nextKey;
-          }
-          console.log("❌ Không tìm thấy user key khác, thử dùng default key...");
-        } else {
-          // Kiểm tra model có trong danh sách modelIds không
-          if (modelValue && userKeyRecord.modelIds.length > 0) {
-            const model = await prisma.model.findFirst({
-              where: { value: modelValue }
-            });
-            if (!model || !userKeyRecord.modelIds.includes(model.id)) {
-              console.log("❌ Model không được hỗ trợ, thử tìm key khác...");
-              // Thử lấy key khác từ user
-              const nextKey = await this.getAroundKeyFrom(userId, userKey, modelValue);
-              if (nextKey) {
-                console.log("✅ Đã tìm thấy user key khác để sử dụng");
-                return nextKey;
-              }
-              console.log("❌ Không tìm thấy user key khác, thử dùng default key...");
-            } else {
-              return userKey;
-            }
-          } else {
-            return userKey;
-          }
-
-        }
+      // Xử lý userKeys - có thể là array hoặc single key
+      let keysToCheck = [];
+      if (Array.isArray(userKeys)) {
+        keysToCheck = userKeys;
+        console.log(`🔍 Kiểm tra ${userKeys.length} keys từ danh sách đã chọn`);
+      } else if (userKeys) {
+        keysToCheck = [userKeys];
+        console.log("🔍 Kiểm tra 1 key từ userKey");
       }
 
-      // Nếu không có userKey hoặc userKey không khả dụng, tìm default key
+      // Nếu có userKeys và userId, kiểm tra từng key
+      if (keysToCheck.length > 0 && userId) {
+        for (const userKey of keysToCheck) {
+          const userKeyRecord = await this.getUserKeyRecord(userId, userKey);
+          if (userKeyRecord) {
+            // Kiểm tra model có trong danh sách modelIds không
+            if (modelValue && userKeyRecord.modelIds.length > 0) {
+              const model = await prisma.model.findFirst({
+                where: { value: modelValue }
+              });
+              if (!model || !userKeyRecord.modelIds.includes(model.id)) {
+                console.log(`❌ Model ${modelValue} không được hỗ trợ bởi key ${userKey.substring(0, 10)}...`);
+                continue; // Thử key tiếp theo
+              }
+            }
+            console.log(`✅ Tìm thấy key khả dụng: ${userKey.substring(0, 10)}...`);
+            return userKey;
+          } else {
+            console.log(`❌ Key ${userKey.substring(0, 10)}... không hợp lệ, thử key tiếp theo...`);
+          }
+        }
+        
+        // Nếu không tìm thấy key nào trong danh sách, thử tìm key khác từ user
+        console.log("❌ Không tìm thấy key nào khả dụng trong danh sách, thử tìm key khác từ user...");
+        const nextKey = await this.getAroundKeyFrom(userId, keysToCheck[0], modelValue);
+        if (nextKey) {
+          console.log("✅ Đã tìm thấy user key khác để sử dụng");
+          return nextKey;
+        }
+        console.log("❌ Không tìm thấy user key khác, thử dùng default key...");
+      }
+
+      // Nếu không có userKeys hoặc userKeys không khả dụng, tìm default key
       console.log("🔍 Tìm default key...");
       const defaultKey = await this.getNextDefaultKey(modelValue);
       if (!defaultKey) {
@@ -445,29 +450,7 @@ class ApiKeyManager {
       );
 
       // Kiểm tra xem key có phải là key của user không
-      // const userKeyRecord = await prisma.userApiKey.findFirst({
-      //   where: {
-      //     userId,
-      //     key,
-      //     models: {
-      //       some: {
-      //         model: {
-      //           value: this.modelValue,
-      //         },
-      //       },
-      //     },
-      //   },
-      //   include: {
-      //     models: {
-      //       where: {
-      //         model: {
-      //           value: this.modelValue,
-      //         },
-      //       },
-      //     },
-      //   },
-      // });
-      const userKeyRecord = await this.getUserKeyRecord(userId, userKey);
+      const userKeyRecord = await this.getUserKeyRecord(userId, key);
 
       if (userKeyRecord) {
         console.log(
@@ -541,9 +524,19 @@ class ApiKeyManager {
   }
 
   // Kiểm tra xem có key nào khả dụng không
-  async hasAvailableKeys(userKey, userId, modelValue) {
+  async hasAvailableKeys(userKeys, userId, modelValue) {
     try {
-      // Kiểm tra userKey và userId
+      // Xử lý userKeys - có thể là array hoặc single key
+      let keysToCheck = [];
+      if (Array.isArray(userKeys)) {
+        keysToCheck = userKeys;
+        console.log(`🔍 Kiểm tra ${userKeys.length} keys từ danh sách đã chọn`);
+      } else if (userKeys) {
+        keysToCheck = [userKeys];
+        console.log("🔍 Kiểm tra 1 key từ userKey");
+      }
+
+      // Kiểm tra userKeys và userId
       if (!userId) {
         console.log("❌ userId không được để trống");
         return false;
@@ -568,28 +561,30 @@ class ApiKeyManager {
         console.log("🔍 Tìm thấy model ID:", modelId, "cho model value:", modelValue);
       }
 
-      // Nếu có userKey, kiểm tra key đó trước
-      if (userKey) {
-        const userKeyRecord = await this.getUserKeyRecord(userId, userKey);
-        if (!userKeyRecord) {
-          return false;
-        }
-
-        // Kiểm tra model có trong danh sách modelIds không
-        if (modelValue && userKeyRecord.modelIds.length > 0) {
-          const model = await prisma.model.findFirst({
-            where: { value: modelValue }
-          });
-          if (!model || !userKeyRecord.modelIds.includes(model.id)) {
-            console.log("❌ Model không được hỗ trợ bởi key này");
-            return false;
+      // Nếu có userKeys, kiểm tra từng key
+      if (keysToCheck.length > 0) {
+        for (const userKey of keysToCheck) {
+          const userKeyRecord = await this.getUserKeyRecord(userId, userKey);
+          if (userKeyRecord) {
+            // Kiểm tra model có trong danh sách modelIds không
+            if (modelValue && userKeyRecord.modelIds.length > 0) {
+              const model = await prisma.model.findFirst({
+                where: { value: modelValue }
+              });
+              if (!model || !userKeyRecord.modelIds.includes(model.id)) {
+                console.log(`❌ Model ${modelValue} không được hỗ trợ bởi key ${userKey.substring(0, 10)}...`);
+                continue; // Thử key tiếp theo
+              }
+            }
+            console.log(`✅ Tìm thấy key khả dụng: ${userKey.substring(0, 10)}...`);
+            return true;
           }
         }
-
-        return true;
+        console.log("❌ Không có key nào trong danh sách khả dụng");
+        return false;
       }
 
-      // Nếu không có userKey, kiểm tra default keys
+      // Nếu không có userKeys, kiểm tra default keys
       try {
         // 1. Kiểm tra model tồn tại
         if (!modelId) {
@@ -1039,4 +1034,3 @@ class ApiKeyManager {
 }
 
 module.exports = ApiKeyManager;
-

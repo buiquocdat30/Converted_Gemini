@@ -35,14 +35,14 @@ export const translateSingleChapter = async ({
     console.log('apiKey:', apiKey)
     console.log('model:', model)
     
-    // Format dữ liệu gửi đi
+    // Format dữ liệu gửi đi - hỗ trợ cả single key và multiple keys
     const requestData = {
       chapters: [{
         title: chapter.chapterName || `Chương ${index + 1}`,
         content: chapter.rawText || chapter.content,
         chapterNumber: chapter.chapterNumber || index + 1
       }],
-      userKey: apiKey || "",
+      userKeys: Array.isArray(apiKey) ? apiKey : [apiKey], // Luôn gửi dưới dạng array
       model: model,
     };
 
