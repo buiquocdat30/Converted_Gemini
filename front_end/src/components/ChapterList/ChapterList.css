@@ -184,6 +184,7 @@
   border-radius: 2px;
   margin: 8px 0;
   overflow: hidden;
+  position: relative;
 }
 
 .chapter-progress-bar {
@@ -208,6 +209,19 @@
     rgba(255, 255, 255, 0) 100%
   );
   animation: shimmer 1.5s infinite;
+}
+
+.progress-info {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-text {
+  color: #666;
+  font-size: 0.85em;
+  font-weight: 500;
 }
 
 @keyframes shimmer {

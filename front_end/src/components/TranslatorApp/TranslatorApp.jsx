@@ -36,6 +36,7 @@ const TranslatorApp = ({
   const [addChapterMode, setAddChapterMode] = useState("manual"); // "manual" hoặc "file"
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
   const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
+  const [selectedKeys, setSelectedKeys] = useState([]); // Thêm state để lưu danh sách key đã chọn
 
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
@@ -60,6 +61,12 @@ const TranslatorApp = ({
     const newPage = Math.floor(newIndex / chaptersPerPage) + 1;
     // Gọi callback để cập nhật trang trong ChapterList
     onSelectChapter?.(newIndex, newPage);
+  };
+
+  // Hàm xử lý khi người dùng chọn keys
+  const handleKeysSelected = (keys) => {
+    console.log("🔑 Keys đã được chọn:", keys);
+    setSelectedKeys(keys);
   };
 
   // Khi nhận kết quả dịch từ ChapterList
@@ -134,7 +141,7 @@ const TranslatorApp = ({
     translateSingleChapter({
       index,
       chapters,
-      apiKey: currentApiKey,
+      apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey, // Ưu tiên selectedKeys
       model,
       onTranslationResult: (idx, translated, translatedTitle) => {
         handleTranslationResult(idx, translated, translatedTitle);
@@ -685,6 +692,7 @@ const TranslatorApp = ({
                 apiKey={tempKey}
                 setApiKey={setTempKey}
                 onCurrentKey={handleCurrentKey}
+                onKeysSelected={handleKeysSelected}
               />
             </div>
             <div className="modal-buttons">
@@ -699,7 +707,7 @@ const TranslatorApp = ({
         <div className="chapter-list-container">
           <ChapterList
             chapters={mergedChapters}
-            apiKey={currentApiKey}
+            apiKey={selectedKeys.length > 0 ? selectedKeys : currentApiKey}
             model={model}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={handleChapterChange}

@@ -22,13 +22,15 @@ const ChapterList = ({
   setChapters,
 }) => {
   const [results, setResults] = useState({});
-  const [errorMessages, setErrorMessages] = useState({}); // Thêm trạng thái lỗi
-  const [translatedCount, setTranslatedCount] = useState(0); //chương đã dịch
-  const [isTranslateAllDisabled, setIsTranslateAllDisabled] = useState(false); //Disable nút dịch tổng
-  const [isTranslatingAll, setIsTranslatingAll] = useState(false); //Nút quay quay loading
-  const [hasTranslatedAll, setHasTranslatedAll] = useState(false); //đã dịch xong
-  const isStoppedRef = useRef(false); //dừng dịch
-  const [translationDurations, setTranslationDurations] = useState({}); // Thêm state lưu thời gian dịch
+  const [errorMessages, setErrorMessages] = useState({});
+  const [translatedCount, setTranslatedCount] = useState(0);
+  const [isTranslateAllDisabled, setIsTranslateAllDisabled] = useState(false);
+  const [isTranslatingAll, setIsTranslatingAll] = useState(false);
+  const [hasTranslatedAll, setHasTranslatedAll] = useState(false);
+  const isStoppedRef = useRef(false);
+  const [translationDurations, setTranslationDurations] = useState({});
+  const [chapterProgresses, setChapterProgresses] = useState({});
+  const [chapterTranslatingStates, setChapterTranslatingStates] = useState({});
 
   // Sử dụng hook cho tiến độ tổng
   const { 
@@ -36,20 +38,47 @@ const ChapterList = ({
     isTranslating: isTotalTranslating,
     startProgress: startTotalProgress,
     stopProgress: stopTotalProgress 
-  } = useTranslationProgress(30); // 30s cho toàn bộ quá trình
+  } = useTranslationProgress(30);
 
   // Sử dụng hook cho tiến độ từng chương
-  const chapterProgressRef = useRef({});
+  const chapterProgressHooks = useRef({});
 
-  // Hàm khởi tạo tiến độ cho một chương
-  const initChapterProgress = (index) => {
-    if (!chapterProgressRef.current[index]) {
-      chapterProgressRef.current[index] = {
-        startProgress: () => {},
-        stopProgress: () => {},
-        progress: 0
+  // Hàm khởi tạo hook tiến độ cho một chương
+  const getChapterProgressHook = (index) => {
+    if (!chapterProgressHooks.current[index]) {
+      // Tạo một object giả lập hook thay vì gọi hook thật
+      chapterProgressHooks.current[index] = {
+        progress: 0,
+        isTranslating: false,
+        startProgress: () => {
+          setChapterTranslatingStates(prev => ({ ...prev, [index]: true }));
+          setChapterProgresses(prev => ({ ...prev, [index]: 0 }));
+          
+          // Tạo interval để cập nhật tiến độ
+          // Mỗi 150ms tăng 1% (6.6% mỗi giây)
+          const interval = setInterval(() => {
+            setChapterProgresses(prev => {
+              const currentProgress = prev[index] || 0;
+              const newProgress = Math.min(currentProgress + 1, 98); // Tăng 1% mỗi lần, dừng ở 98%
+              return { ...prev, [index]: newProgress };
+            });
+          }, 150); // 150ms = 0.15s cho mỗi 1%
+
+          // Lưu interval để có thể clear sau
+          chapterProgressHooks.current[index].interval = interval;
+        },
+        stopProgress: () => {
+          setChapterTranslatingStates(prev => ({ ...prev, [index]: false }));
+          setChapterProgresses(prev => ({ ...prev, [index]: 100 }));
+          
+          // Clear interval
+          if (chapterProgressHooks.current[index].interval) {
+            clearInterval(chapterProgressHooks.current[index].interval);
+          }
+        }
       };
     }
+    return chapterProgressHooks.current[index];
   };
 
   //khu vực phân Trang
@@ -83,7 +112,10 @@ const ChapterList = ({
   };
 
   useEffect(() => {
-    if (apiKey) {
+    // Kiểm tra có key khả dụng không (có thể là array hoặc string)
+    const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
+    
+    if (hasApiKey) {
       setIsTranslateAllDisabled(false); // ✅ Đã có key thì luôn bật nút
     } else {
       setIsTranslateAllDisabled(translatedCount >= 2); // ✅ Chưa có key thì giới hạn 2 chương
@@ -97,9 +129,12 @@ const ChapterList = ({
 
     setIsTranslatingAll(true);
     startTotalProgress(); // Bắt đầu tiến độ tổng
-    const maxChapters = apiKey ? chapters.length : 2;
+    
+    // Kiểm tra có key khả dụng không
+    const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
+    const maxChapters = hasApiKey ? chapters.length : 2;
 
-    if (!apiKey) {
+    if (!hasApiKey) {
       const remainingFree = 2 - translatedCount;
       if (remainingFree <= 0) {
         toast.error(
@@ -155,9 +190,8 @@ const ChapterList = ({
 
   // Hàm dịch từng chương
   const translate = (index) => {
-    initChapterProgress(index);
-    const { startProgress, stopProgress } = chapterProgressRef.current[index];
-    startProgress(); // Bắt đầu tiến độ cho chương này
+    const chapterHook = getChapterProgressHook(index);
+    chapterHook.startProgress(); // Bắt đầu tiến độ cho chương này
 
     translateSingleChapter({
       index,
@@ -166,9 +200,10 @@ const ChapterList = ({
       model,
       setProgress: (progress) => {
         // Cập nhật tiến độ cho chương cụ thể
-        chapterProgressRef.current[index].progress = progress;
-        // Force re-render để hiển thị tiến độ mới
-        setResults(prev => ({...prev}));
+        setChapterProgresses(prev => ({
+          ...prev,
+          [index]: progress
+        }));
       },
       setResults,
       setErrorMessages,
@@ -176,19 +211,25 @@ const ChapterList = ({
       setTotalProgress: (progress) => {
         // Cập nhật tiến độ tổng thể
         startTotalProgress();
-        // Force re-render để hiển thị tiến độ mới
-        setResults(prev => ({...prev}));
       },
       onTranslationResult,
       onSelectChapter,
       isStopped: isStoppedRef.current,
       onComplete: (duration) => {
-        stopProgress(); // Dừng tiến độ khi hoàn thành
+        chapterHook.stopProgress(); // Dừng tiến độ khi hoàn thành
         stopTotalProgress(); // Dừng tiến độ tổng thể
         setTranslationDurations(prev => ({
           ...prev,
           [index]: duration
         }));
+        // Reset tiến độ sau khi hoàn thành
+        setTimeout(() => {
+          setChapterProgresses(prev => {
+            const newProgresses = { ...prev };
+            delete newProgresses[index];
+            return newProgresses;
+          });
+        }, 2000); // Xóa sau 2 giây
       }
     });
   };
@@ -311,13 +352,15 @@ const ChapterList = ({
       <ul>
         {currentChapters.map((ch, idxOnPage) => {
           const calculatedChapterNumber = calculateChapterNumber(idxOnPage);
-          // Tìm index thực tế trong mảng chapters dựa trên chapterNumber
           const idx = chapters.findIndex(
             (chapter) => chapter.chapterNumber === ch.chapterNumber
           );
           const isTranslated = !!results[idx];
-          const chapterProgress = chapterProgressRef.current[idx]?.progress || 0;
           const duration = translationDurations[idx];
+          
+          // Lấy progress từ state
+          const chapterProgress = chapterProgresses[idx] || 0;
+          const isChapterTranslating = chapterTranslatingStates[idx] || false;
 
           return (
             <li key={ch.chapterNumber}>
@@ -353,7 +396,7 @@ const ChapterList = ({
                       }}
                       disabled={
                         isTranslated ||
-                        (!apiKey && translatedCount >= 2) ||
+                        (!Array.isArray(apiKey) ? !apiKey : apiKey.length === 0) && translatedCount >= 2 ||
                         isTranslatingAll
                       }
                       className={`translate-sgn-button ${
@@ -378,12 +421,17 @@ const ChapterList = ({
                     </button>
                   </div>
                 </div>
-                {chapterProgress > 0 && !isTranslatingAll && (
+                {isChapterTranslating && !isTranslatingAll && (
                   <div className="chapter-progress-bar-container">
                     <div
                       className="chapter-progress-bar"
                       style={{ width: `${chapterProgress}%` }}
                     ></div>
+                    <div className="progress-info">
+                      <small className="progress-text">
+                        Đang dịch... {chapterProgress.toFixed(0)}%
+                      </small>
+                    </div>
                   </div>
                 )}
                 {errorMessages[idx] && (

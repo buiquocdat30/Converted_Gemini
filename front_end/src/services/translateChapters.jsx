@@ -28,14 +28,14 @@ export const translateAllChapters = async ({
     try {
       console.log(`📖 Đang dịch chương ${i + 1}/${totalChapters}`);
       
-      // Format dữ liệu gửi đi
+      // Format dữ liệu gửi đi - hỗ trợ cả single key và multiple keys
       const requestData = {
         chapters: [{
           title: chapter.chapterName || `Chương ${originalIndex + 1}`,
           content: chapter.rawText || chapter.content,
           chapterNumber: chapter.chapterNumber || originalIndex + 1
         }],
-        userKey: apiKey || "",
+        userKeys: Array.isArray(apiKey) ? apiKey : [apiKey], // Luôn gửi dưới dạng array
         model: model,
       };
 
