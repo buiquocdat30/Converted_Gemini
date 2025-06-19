@@ -73,22 +73,17 @@ const TranslatorApp = ({
   const handleTranslationResult = async (
     index,
     translated,
-    translatedTitle
+    translatedTitle,
+    timeTranslation = 0
   ) => {
     try {
       const chapter = chapters[index];
-      if (!chapter) {
-        console.error("Không tìm thấy thông tin chương:", index);
-        return;
-      }
-
-      // Log để debug
-      console.log("📝 Cập nhật kết quả dịch:", {
+      console.log("📝 Lưu kết quả dịch:", {
         index,
-        chapterNumber: chapter.chapterNumber,
-        storyId: chapter.storyId,
+        chapterNumber: chapter?.chapterNumber,
         hasTranslatedTitle: !!translatedTitle,
         hasTranslatedContent: !!translated,
+        timeTranslation: timeTranslation
       });
 
       // Cập nhật state local
@@ -109,7 +104,8 @@ const TranslatorApp = ({
           storyId,
           chapter.chapterNumber,
           translatedTitle || chapter.chapterName,
-          translated || chapter.content
+          translated || chapter.content,
+          timeTranslation // 👉 Thêm thời gian dịch
         );
       }
 
@@ -143,8 +139,8 @@ const TranslatorApp = ({
       chapters,
       apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey, // Ưu tiên selectedKeys
       model,
-      onTranslationResult: (idx, translated, translatedTitle) => {
-        handleTranslationResult(idx, translated, translatedTitle);
+      onTranslationResult: (idx, translated, translatedTitle, timeTranslation) => {
+        handleTranslationResult(idx, translated, translatedTitle, timeTranslation);
         // Sau khi dịch xong, tự động lưu vào translated
         handleEditChapter(idx, translated, "translated");
       },

@@ -122,6 +122,20 @@ const ChapterList = ({
     }
   }, [translatedCount, chapters.length, apiKey]);
 
+  // Đảm bảo translatedCount không vượt quá 2 nếu không có apiKey
+  useEffect(() => {
+    const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
+    if (!hasApiKey) {
+      // Đếm số chương đã dịch (results)
+      const count = Object.keys(results).length;
+      if (count > 2) {
+        setTranslatedCount(2);
+      } else {
+        setTranslatedCount(count);
+      }
+    }
+  }, [apiKey, results]);
+
   // Hàm dịch tất cả các chương
   const translateAll = async () => {
     setIsTranslateAllDisabled(true);
@@ -394,11 +408,7 @@ const ChapterList = ({
                         e.stopPropagation();
                         translate(idx);
                       }}
-                      disabled={
-                        isTranslated ||
-                        (!Array.isArray(apiKey) ? !apiKey : apiKey.length === 0) && translatedCount >= 2 ||
-                        isTranslatingAll
-                      }
+                      disabled={!canTranslate(idx) || isTranslatingAll}
                       className={`translate-sgn-button ${
                         isTranslated ? "hidden" : ""
                       }`}

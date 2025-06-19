@@ -106,12 +106,16 @@
 .modal-content button {
   margin-top: 10px;
   padding: 12px 12px;
-  background-color: rgb(104, 146, 119);
+  background-color: #28a745;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 
+}
+
+.modal-content button:hover {
+  background-color: #0e8713;
 }
 
 .list_api_key {

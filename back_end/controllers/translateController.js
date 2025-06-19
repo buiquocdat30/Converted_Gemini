@@ -125,11 +125,10 @@ exports.translateText = async (req, res) => {
         }
 
         const endTime = Date.now();
+        const translationTime = (endTime - startTime) / 1000; // Thời gian dịch tính bằng giây
 
         console.log(
-          `✅ Dịch xong chương ${index + 1}/${validChapters.length} | Thời gian: ${
-            (endTime - startTime) / 1000
-          }s`
+          `✅ Dịch xong chương ${index + 1}/${validChapters.length} | Thời gian: ${translationTime}s`
         );
 
         // Log dữ liệu trước khi return
@@ -139,13 +138,15 @@ exports.translateText = async (req, res) => {
           hasTranslatedTitle: !!translatedTitle,
           originalContent: ch.content ? ch.content.substring(0, 100) + '...' : 'Không có nội dung',
           translatedContent: translatedContent ? translatedContent.substring(0, 100) + '...' : 'Không có nội dung',
-          hasTranslatedContent: !!translatedContent
+          hasTranslatedContent: !!translatedContent,
+          translationTime: translationTime
         });
 
         return {
           ...ch,
           translatedTitle: translatedTitle || ch.title,
           translatedContent: translatedContent || ch.content,
+          timeTranslation: translationTime, // 👉 Thêm thời gian dịch
           status: "TRANSLATED"
         };
       } catch (err) {

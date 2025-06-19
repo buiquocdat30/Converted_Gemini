@@ -42,9 +42,12 @@ export const translateSingleChapter = async ({
         content: chapter.rawText || chapter.content,
         chapterNumber: chapter.chapterNumber || index + 1
       }],
-      userKeys: Array.isArray(apiKey) ? apiKey : [apiKey], // Luôn gửi dưới dạng array
       model: model,
     };
+    // Chỉ thêm userKeys nếu apiKey hợp lệ
+    if (apiKey && !(Array.isArray(apiKey) && apiKey.length === 0) && apiKey !== "") {
+      requestData.userKeys = Array.isArray(apiKey) ? apiKey : [apiKey];
+    }
 
     console.log('Request data:', requestData);
     
@@ -65,9 +68,8 @@ export const translateSingleChapter = async ({
       return null;
     }
 
-    // Tính thời gian dịch
-    const endTime = Date.now();
-    const duration = (endTime - startTime) / 1000;
+    // Sử dụng thời gian dịch từ backend response
+    const duration = chapterData.timeTranslation || 0;
     console.log(`⏱️ Thời gian dịch chương ${index + 1}: ${duration.toFixed(2)}s`);
 
     // Log chi tiết dữ liệu chương

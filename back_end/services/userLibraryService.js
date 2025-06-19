@@ -1,6 +1,7 @@
 const {prisma} = require("../config/prismaConfig");
 const { readEpub } = require("./epubService");
 const { readTxt } = require("./txtServices");
+const { countWords, calculateChapterWordStats } = require("../utils/wordCounter");
 
 const userLibraryService = {
   // ==============================================
@@ -129,12 +130,19 @@ const userLibraryService = {
         );
         // Tạo các chương với chapterNumber được gán đúng
         const chapterPromises = data.chapters.map((chapter, index) => {
+          // Tính toán số từ cho chương
+          const wordStats = calculateChapterWordStats(
+            chapter.title || '',
+            chapter.content || ''
+          );
+          
           return prisma.userLibraryChapter.create({
             data: {
               storyId: story.id,
               chapterNumber: chapter.chapterNumber ?? index + 1,
               chapterName: chapter.title,
               rawText: chapter.content,
+              totalWord: wordStats.totalWords, // 👉 Thêm thuộc tính totalWord
               createdAt: new Date(),
               updatedAt: new Date(),
             },
@@ -320,6 +328,13 @@ const userLibraryService = {
         "đây là thông tin chương mới addChapter name",
         data.chapterName
       );
+
+      // Tính toán số từ cho chương
+      const wordStats = calculateChapterWordStats(
+        data.chapterName || '',
+        data.rawText || ''
+      );
+
       // Tạo chương mới
       return await prisma.userLibraryChapter.create({
         data: {
@@ -327,6 +342,7 @@ const userLibraryService = {
           chapterNumber: data.chapterNumber,
           chapterName: data.chapterName,
           rawText: data.rawText,
+          totalWord: wordStats.totalWords, // 👉 Thêm thuộc tính totalWord
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -346,6 +362,29 @@ const userLibraryService = {
    * @returns {Promise<Object>} Kết quả cập nhật
    */
   updateChapter: async (storyId, chapterNumber, userId, data) => {
+    // Nếu có cập nhật rawText, tính toán lại totalWord
+    if (data.rawText) {
+      // Lấy thông tin chương hiện tại để có chapterName
+      const currentChapter = await prisma.userLibraryChapter.findFirst({
+        where: {
+          storyId: storyId,
+          chapterNumber: parseInt(chapterNumber),
+          story: {
+            userId: userId,
+          },
+        },
+      });
+
+      if (currentChapter) {
+        // Tính toán lại số từ
+        const wordStats = calculateChapterWordStats(
+          currentChapter.chapterName || '',
+          data.rawText
+        );
+        data.totalWord = wordStats.totalWords;
+      }
+    }
+
     return await prisma.userLibraryChapter.updateMany({
       where: {
         storyId: storyId,
@@ -418,12 +457,14 @@ const userLibraryService = {
         update: {
           translatedTitle: data.translatedTitle,
           translatedContent: data.translatedContent,
+          timeTranslation: data.timeTranslation || 0, // 👉 Thêm thời gian dịch
           updatedAt: new Date(),
         },
         create: {
           chapterId: chapter.id,
           translatedTitle: data.translatedTitle,
           translatedContent: data.translatedContent,
+          timeTranslation: data.timeTranslation || 0, // 👉 Thêm thời gian dịch
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -490,12 +531,14 @@ const userLibraryService = {
         update: {
           translatedTitle: data.translatedTitle,
           translatedContent: data.translatedContent,
+          timeTranslation: data.timeTranslation || 0, // 👉 Thêm thời gian dịch
           updatedAt: new Date(),
         },
         create: {
           chapterId: chapter.id,
           translatedTitle: data.translatedTitle,
           translatedContent: data.translatedContent,
+          timeTranslation: data.timeTranslation || 0, // 👉 Thêm thời gian dịch
           createdAt: new Date(),
           updatedAt: new Date(),
         },

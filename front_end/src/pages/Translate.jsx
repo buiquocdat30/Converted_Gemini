@@ -162,14 +162,15 @@ const Translate = () => {
   };
 
   // Cập nhật nội dung chương đã dịch
-  const handleUpdateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent) => {
+  const handleUpdateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent, timeTranslation = 0) => {
     try {
       // Log để debug
       console.log("📝 Cập nhật nội dung chương:", {
         storyId,
         chapterNumber,
         hasTranslatedTitle: !!translatedTitle,
-        hasTranslatedContent: !!translatedContent
+        hasTranslatedContent: !!translatedContent,
+        timeTranslation: timeTranslation
       });
 
       // Kiểm tra tham số bắt buộc
@@ -181,7 +182,8 @@ const Translate = () => {
         storyId,
         chapterNumber,
         translatedTitle,
-        translatedContent
+        translatedContent,
+        timeTranslation
       );
 
       // Cập nhật state local

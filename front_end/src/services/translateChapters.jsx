@@ -49,13 +49,16 @@ export const translateAllChapters = async ({
       });
       console.log("Response data:", res.data);
 
-      const translated = res?.data?.chapters?.[0]?.translated || "";
-      const translatedTitle = res?.data?.chapters?.[0]?.translatedTitle || "";
+      const chapterData = res?.data?.chapters?.[0];
+      const translated = chapterData?.translatedContent || "";
+      const translatedTitle = chapterData?.translatedTitle || "";
+      const duration = chapterData?.timeTranslation || 0;
 
       console.log("📌 Dịch chương:", {
         index: originalIndex,
         title: translatedTitle,
-        content: translated
+        content: translated,
+        duration: duration.toFixed(2) + "s"
       });
 
       // Cập nhật kết quả dịch
@@ -64,12 +67,13 @@ export const translateAllChapters = async ({
         [originalIndex]: {
           translated,
           translatedTitle,
-          chapterName: translatedTitle || chapter.chapterName
+          chapterName: translatedTitle || chapter.chapterName,
+          duration: duration
         },
       }));
 
       // Gọi callback với kết quả dịch
-      onTranslationResult(originalIndex, translated, translatedTitle);
+      onTranslationResult(originalIndex, translated, translatedTitle, duration);
 
       translatedCount++;
       setTranslatedCount(translatedCount);
