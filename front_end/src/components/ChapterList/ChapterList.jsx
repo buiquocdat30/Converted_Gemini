@@ -104,10 +104,17 @@ const ChapterList = ({
     return startIdx + index + 1;
   };
 
-  //đếm chương
+  const getTranslatedCount = () => {
+    // Đếm số chương đã dịch thực tế (results hoặc chapters có translatedContent)
+    return chapters.filter(
+      (ch, idx) => results[idx] || ch.translatedContent || ch.translated
+    ).length;
+  };
+
   const canTranslate = (index) => {
     if (results[index]) return false; // đã dịch rồi
-    if (!apiKey && translatedCount >= 2) return false; // vượt giới hạn
+    const translatedSoFar = getTranslatedCount();
+    if (!apiKey && translatedSoFar >= 2) return false; // vượt giới hạn
     return true;
   };
 
@@ -204,6 +211,8 @@ const ChapterList = ({
 
   // Hàm dịch từng chương
   const translate = (index) => {
+    // Nếu không được phép dịch thì return luôn, không chạy tiếp
+    if (!canTranslate(index)) return;
     const chapterHook = getChapterProgressHook(index);
     chapterHook.startProgress(); // Bắt đầu tiến độ cho chương này
 
