@@ -153,7 +153,7 @@
 .chapter-header .chapter-actions>.translate-sgn-button,
 .chapter-header .chapter-actions>.delete-chapter-button {
   padding: 5px 2px;
-  background-color: #28a745;
+
   color: white;
   border: none;
   border-radius: 5px;
@@ -162,14 +162,9 @@
   width: 50%;
 }
 
-.chapter-header .chapter-actions>.translate-sgn-button:hover,
-.chapter-header .chapter-actions>.delete-chapter-button:hover {
-  background-color: #0e8713;
-}
 
 .translate-button:disabled,
 .delete-chapter-button:disabled {
-  background-color: #6c757d;
   cursor: not-allowed;
 }
 

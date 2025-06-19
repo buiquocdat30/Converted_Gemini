@@ -58,9 +58,9 @@ const TranslateViewer = ({
     
     // Nếu chưa có bản dịch thì lưu vào content, ngược lại lưu vào translatedContent
     if (!chapter.translatedContent) {
-      onUpdateChapter(chapter.storyId, chapterNumber, chapter.chapterName || chapter.title, currentContent);
+      onUpdateChapter(chapter.storyId, chapterNumber, chapter.chapterName || chapter.title, currentContent, chapter.duration || 0);
     } else {
-      onUpdateChapter(chapter.storyId, chapterNumber, chapter.translatedTitle || chapter.title, currentContent);
+      onUpdateChapter(chapter.storyId, chapterNumber, chapter.translatedTitle || chapter.title, currentContent, chapter.duration || 0);
     }
     setIsEditing(false);
     toast.success("💾 Đã lưu nội dung chương!");
@@ -178,7 +178,7 @@ const TranslateViewer = ({
             onClick={() => {
               const chapter = chapters[currentIndex];
               const chapterNumber = chapter?.chapterNumber || (currentIndex + 1);
-              onUpdateChapter(chapter.storyId, chapterNumber, chapter.translatedTitle || chapter.title, currentContent);
+              onUpdateChapter(chapter.storyId, chapterNumber, chapter.translatedTitle || chapter.title, currentContent, chapter.duration || 0);
             }}
             disabled={!chapters[currentIndex]?.translated}
           >

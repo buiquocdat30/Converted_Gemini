@@ -339,7 +339,7 @@ const userLibraryController = {
     try {
       const { storyId, chapterNumber } = req.params;
       const userId = req.user.id;
-      const { translatedTitle, translatedContent } = req.body;
+      const { translatedTitle, translatedContent, timeTranslation } = req.body;
       console.log("createTranslation - Story ID:", storyId);
       console.log("createTranslation - Chapter number:", chapterNumber);
       console.log("createTranslation - User ID:", userId);
@@ -356,7 +356,7 @@ const userLibraryController = {
         storyId,
         chapterNumber,
         userId,
-        { translatedTitle, translatedContent }
+        { translatedTitle, translatedContent, timeTranslation }
       );
 
       res.status(201).json(translation);
@@ -373,7 +373,7 @@ const userLibraryController = {
     try {
       const { storyId, chapterNumber } = req.params;
       const userId = req.user.id;
-      const { translatedTitle, translatedContent } = req.body;
+      const { translatedTitle, translatedContent, timeTranslation } = req.body;
       console.log("updateTranslation - Story ID:", storyId);
       console.log("updateTranslation - Chapter number:", chapterNumber);
       console.log("updateTranslation - User ID:", userId);
@@ -390,7 +390,7 @@ const userLibraryController = {
         storyId,
         chapterNumber,
         userId,
-        { translatedTitle, translatedContent }
+        { translatedTitle, translatedContent, timeTranslation }
       );
 
       res.json(translation);

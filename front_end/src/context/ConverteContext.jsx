@@ -6,7 +6,6 @@ import { handleEpubFile, checkFileFormatFromText, handleTxtFile } from "../utils
 import { API_URL } from '../config/config';
 
 
-console.log("API_URL",API_URL);
 // Helper function để lấy token
 export const getAuthToken = () => localStorage.getItem("auth-token");
 
@@ -84,7 +83,6 @@ export const AuthProvider = ({ children }) => {
   const fetchUserData = async () => {
     try {
       setLoading(true);
-      console.log("fetchUserData", token);
       const response = await axios.get(`${API_URL}/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -649,14 +647,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent) => {
+  const updateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent, timeTranslation = 0) => {
     try {
       // Kiểm tra và log các tham số
       console.log("📝 Cập nhật nội dung chương:", {
         storyId,
         chapterNumber,
         hasTranslatedTitle: !!translatedTitle,
-        hasTranslatedContent: !!translatedContent
+        hasTranslatedContent: !!translatedContent,
+        timeTranslation: timeTranslation
       });
 
       // Kiểm tra tham số bắt buộc
@@ -668,7 +667,8 @@ export const AuthProvider = ({ children }) => {
         `${API_URL}/user/library/${storyId}/chapters/${chapterNumber}/translation`,
         {
           translatedTitle: translatedTitle || '', // Tiêu đề đã dịch
-          translatedContent: translatedContent || '' // Nội dung đã dịch
+          translatedContent: translatedContent || '', // Nội dung đã dịch
+          timeTranslation: timeTranslation // 👉 Thêm thời gian dịch
         },
         {
           headers: {
@@ -679,13 +679,7 @@ export const AuthProvider = ({ children }) => {
       console.log("✅ Cập nhật thành công:", response.data);
       return response.data;
     } catch (err) {
-      console.error("❌ Lỗi khi cập nhật nội dung chương:", {
-        error: err.message,
-        storyId,
-        chapterNumber,
-        status: err.response?.status,
-        data: err.response?.data
-      });
+      console.error("Lỗi khi cập nhật nội dung chương:", err);
       setError(err.message);
       throw err;
     } finally {
