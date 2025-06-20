@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
+import { toast } from "react-hot-toast";
 import "./TranslateViewer.css";
 
 const TranslateViewer = ({

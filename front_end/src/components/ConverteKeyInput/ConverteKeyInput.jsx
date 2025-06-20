@@ -157,11 +157,9 @@ const ConverteKeyInput = ({
                         (k) => k !== key.key
                       );
                       setSelectedKeys(newSelectedKeys);
-                      if (onKeysSelected) onKeysSelected(newSelectedKeys);
                     } else {
                       const newSelectedKeys = [...selectedKeys, key.key];
                       setSelectedKeys(newSelectedKeys);
-                      if (onKeysSelected) onKeysSelected(newSelectedKeys);
                     }
                   }}
                 >
@@ -173,13 +171,11 @@ const ConverteKeyInput = ({
                       if (e.target.checked) {
                         const newSelectedKeys = [...selectedKeys, key.key];
                         setSelectedKeys(newSelectedKeys);
-                        if (onKeysSelected) onKeysSelected(newSelectedKeys);
                       } else {
                         const newSelectedKeys = selectedKeys.filter(
                           (k) => k !== key.key
                         );
                         setSelectedKeys(newSelectedKeys);
-                        if (onKeysSelected) onKeysSelected(newSelectedKeys);
                       }
                     }}
                   />

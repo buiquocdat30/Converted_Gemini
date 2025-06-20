@@ -692,6 +692,17 @@ const TranslatorApp = ({
               />
             </div>
             <div className="modal-buttons">
+              <button onClick={() => {
+                if (selectedKeys.length > 0) {
+                  console.log("selectedKeys modal-buttons:", selectedKeys);
+                  setCurrentApiKey(selectedKeys); // Áp dụng tất cả key đã chọn
+                } else {
+                  setCurrentApiKey(tempKey); // Áp dụng key thủ công
+                }
+                setIsMenuOpen(false);
+              }}>Áp dụng key</button>
+            </div>
+            <div className="modal-buttons">
               <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
             </div>
           </div>
