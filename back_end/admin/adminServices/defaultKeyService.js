@@ -1,16 +1,15 @@
 // --- Thao tác với DefaultKey ---
 const prisma = require("../../config/prismaConfig");
 
+// Lấy tất cả default keys và usage theo từng model
 async function getAllDefaultKeys() {
   try {
     return await prisma.defaultKey.findMany({
       include: {
-        models: {
+        usage: {
           include: {
             model: {
-              include: {
-                provider: true
-              }
+              include: { provider: true }
             }
           }
         }
@@ -22,17 +21,16 @@ async function getAllDefaultKeys() {
   }
 }
 
+// Lấy default key theo id và usage
 async function getDefaultKeyById(id) {
   try {
     return await prisma.defaultKey.findUnique({
       where: { id },
       include: {
-        models: {
+        usage: {
           include: {
             model: {
-              include: {
-                provider: true
-              }
+              include: { provider: true }
             }
           }
         }
@@ -44,239 +42,73 @@ async function getDefaultKeyById(id) {
   }
 }
 
-async function createDefaultKey(data) {
+// Tạo default key mới và usage cho từng model
+async function createDefaultKey({ key, modelIds }) {
   try {
-    const { key, modelIds, status = "ACTIVE" } = data;
-
     // Kiểm tra xem key đã tồn tại chưa
-    const existingKey = await prisma.defaultKey.findUnique({
-      where: { key }
-    });
-
-    if (existingKey) {
-      throw new Error('Key đã tồn tại');
+    const existingKey = await prisma.defaultKey.findUnique({ where: { key } });
+    if (existingKey) throw new Error('Key đã tồn tại');
+    // Tạo default key
+    const newKey = await prisma.defaultKey.create({ data: { key } });
+    // Tạo usage cho từng model
+    for (const modelId of modelIds) {
+      await prisma.defaultKeyUsage.create({
+        data: {
+          defaultKeyId: newKey.id,
+          modelId,
+          status: "ACTIVE"
+        }
+      });
     }
-
-    // Tạo default key mới và kết nối với các model
-    return await prisma.defaultKey.create({
-      data: {
-        key,
-        status,
-        models: {
-          create: modelIds.map(modelId => ({
-            model: {
-              connect: { id: modelId }
-            }
-          }))
-        }
-      },
-      include: {
-        models: {
-          include: {
-            model: {
-              include: {
-                provider: true
-              }
-            }
-          }
-        }
-      }
-    });
+    return await getDefaultKeyById(newKey.id);
   } catch (error) {
     console.error("Lỗi khi tạo default key:", error);
     throw error;
   }
 }
 
-async function addKeyToProviderModels(key, providerId, modelValues) {
-  try {
-    // Tìm provider
-    const provider = await prisma.provider.findUnique({
-      where: { id: providerId },
-      include: {
-        models: {
-          where: {
-            value: { in: modelValues }
-          }
-        }
-      }
-    });
-
-    if (!provider) {
-      throw new Error('Không tìm thấy provider');
-    }
-
-    if (provider.models.length === 0) {
-      throw new Error('Không tìm thấy models nào phù hợp');
-    }
-
-    // Kiểm tra xem key đã tồn tại chưa
-    let defaultKey = await prisma.defaultKey.findUnique({
-      where: { key },
-      include: {
-        models: {
-          include: {
-            model: true
-          }
-        }
-      }
-    });
-
-    if (!defaultKey) {
-      // Tạo key mới nếu chưa tồn tại
-      defaultKey = await prisma.defaultKey.create({
-        data: {
-          key,
-          status: "ACTIVE",
-          models: {
-            create: provider.models.map(model => ({
-              model: {
-                connect: { id: model.id }
-              }
-            }))
-          }
-        },
-        include: {
-          models: {
-            include: {
-              model: true
-            }
-          }
-        }
-      });
-    } else {
-      // Thêm kết nối với các model mới
-      const existingModelIds = defaultKey.models.map(m => m.model.id);
-      const newModelIds = provider.models
-        .filter(model => !existingModelIds.includes(model.id))
-        .map(model => model.id);
-
-      if (newModelIds.length > 0) {
-        await prisma.defaultKeyToModel.createMany({
-          data: newModelIds.map(modelId => ({
-            defaultKeyId: defaultKey.id,
-            modelId
-          }))
-        });
-      }
-    }
-
-    return defaultKey;
-  } catch (error) {
-    console.error("Lỗi khi thêm key cho provider models:", error);
-    throw error;
-  }
-}
-
-async function updateDefaultKey(id, data) {
-  try {
-    const { key, modelIds, status } = data;
-
-    // Nếu có thay đổi modelIds
-    if (modelIds) {
-      // Xóa tất cả kết nối cũ
-      await prisma.defaultKeyToModel.deleteMany({
-        where: { defaultKeyId: id }
-      });
-
-      // Tạo kết nối mới
-      await prisma.defaultKeyToModel.createMany({
-        data: modelIds.map(modelId => ({
-          defaultKeyId: id,
-          modelId
-        }))
-      });
-    }
-
-    // Cập nhật thông tin key
-    return await prisma.defaultKey.update({
-      where: { id },
-      data: {
-        key,
-        status
-      },
-      include: {
-        models: {
-          include: {
-            model: {
-              include: {
-                provider: true
-              }
-            }
-          }
-        }
-      }
-    });
-  } catch (error) {
-    console.error(`Lỗi khi cập nhật default key với ID ${id}:`, error);
-    throw error;
-  }
-}
-
+// Xóa default key và toàn bộ usage liên quan
 async function deleteDefaultKey(id) {
   try {
-    // Xóa tất cả kết nối với models trước
-    await prisma.defaultKeyToModel.deleteMany({
-      where: { defaultKeyId: id }
-    });
-
-    // Sau đó xóa key
-    return await prisma.defaultKey.delete({
-      where: { id }
-    });
+    await prisma.defaultKeyUsage.deleteMany({ where: { defaultKeyId: id } });
+    await prisma.defaultKey.delete({ where: { id } });
+    return true;
   } catch (error) {
-    console.error(`Lỗi khi xóa default key với ID ${id}:`, error);
+    console.error("Lỗi khi xóa default key:", error);
     throw error;
   }
 }
 
+// Lấy default keys theo model
 async function getDefaultKeysByModel(modelId) {
   try {
-    const defaultKeys = await prisma.defaultKeyToModel.findMany({
+    const usages = await prisma.defaultKeyUsage.findMany({
       where: { modelId },
       include: {
         defaultKey: true,
-        model: {
-          include: {
-            provider: true
-          }
-        }
+        model: { include: { provider: true } }
       }
     });
-
-    return defaultKeys.map(dk => ({
-      ...dk.defaultKey,
-      model: dk.model
-    }));
+    return usages.map(u => ({ ...u.defaultKey, model: u.model, usage: u }));
   } catch (error) {
     console.error(`Lỗi khi lấy default keys cho model ${modelId}:`, error);
     throw error;
   }
 }
 
+// Lấy default keys theo provider
 async function getDefaultKeysByProvider(providerId) {
   try {
-    const defaultKeys = await prisma.defaultKeyToModel.findMany({
+    const usages = await prisma.defaultKeyUsage.findMany({
       where: {
-        model: {
-          providerId
-        }
+        model: { providerId }
       },
       include: {
         defaultKey: true,
-        model: {
-          include: {
-            provider: true
-          }
-        }
-      },
-      distinct: ['defaultKeyId']
+        model: { include: { provider: true } }
+      }
     });
-
-    return defaultKeys.map(dk => ({
-      ...dk.defaultKey,
-      model: dk.model
-    }));
+    return usages.map(u => ({ ...u.defaultKey, model: u.model, usage: u }));
   } catch (error) {
     console.error(`Lỗi khi lấy default keys cho provider ${providerId}:`, error);
     throw error;
@@ -287,8 +119,6 @@ module.exports = {
   getAllDefaultKeys,
   getDefaultKeyById,
   createDefaultKey,
-  addKeyToProviderModels,
-  updateDefaultKey,
   deleteDefaultKey,
   getDefaultKeysByModel,
   getDefaultKeysByProvider

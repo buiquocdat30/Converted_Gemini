@@ -63,8 +63,9 @@ exports.translateText = async (req, res) => {
     }
 
     // Kiểm tra xem có key khả dụng không
-    const hasAvailableKeys = await keyManager.hasAvailableKeys(keysToUse, userId, model);
-    if (!hasAvailableKeys) {
+    // Sử dụng logic mới: lấy key khả dụng dựa trên usage record
+    const keyToUse = await keyManager.getKeyToUse(userId, keysToUse, model);
+    if (!keyToUse) {
       return res.status(400).json({ 
         error: "Không có key khả dụng. Vui lòng kiểm tra lại API key hoặc thử lại sau." 
       });

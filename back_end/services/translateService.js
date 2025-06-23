@@ -31,18 +31,29 @@ const translateText = async (text, keyToUse, modelAI) => {
     const genAI = new GoogleGenerativeAI(keyToUse);
     const model = genAI.getGenerativeModel({ model: currentModelAI });
 
-    const prompt = `Dịch nội dung sau sang tiếng Việt một cách tự nhiên, các đại từ nhân xưng phù hợp ngữ cảnh, giữ nguyên ý nghĩa, không thêm gì cả:\n\n"${text}"`;
+    const prompt = `Dịch nội dung sau sang tiếng Việt một cách tự nhiên, Không dùng đại từ nhân xưng, chỉ viết hoa chữ cái đầu các danh từ riêng còn danh từ chung thì viết thường, giữ nguyên ý nghĩa, không thêm gì cả:\n\n"${text}"`;
     const startTime = Date.now();
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const translated = await response.text();
+    const response = result.response;
+    const translated = response.text();
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    console.log(
-      `✅ Dịch thành công sau ${duration}s với key ${keyToUse.substring(0, 8)}...`
-    );
-    return translated;
+    // Cập nhật thống kê sử dụng key
+    if (response.usageMetadata) {
+      const apiKeyManager = new ApiKeyManager();
+      await apiKeyManager.updateUsageStats(keyToUse, response.usageMetadata);
+    }
 
+    console.log(
+      `✅ Dịch thành công sau ${duration}s với key ${keyToUse.substring(
+        0,
+        8
+      )}...`
+    );
+    return {
+      translated,
+      usage: response.usageMetadata,
+    };
   } catch (error) {
     const errorMessage = error.message || error.toString();
     console.error("⚠️ Lỗi dịch:", errorMessage);
