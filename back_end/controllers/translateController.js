@@ -73,6 +73,7 @@ exports.translateText = async (req, res) => {
 
     const translationPromises = validChapters.map(async (ch, index) => {
       const startTime = Date.now();
+      let keyData; // Di chuyển keyData ra ngoài để có thể truy cập trong catch
       try {
         // Log thông tin chương để kiểm tra
         console.log(`📖 Thông tin chương ${index + 1}:`, {
@@ -83,89 +84,92 @@ exports.translateText = async (req, res) => {
           chapterKeys: Object.keys(ch)
         });
 
-        // Lấy key để sử dụng từ danh sách keys
-        const keyData = await keyManager.getKeyToUse(userId, keysToUse, model);
-        if (!keyData) {
-          throw new Error("Không tìm thấy key khả dụng");
+        // Lấy key để sử dụng cho chương này
+        keyData = await keyManager.getKeyToUse(userId, keysToUse, model);
+        if (!keyData || !keyData.key) {
+          throw new Error("Không tìm thấy key khả dụng cho chương này.");
         }
-        console.log(`🔑 Sử dụng key cho chương ${ch.chapterNumber}`);
+        console.log(`🔑 Sử dụng key cho chương ${ch.chapterNumber}: ${keyData.key.substring(0, 8)}... (isUserKey: ${keyData.isUserKey})`);
 
         // Xử lý nội dung
-        let translatedTitle = "";
-        let translatedContent = "";
-        if (ch.content && typeof ch.content === 'string') {
-          try {
-            // Dịch tiêu đề chương
-            const titleResult = await translateText(ch.title, keyData.key, model, keyData.usageId);
+        let translatedTitle = ch.title || "";
+        let translatedContent = ch.content || "";
+
+        // Dịch tiêu đề nếu có
+        if (ch.title) {
+            const titleResult = await translateText(ch.title, keyData, model);
             translatedTitle = titleResult.translated;
             console.log("translatedTitle translationPromises", translatedTitle)
-            
-            // Dịch nội dung chương
-            const contentResult = await translateText(ch.content, keyData.key, model, keyData.usageId);
+        }
+        
+        // Dịch nội dung nếu có
+        if (ch.content) {
+            const contentResult = await translateText(ch.content, keyData, model);
             translatedContent = contentResult.translated;
             console.log("translatedContent translationPromises", translatedContent)
-            
-          } catch (err) {
-            const errorMessage = err.message || err.toString();
-            console.error(`❌ Lỗi dịch chương ${index + 1}:`, errorMessage);
-
-            // Xử lý các loại lỗi khác nhau
-            if (errorMessage.includes("Too Many Requests") || errorMessage.includes("quotaMetric")) {
-              if (userId && keyData.key) {
-                await keyManager.handle429Error(userId, keyData.key);
-              }
-              throw new Error("Đã vượt quá giới hạn yêu cầu. Vui lòng thử lại sau.");
-            }
-
-            if (errorMessage.includes("API key") || errorMessage.includes("permission") || errorMessage.includes("quota")) {
-              if (userId && keyData.usageId) {
-                await keyManager.exhaustKey(keyData.usageId, "EXHAUSTED", true);
-              }
-              throw new Error("API key không hợp lệ hoặc đã hết quota.");
-            }
-
-            throw err;
-          }
         }
-
-        const endTime = Date.now();
-        const translationTime = (endTime - startTime) / 1000; // Thời gian dịch tính bằng giây
-
-        console.log(
-          `✅ Dịch xong chương ${index + 1}/${validChapters.length} | Thời gian: ${translationTime}s`
-        );
-
-        // Log dữ liệu trước khi return
-        console.log(`📤 Dữ liệu chương ${index + 1} trước khi return:`, {
-          originalTitle: ch.title,
-          translatedTitle,
-          hasTranslatedTitle: !!translatedTitle,
-          originalContent: ch.content ? ch.content.substring(0, 100) + '...' : 'Không có nội dung',
-          translatedContent: translatedContent ? translatedContent.substring(0, 100) + '...' : 'Không có nội dung',
-          hasTranslatedContent: !!translatedContent,
-          translationTime: translationTime
-        });
-
-        return {
-          ...ch,
-          translatedTitle: translatedTitle || ch.title,
-          translatedContent: translatedContent || ch.content,
-          timeTranslation: translationTime, // 👉 Thêm thời gian dịch
-          status: "TRANSLATED"
-        };
+            
       } catch (err) {
-        console.error(`❌ Lỗi dịch chương ${index + 1}:`, err.message);
-        // Trả về chương gốc nếu dịch thất bại
+        const errorMessage = err.message || err.toString();
+        console.error(`❌ Lỗi dịch chương ${index + 1} (${ch.title}):`, errorMessage);
+
+        // Xử lý lỗi quota/key
+        if (keyData && keyData.usageId) {
+            if (errorMessage.includes("Too Many Requests") || errorMessage.includes("429")) {
+                await keyManager.exhaustKey(keyData.usageId, "COOLDOWN", keyData.isUserKey);
+            } else if (errorMessage.includes("API key") || errorMessage.includes("permission") || errorMessage.includes("quota")) {
+                await keyManager.exhaustKey(keyData.usageId, "EXHAUSTED", keyData.isUserKey);
+            }
+        }
+        
+        // Ném lỗi ra ngoài để Promise.all có thể bắt được
+        throw new Error(`Lỗi dịch chương ${ch.chapterNumber}: ${errorMessage}`);
+      }
+
+      const endTime = Date.now();
+      const translationTime = (endTime - startTime) / 1000; // Thời gian dịch tính bằng giây
+
+      console.log(
+        `✅ Dịch xong chương ${index + 1}/${validChapters.length} | Thời gian: ${translationTime}s`
+      );
+
+      // Log dữ liệu trước khi return
+      console.log(`📤 Dữ liệu chương ${index + 1} trước khi return:`, {
+        originalTitle: ch.title,
+        translatedTitle,
+        hasTranslatedTitle: !!translatedTitle,
+        originalContent: ch.content ? ch.content.substring(0, 100) + '...' : 'Không có nội dung',
+        translatedContent: translatedContent ? translatedContent.substring(0, 100) + '...' : 'Không có nội dung',
+        hasTranslatedContent: !!translatedContent,
+        translationTime: translationTime
+      });
+
+      return {
+        ...ch,
+        translatedTitle: translatedTitle || ch.title,
+        translatedContent: translatedContent || ch.content,
+        timeTranslation: translationTime, // 👉 Thêm thời gian dịch
+        status: "TRANSLATED"
+      };
+    });
+
+    // Thay vì Promise.all, sử dụng Promise.allSettled để không bị dừng khi 1 chương lỗi
+    const settledPromises = await Promise.allSettled(translationPromises);
+
+    const translatedChapters = settledPromises.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        // Lỗi đã được log bên trong, ở đây ta trả về chương gốc với thông tin lỗi
         return {
-          ...ch,
-          translatedTitle: ch.title,
-          translated: ch.content,
-          translationError: err.message
+          ...validChapters[index],
+          translatedTitle: validChapters[index].title,
+          translatedContent: validChapters[index].content,
+          translationError: result.reason.message,
+          status: "FAILED"
         };
       }
     });
-
-    const translatedChapters = await Promise.all(translationPromises);
     
     // Log kết quả sau khi dịch xong tất cả các chương
     console.log("📚 Kết quả dịch tất cả các chương:", {
