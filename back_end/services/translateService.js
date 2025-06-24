@@ -9,7 +9,7 @@ const DEFAULT_MODEL = "gemini-2.0-flash";
 // ⏳ Delay helper
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const translateText = async (text, keyToUse, modelAI) => {
+const translateText = async (text, keyToUse, modelAI, usageId = null) => {
   console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
   
   // Kiểm tra nếu không có modelAI thì báo lỗi
@@ -38,10 +38,10 @@ const translateText = async (text, keyToUse, modelAI) => {
     const translated = response.text();
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    // Cập nhật thống kê sử dụng key
-    if (response.usageMetadata) {
+    // Cập nhật thống kê sử dụng key nếu có usageId
+    if (response.usageMetadata && usageId) {
       const apiKeyManager = new ApiKeyManager();
-      await apiKeyManager.updateUsageStats(keyToUse, response.usageMetadata);
+      await apiKeyManager.updateUsageStats(usageId, response.usageMetadata, true);
     }
 
     console.log(

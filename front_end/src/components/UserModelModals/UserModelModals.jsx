@@ -53,32 +53,54 @@ const UserModelModals = ({ keyData, onClose }) => {
           <div className="models-section">
             <h4>Chi tiết trạng thái theo model:</h4>
             <div className="models-grid">
-              {keyData.models?.map((modelStatus, index) => (
+              {keyData.models?.map((model, index) => (
                 <div 
-                  key={`${keyData.id}-${modelStatus.model?.id || modelStatus.modelId || index}`} 
+                  key={`${keyData.id}-${model.id || index}`} 
                   className="model-status-card"
                 >
                   <div className="model-header">
-                    <h5>{modelStatus.model?.label || "Model không xác định"}</h5>
-                    <span className={`status-badge ${getStatusColor(modelStatus.status)}`}>
-                      {getStatusText(modelStatus.status)}
+                    <h5>{model.label || "Model không xác định"}</h5>
+                    <span className={`status-badge ${getStatusColor(model.status)}`}>
+                      {getStatusText(model.status)}
                     </span>
                   </div>
                   <div className="model-info">
-                    <p>Model ID: {modelStatus.model?.value || modelStatus.modelId}</p>
-                    <p>Số lần sử dụng: {modelStatus.usageCount || 0}</p>
-                    <p>Lần sử dụng cuối: {
-                      modelStatus.lastUsedAt 
-                        ? new Date(modelStatus.lastUsedAt).toLocaleString()
-                        : "Chưa sử dụng"
-                    }</p>
-                    {modelStatus.status === "EXHAUSTED" && (
+                    <p><strong>Model ID:</strong> {model.value}</p>
+                    {model.description && (
+                      <p><strong>Mô tả:</strong> {model.description}</p>
+                    )}
+                    <p><strong>Provider:</strong> {model.provider?.name || "Không xác định"}</p>
+                    
+                    {/* Thông tin giới hạn */}
+                    <div className="model-limits">
+                      <h6>Giới hạn sử dụng:</h6>
+                      <p>RPM: {model.rpm ? `${model.rpm}/phút` : "Không giới hạn"}</p>
+                      <p>TPM: {model.tpm ? `${model.tpm}/phút` : "Không giới hạn"}</p>
+                      <p>RPD: {model.rpd ? `${model.rpd}/ngày` : "Không giới hạn"}</p>
+                    </div>
+
+                    {/* Thống kê sử dụng */}
+                    <div className="model-usage">
+                      <h6>Thống kê sử dụng:</h6>
+                      <p>Số lần sử dụng: {model.usageCount || 0}</p>
+                      <p>Prompt tokens: {model.promptTokens || 0}</p>
+                      <p>Completion tokens: {model.completionTokens || 0}</p>
+                      <p>Tổng tokens: {model.totalTokens || 0}</p>
+                      <p>Lần sử dụng cuối: {
+                        model.lastUsedAt 
+                          ? new Date(model.lastUsedAt).toLocaleString()
+                          : "Chưa sử dụng"
+                      }</p>
+                    </div>
+
+                    {/* Thông báo trạng thái */}
+                    {model.status === "EXHAUSTED" && (
                       <p className="exhausted-warning">
                         ⚠️ Key đã hết quota cho model này. 
                         Vui lòng thêm key mới hoặc sử dụng model khác.
                       </p>
                     )}
-                    {modelStatus.status === "COOLDOWN" && (
+                    {model.status === "COOLDOWN" && (
                       <p className="cooldown-info">
                         ℹ️ Key đang trong thời gian nghỉ. 
                         Sẽ tự động kích hoạt lại sau một thời gian.

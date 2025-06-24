@@ -21,6 +21,10 @@ const userApiKeyController = {
             const userId = req.user.id;
             const { key, label } = req.body;
             
+            if (!key) {
+                return res.status(400).json({ error: 'Thiếu API key' });
+            }
+            
             const keyManager = new ApiKeyManager();
             const newKey = await keyManager.createUserKey(userId, key, label);
             res.status(201).json(newKey);
@@ -76,14 +80,14 @@ const userApiKeyController = {
             const keys = await prisma.userApiKey.findMany({
                 where: {
                     userId,
-                    models: {
+                    usage: {
                         some: {
                             modelId
                         }
                     }
                 },
                 include: {
-                    models: {
+                    usage: {
                         where: {
                             modelId
                         },
@@ -97,7 +101,7 @@ const userApiKeyController = {
             // Chuyển đổi dữ liệu để hiển thị trạng thái theo model
             const formattedKeys = keys.map(key => ({
                 ...key,
-                modelStatus: key.models[0] // Lấy trạng thái cho model cụ thể
+                modelStatus: key.usage[0] // Lấy trạng thái cho model cụ thể
             }));
 
             res.json(formattedKeys);

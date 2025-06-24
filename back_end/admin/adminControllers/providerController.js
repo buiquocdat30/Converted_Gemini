@@ -1,69 +1,163 @@
 // controllers/providerController.js
-const providerService = require('../adminServices/providerService');
+const { prisma, toObjectId } = require('../../config/prismaConfig');
 
-async function getAllProviders(req, res) {
-  try {
-    const providers = await providerService.getAllProviders();
-    res.json(providers);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+const providerController = {
+  // Lấy tất cả providers
+  async getAllProviders(req, res) {
+    try {
+      const providers = await prisma.provider.findMany({
+        include: {
+          models: {
+            orderBy: {
+              label: 'asc'
+            }
+          }
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      });
 
-async function getProviderById(req, res) {
-  const { id } = req.params;
-  try {
-    const provider = await providerService.getProviderById(id);
-    if (!provider) {
-      return res.status(404).json({ message: 'Provider không tồn tại.' });
+      res.json({
+        success: true,
+        data: providers
+      });
+    } catch (error) {
+      console.error('Lỗi khi lấy providers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi lấy danh sách providers'
+      });
     }
-    res.json(provider);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+  },
 
-async function createProvider(req, res) {
-  const providerData = req.body;
-  try {
-    const newProvider = await providerService.createProvider(providerData);
-    res.status(201).json(newProvider);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+  // Tạo provider mới
+  async createProvider(req, res) {
+    try {
+      const { name } = req.body;
 
-async function updateProvider(req, res) {
-  const { id } = req.params;
-  const providerData = req.body;
-  try {
-    const updatedProvider = await providerService.updateProvider(id, providerData);
-    if (!updatedProvider) {
-      return res.status(404).json({ message: 'Provider không tồn tại để cập nhật.' });
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thiếu tên provider'
+        });
+      }
+
+      // Kiểm tra provider đã tồn tại
+      const existingProvider = await prisma.provider.findFirst({
+        where: { name }
+      });
+
+      if (existingProvider) {
+        return res.status(400).json({
+          success: false,
+          message: 'Provider đã tồn tại'
+        });
+      }
+
+      const newProvider = await prisma.provider.create({
+        data: {
+          name
+        }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Tạo provider thành công',
+        data: newProvider
+      });
+    } catch (error) {
+      console.error('Lỗi khi tạo provider:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi tạo provider'
+      });
     }
-    res.json(updatedProvider);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+  },
 
-async function deleteProvider(req, res) {
-  const { id } = req.params;
-  try {
-    const deletedProvider = await providerService.deleteProvider(id);
-    if (!deletedProvider) {
-      return res.status(404).json({ message: 'Provider không tồn tại để xóa.' });
+  // Cập nhật provider
+  async updateProvider(req, res) {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thiếu tên provider'
+        });
+      }
+
+      // Kiểm tra tên mới có trùng không
+      const existingProvider = await prisma.provider.findFirst({
+        where: {
+          name,
+          id: { not: toObjectId(id) }
+        }
+      });
+
+      if (existingProvider) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tên provider đã tồn tại'
+        });
+      }
+
+      const updatedProvider = await prisma.provider.update({
+        where: { id: toObjectId(id) },
+        data: { name }
+      });
+
+      res.json({
+        success: true,
+        message: 'Cập nhật provider thành công',
+        data: updatedProvider
+      });
+    } catch (error) {
+      console.error('Lỗi khi cập nhật provider:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi cập nhật provider'
+      });
     }
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+  },
 
-module.exports = {
-  getAllProviders,
-  getProviderById,
-  createProvider,
-  updateProvider,
-  deleteProvider
+  // Xóa provider
+  async deleteProvider(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Kiểm tra provider có models không
+      const providerWithModels = await prisma.provider.findFirst({
+        where: { id: toObjectId(id) },
+        include: {
+          models: true
+        }
+      });
+
+      if (providerWithModels.models.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể xóa provider đang có models. Vui lòng xóa tất cả models trước.'
+        });
+      }
+
+      await prisma.provider.delete({
+        where: { id: toObjectId(id) }
+      });
+
+      res.json({
+        success: true,
+        message: 'Xóa provider thành công'
+      });
+    } catch (error) {
+      console.error('Lỗi khi xóa provider:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi xóa provider'
+      });
+    }
+  }
 };
+
+module.exports = providerController;
