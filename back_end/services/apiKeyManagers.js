@@ -94,6 +94,12 @@ class ApiKeyManager {
     const { promptTokenCount, candidatesTokenCount, totalTokenCount } = usage;
     try {
       if (isUserKey) {
+        // Kiểm tra tồn tại trước khi update
+        const usageRecord = await prisma.userApiKeyUsage.findUnique({ where: { id: usageId } });
+        if (!usageRecord) {
+          console.error(`❌ Không tìm thấy usageId ${usageId} trong userApiKeyUsage`);
+          return;
+        }
         await prisma.userApiKeyUsage.update({
           where: { id: usageId },
           data: {
@@ -163,7 +169,7 @@ class ApiKeyManager {
    * @param {string} userId
    * @param {string|array|null} userKeys
    * @param {string} modelValue
-   * @returns { key, usageId }
+   * @returns { key, usageId, isUserKey }
    */
   async getKeyToUse(userId, userKeys = null, modelValue = null) {
     try {
@@ -197,7 +203,7 @@ class ApiKeyManager {
             });
             if (usage) {
               console.log(`✅ Tìm thấy user key khả dụng: ${userKey.key.substring(0, 10)}... cho model ${modelValue}`);
-              return { key: userKey.key, usageId: usage.id };
+              return { key: userKey.key, usageId: usage.id, isUserKey: true };
             }
           }
         }
@@ -246,7 +252,7 @@ class ApiKeyManager {
 
         if (usage) {
           console.log(`✅ Tìm thấy default key khả dụng: ${defaultKey.key.substring(0, 10)}... cho model ${modelValue}`);
-          return { key: defaultKey.key, usageId: usage.id };
+          return { key: defaultKey.key, usageId: usage.id, isUserKey: false };
         }
       }
 

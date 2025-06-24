@@ -9,8 +9,10 @@ const DEFAULT_MODEL = "gemini-2.0-flash";
 // ⏳ Delay helper
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const translateText = async (text, keyToUse, modelAI, usageId = null) => {
+const translateText = async (text, keyInfo, modelAI) => {
   console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
+
+  const { key, usageId, isUserKey } = keyInfo;
   
   // Kiểm tra nếu không có modelAI thì báo lỗi
   if (!modelAI) {
@@ -22,16 +24,16 @@ const translateText = async (text, keyToUse, modelAI, usageId = null) => {
   if (!text) throw new Error("Thiếu nội dung cần dịch.");
 
   // Kiểm tra key
-  if (!keyToUse) {
+  if (!key) {
     throw new Error("Không tìm thấy key khả dụng.");
   }
 
   try {
-    console.log("🔑 Dùng key:", keyToUse.substring(0, 8) + "...");
-    const genAI = new GoogleGenerativeAI(keyToUse);
+    console.log("🔑 Dùng key:", key.substring(0, 8) + "...");
+    const genAI = new GoogleGenerativeAI(key);
     const model = genAI.getGenerativeModel({ model: currentModelAI });
 
-    const prompt = `Dịch nội dung sau sang tiếng Việt một cách tự nhiên, Không dùng đại từ nhân xưng, chỉ viết hoa chữ cái đầu các danh từ riêng còn danh từ chung thì viết thường, giữ nguyên ý nghĩa, không thêm gì cả:\n\n"${text}"`;
+    const prompt = `Dịch nội dung sau sang tiếng Việt một cách tự nhiên, Không dùng đại từ nhân xưng, giữ nguyên ý nghĩa, không thêm gì cả:\n\n"${text}"`;
     const startTime = Date.now();
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -41,11 +43,11 @@ const translateText = async (text, keyToUse, modelAI, usageId = null) => {
     // Cập nhật thống kê sử dụng key nếu có usageId
     if (response.usageMetadata && usageId) {
       const apiKeyManager = new ApiKeyManager();
-      await apiKeyManager.updateUsageStats(usageId, response.usageMetadata, true);
+      await apiKeyManager.updateUsageStats(usageId, response.usageMetadata, isUserKey);
     }
 
     console.log(
-      `✅ Dịch thành công sau ${duration}s với key ${keyToUse.substring(
+      `✅ Dịch thành công sau ${duration}s với key ${key.substring(
         0,
         8
       )}...`
