@@ -13,7 +13,7 @@ const translateText = async (text, keyInfo, modelAI) => {
   console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
 
   const { key, usageId, isUserKey } = keyInfo;
-  
+
   // Kiểm tra nếu không có modelAI thì báo lỗi
   if (!modelAI) {
     throw new Error("Thiếu thông tin modelAI.");
@@ -39,22 +39,31 @@ const translateText = async (text, keyInfo, modelAI) => {
     const response = result.response;
     const translated = response.text();
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    const isUnchanged = translated.trim() === text.trim();
+
+    if (isUnchanged) {
+      console.warn(
+        `⚠️ Bản dịch không thay đổi cho key ${key.substring(0, 8)}...`
+      );
+    }
 
     // Cập nhật thống kê sử dụng key nếu có usageId
     if (response.usageMetadata && usageId) {
       const apiKeyManager = new ApiKeyManager();
-      await apiKeyManager.updateUsageStats(usageId, response.usageMetadata, isUserKey);
+      await apiKeyManager.updateUsageStats(
+        usageId,
+        response.usageMetadata,
+        isUserKey
+      );
     }
 
     console.log(
-      `✅ Dịch thành công sau ${duration}s với key ${key.substring(
-        0,
-        8
-      )}...`
+      `✅ Dịch thành công sau ${duration}s với key ${key.substring(0, 8)}...`
     );
     return {
       translated,
       usage: response.usageMetadata,
+      isUnchanged: isUnchanged,
     };
   } catch (error) {
     const errorMessage = error.message || error.toString();
