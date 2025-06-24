@@ -735,34 +735,6 @@ const KeyManagement = () => {
     }
   };
 
-  // Hàm helper để lấy màu trạng thái
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return "status-active";
-      case "COOLDOWN":
-        return "status-cooldown";
-      case "EXHAUSTED":
-        return "status-exhausted";
-      default:
-        return "";
-    }
-  };
-
-  // Hàm helper để hiển thị text trạng thái
-  const getStatusText = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return "🟢 Hoạt động";
-      case "COOLDOWN":
-        return "🟡 Đang nghỉ";
-      case "EXHAUSTED":
-        return "🔴 Đã hết quota";
-      default:
-        return "⚪ Không xác định";
-    }
-  };
-
   if (loading) return <div>Đang tải...</div>;
   if (error) return <div>Lỗi: {error}</div>;
 
@@ -813,12 +785,39 @@ const KeyManagement = () => {
                 <td>{key.label || "Không có nhãn"}</td>
                 <td>
                   <div className="key-status">
-                    <span className={`status-badge ${getStatusColor(key.status)}`}>
-                      {getStatusText(key.status)}
-                    </span>
-                    {key.models?.some(m => m.status === "EXHAUSTED") && 
-                      <span className="warning-badge">⚠️ Có model đã hết quota</span>
-                    }
+                    {/* Hiển thị trạng thái tổng thể của key */}
+                    {key.models && key.models.length > 0 ? (
+                      <>
+                        {/* Kiểm tra xem có model nào đang hoạt động không */}
+                        {key.models.some(m => m.status === "ACTIVE") ? (
+                          <span className="status-badge status-active">
+                            🟢 Hoạt động
+                          </span>
+                        ) : key.models.some(m => m.status === "COOLDOWN") ? (
+                          <span className="status-badge status-cooldown">
+                            🟡 Đang nghỉ
+                          </span>
+                        ) : (
+                          <span className="status-badge status-exhausted">
+                            🔴 Đã hết quota
+                          </span>
+                        )}
+                        
+                        {/* Hiển thị cảnh báo nếu có model hết quota */}
+                        {key.models.some(m => m.status === "EXHAUSTED") && 
+                          <span className="warning-badge">⚠️ Có model đã hết quota</span>
+                        }
+                        
+                        {/* Hiển thị số lượng models */}
+                        <div className="model-count">
+                          {key.models.length} models
+                        </div>
+                      </>
+                    ) : (
+                      <span className="status-badge">
+                        ⚪ Không có model
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td>

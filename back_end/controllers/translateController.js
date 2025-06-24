@@ -84,8 +84,8 @@ exports.translateText = async (req, res) => {
         });
 
         // Lấy key để sử dụng từ danh sách keys
-        const keyToUse = await keyManager.getKeyToUse(userId, keysToUse, model);
-        if (!keyToUse) {
+        const keyData = await keyManager.getKeyToUse(userId, keysToUse, model);
+        if (!keyData) {
           throw new Error("Không tìm thấy key khả dụng");
         }
         console.log(`🔑 Sử dụng key cho chương ${ch.chapterNumber}`);
@@ -96,10 +96,13 @@ exports.translateText = async (req, res) => {
         if (ch.content && typeof ch.content === 'string') {
           try {
             // Dịch tiêu đề chương
-            translatedTitle = await translateText(ch.title, keyToUse, model);
+            const titleResult = await translateText(ch.title, keyData.key, model, keyData.usageId);
+            translatedTitle = titleResult.translated;
             console.log("translatedTitle translationPromises", translatedTitle)
+            
             // Dịch nội dung chương
-            translatedContent = await translateText(ch.content, keyToUse, model);
+            const contentResult = await translateText(ch.content, keyData.key, model, keyData.usageId);
+            translatedContent = contentResult.translated;
             console.log("translatedContent translationPromises", translatedContent)
             
           } catch (err) {
@@ -108,15 +111,15 @@ exports.translateText = async (req, res) => {
 
             // Xử lý các loại lỗi khác nhau
             if (errorMessage.includes("Too Many Requests") || errorMessage.includes("quotaMetric")) {
-              if (userId && keyToUse) {
-                await keyManager.handle429Error(userId, keyToUse);
+              if (userId && keyData.key) {
+                await keyManager.handle429Error(userId, keyData.key);
               }
               throw new Error("Đã vượt quá giới hạn yêu cầu. Vui lòng thử lại sau.");
             }
 
             if (errorMessage.includes("API key") || errorMessage.includes("permission") || errorMessage.includes("quota")) {
-              if (userId && keyToUse) {
-                await keyManager.exhaustKey(userId, keyToUse);
+              if (userId && keyData.usageId) {
+                await keyManager.exhaustKey(keyData.usageId, "EXHAUSTED", true);
               }
               throw new Error("API key không hợp lệ hoặc đã hết quota.");
             }
