@@ -107,20 +107,48 @@ exports.translateText = async (req, res) => {
         // Xử lý nội dung
         const titlePromise = ch.title
           ? translateText(ch.title, keyData, model)
-          : Promise.resolve({ translated: ch.title, usage: null });
+          : Promise.resolve({ translated: ch.title, usage: null, isUnchanged: false });
 
         // Dịch nội dung nếu có
         const contentPromise = ch.content
           ? translateText(ch.content, keyData, model)
-          : Promise.resolve({ translated: ch.content, usage: null });
+          : Promise.resolve({ translated: ch.content, usage: null, isUnchanged: false });
 
         const [titleResult, contentResult] = await Promise.all([
           titlePromise,
           contentPromise,
         ]);
 
+        // Log chi tiết kết quả từ translateService
+        console.log(`🔍 Kết quả titleResult cho chương ${ch.chapterNumber}:`, {
+          hasTranslated: !!titleResult.translated,
+          translatedLength: titleResult.translated?.length || 0,
+          isUnchanged: titleResult.isUnchanged,
+          hasError: !!titleResult.error,
+          translatedPreview: titleResult.translated?.substring(0, 50) + "..."
+        });
+
+        console.log(`🔍 Kết quả contentResult cho chương ${ch.chapterNumber}:`, {
+          hasTranslated: !!contentResult.translated,
+          translatedLength: contentResult.translated?.length || 0,
+          isUnchanged: contentResult.isUnchanged,
+          hasError: !!contentResult.error,
+          translatedPreview: contentResult.translated?.substring(0, 50) + "..."
+        });
+
+        // Xử lý kết quả dịch - KHÔNG throw error khi isUnchanged
         translatedTitle = titleResult.translated || ch.title;
         translatedContent = contentResult.translated || ch.content;
+
+        // Log kết quả sau khi xử lý
+        console.log(`📋 Kết quả xử lý cho chương ${ch.chapterNumber}:`, {
+          originalTitle: ch.title,
+          finalTranslatedTitle: translatedTitle,
+          originalContentLength: ch.content?.length || 0,
+          finalTranslatedContentLength: translatedContent?.length || 0,
+          titleChanged: translatedTitle !== ch.title,
+          contentChanged: translatedContent !== ch.content
+        });
 
         // Log kết quả
         console.log(
@@ -134,9 +162,25 @@ exports.translateText = async (req, res) => {
           }`
         );
 
+        // Log warning nếu bản dịch không thay đổi nhưng vẫn trả về kết quả
         if (titleResult.isUnchanged || contentResult.isUnchanged) {
-          throw new Error("Bản dịch không thay đổi so với bản gốc.");
+          console.warn(
+            `⚠️ Bản dịch không thay đổi cho chương ${ch.chapterNumber}, nhưng vẫn trả về kết quả`
+          );
         }
+
+        // Kiểm tra nếu có error trong kết quả dịch
+        if (titleResult.error || contentResult.error) {
+          console.warn(
+            `⚠️ Có lỗi trong quá trình dịch chương ${ch.chapterNumber}:`,
+            {
+              titleError: titleResult.error,
+              contentError: contentResult.error,
+            }
+          );
+          // Vẫn tiếp tục với text gốc thay vì throw error
+        }
+
       } catch (err) {
         const errorMessage = err.message || err.toString();
         console.error(
@@ -208,10 +252,23 @@ exports.translateText = async (req, res) => {
     // Thay vì Promise.all, sử dụng Promise.allSettled để không bị dừng khi 1 chương lỗi
     const settledPromises = await Promise.allSettled(translationPromises);
 
+    console.log("📊 Kết quả Promise.allSettled:", {
+      total: settledPromises.length,
+      fulfilled: settledPromises.filter(p => p.status === 'fulfilled').length,
+      rejected: settledPromises.filter(p => p.status === 'rejected').length,
+    });
+
     const translatedChapters = settledPromises.map((result, index) => {
       if (result.status === "fulfilled") {
+        console.log(`✅ Chương ${index + 1} dịch thành công:`, {
+          chapterNumber: result.value.chapterNumber,
+          hasTranslatedTitle: !!result.value.translatedTitle,
+          hasTranslatedContent: !!result.value.translatedContent,
+          status: result.value.status,
+        });
         return result.value;
       } else {
+        console.log(`❌ Chương ${index + 1} dịch thất bại:`, result.reason.message);
         // Lỗi đã được log bên trong, ở đây ta trả về chương gốc với thông tin lỗi
         return {
           ...validChapters[index],
@@ -219,6 +276,7 @@ exports.translateText = async (req, res) => {
           translatedContent: validChapters[index].content,
           translationError: result.reason.message,
           status: "FAILED",
+          timeTranslation: 0,
         };
       }
     });
@@ -271,7 +329,8 @@ exports.translateText = async (req, res) => {
       console.warn("⚠️ Đã hết key khả dụng sau khi dịch");
     }
 
-    res.json({
+    // Đảm bảo response có đầy đủ thông tin
+    const response = {
       chapters: translatedChapters,
       stats: {
         total: validChapters.length,
@@ -282,7 +341,35 @@ exports.translateText = async (req, res) => {
         hasAvailableKeys: stillHasKeys,
         lastError: keyManager.getLastError(),
       },
+    };
+
+    console.log("📤 Response cuối cùng:", {
+      totalChapters: response.chapters.length,
+      successCount: response.stats.success,
+      failedCount: response.stats.failed,
+      hasAvailableKeys: response.keyStatus.hasAvailableKeys,
     });
+
+    // Log chi tiết từng chương trong response
+    console.log("📋 Chi tiết chapters trong response:");
+    response.chapters.forEach((chapter, index) => {
+      console.log(`Chương ${index + 1}:`, {
+        chapterNumber: chapter.chapterNumber,
+        originalTitle: chapter.title,
+        translatedTitle: chapter.translatedTitle,
+        hasTranslatedTitle: !!chapter.translatedTitle,
+        originalContent: chapter.content ? chapter.content.substring(0, 50) + "..." : "Không có",
+        translatedContent: chapter.translatedContent ? chapter.translatedContent.substring(0, 50) + "..." : "Không có",
+        hasTranslatedContent: !!chapter.translatedContent,
+        status: chapter.status,
+        timeTranslation: chapter.timeTranslation,
+        translationError: chapter.translationError || null,
+      });
+    });
+
+    console.log("🚀 Gửi response về frontend...");
+    res.json(response);
+    console.log("✅ Đã gửi response thành công!");
   } catch (err) {
     console.error("❌ Lỗi dịch chương:", err.message);
     res.status(500).json({
