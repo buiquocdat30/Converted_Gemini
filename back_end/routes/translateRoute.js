@@ -6,4 +6,7 @@ const router = express.Router();
 // Thêm middleware xác thực cho route translate
 router.post('/', authMiddleware, translateText);
 
+// Route test không cần auth (chỉ để debug)
+router.post('/test', translateText);
+
 module.exports = router;
