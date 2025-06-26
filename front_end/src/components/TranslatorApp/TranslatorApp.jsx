@@ -10,6 +10,7 @@ import {
   handleTxtFile,
   checkFileFormatFromText,
 } from "../../utils/fileHandlers";
+import ModelSelector from "../ModelSelector/ModelSelector";
 
 const TranslatorApp = ({
   apiKey,
@@ -23,6 +24,8 @@ const TranslatorApp = ({
   getAuthToken,
   onChapterAdded,
   deleteChapter,
+  setModel,
+  isDarkMode,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -37,6 +40,7 @@ const TranslatorApp = ({
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
   const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
   const [selectedKeys, setSelectedKeys] = useState([]); // Thêm state để lưu danh sách key đã chọn
+  const [tempModel, setTempModel] = useState(model); // State model tạm thời
 
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
@@ -46,6 +50,11 @@ const TranslatorApp = ({
       // Có thể thêm logic re-render ở đây nếu cần
     }
   }, [shouldRefresh]);
+
+  // Đồng bộ model khi model cha thay đổi
+  useEffect(() => {
+    setTempModel(model);
+  }, [model]);
 
   //Chọn chương để Nhảy
   const handleSelectJumbChapter = (index) => {
@@ -83,7 +92,7 @@ const TranslatorApp = ({
         chapterNumber: chapter?.chapterNumber,
         hasTranslatedTitle: !!translatedTitle,
         hasTranslatedContent: !!translated,
-        timeTranslation: timeTranslation
+        timeTranslation: timeTranslation,
       });
 
       // Cập nhật state local
@@ -139,8 +148,18 @@ const TranslatorApp = ({
       chapters,
       apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey, // Ưu tiên selectedKeys
       model,
-      onTranslationResult: (idx, translated, translatedTitle, timeTranslation) => {
-        handleTranslationResult(idx, translated, translatedTitle, timeTranslation);
+      onTranslationResult: (
+        idx,
+        translated,
+        translatedTitle,
+        timeTranslation
+      ) => {
+        handleTranslationResult(
+          idx,
+          translated,
+          translatedTitle,
+          timeTranslation
+        );
         // Sau khi dịch xong, tự động lưu vào translated
         handleEditChapter(idx, translated, "translated");
       },
@@ -680,8 +699,8 @@ const TranslatorApp = ({
 
       {/* Modal nhập key */}
       {isMenuOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay modal-key-model">
+          <div className="modal-content modal-key-model-content">
             <h3>📘 Menu key</h3>
             <div className="top-menu-body">
               <ConverteKeyInput
@@ -690,17 +709,26 @@ const TranslatorApp = ({
                 onCurrentKey={handleCurrentKey}
                 onKeysSelected={handleKeysSelected}
               />
+              <ModelSelector
+                selectedModel={tempModel}
+                onModelChange={setTempModel}
+                isDarkMode={isDarkMode}
+              />
             </div>
             <div className="modal-buttons">
-              <button onClick={() => {
-                if (selectedKeys.length > 0) {
-                  console.log("selectedKeys modal-buttons:", selectedKeys);
-                  setCurrentApiKey(selectedKeys); // Áp dụng tất cả key đã chọn
-                } else {
-                  setCurrentApiKey(tempKey); // Áp dụng key thủ công
-                }
-                setIsMenuOpen(false);
-              }}>Áp dụng key</button>
+              <button
+                onClick={() => {
+                  if (selectedKeys.length > 0) {
+                    setCurrentApiKey(selectedKeys);
+                  } else {
+                    setCurrentApiKey(tempKey);
+                  }
+                  setModel && setModel(tempModel);
+                  setIsMenuOpen(false);
+                }}
+              >
+                Áp dụng
+              </button>
             </div>
             <div className="modal-buttons">
               <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
