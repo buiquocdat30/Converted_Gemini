@@ -229,7 +229,9 @@
 }
 
 .modal-content {
-  background: white;
+  border: 2px solid #28a745;
+  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.15);
+  background: #f8fff8;
   padding: 1rem;
   border-radius: 8px;
   width: 90%;
@@ -460,4 +462,42 @@
 
 .chapter-select::-webkit-scrollbar-thumb:hover {
   background: #999;
+}
+
+/* Modal nhập key/model riêng biệt */
+.modal-key-model {
+  z-index: 2000;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-key-model-content {
+  border: 2px solid #28a745;
+  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.15);
+  background: #f8fff8;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  margin: 0 auto;
+}
+
+.dark .modal-key-model-content {
+  background: #232d23;
+  border-color: #218838;
+  color: #A8C4B5;
+}
+
+.modal-key-model-content h3 {
+  color: #28a745;
+  text-align: center;
+}
+
+.modal-key-model-content .top-menu-body {
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modal-key-model-content .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
