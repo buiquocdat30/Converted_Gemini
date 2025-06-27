@@ -62,7 +62,7 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
     return (
         <div className={`model-selector ${isDarkMode ? 'dark' : ''}`}>
             <div className="provider-selector">
-                <label className="provider-label">🤖 Chọn Provider:</label>
+                <label className="provider-label">🤖 Chọn nhà cung cấp:</label>
                 <select 
                     value={selectedProvider?.id || ''} 
                     onChange={(e) => handleProviderChange(e.target.value)}
@@ -77,7 +77,7 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
             </div>
 
             <div className="model-list">
-                <label className="model-label">📋 Chọn Model:</label>
+                <label className="model-label">📋 Chọn mô hình:</label>
                 <div className="model-options">
                     {models.map(model => (
                         <div 

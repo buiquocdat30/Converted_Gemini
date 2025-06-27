@@ -106,7 +106,7 @@ exports.translateText = async (req, res) => {
 
         // Xử lý nội dung
         const titlePromise = ch.title
-          ? translateText(ch.title, keyData, model)
+          ? translateText(ch.title, keyData, model, 'title')
           : Promise.resolve({ translated: ch.title, usage: null, isUnchanged: false });
 
         // Dịch nội dung nếu có

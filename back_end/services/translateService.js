@@ -9,7 +9,7 @@ const DEFAULT_MODEL = "gemini-2.0-flash";
 // ⏳ Delay helper
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const translateText = async (text, keyInfo, modelAI) => {
+const translateText = async (text, keyInfo, modelAI, type = "content") => {
   console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
 
   const { key, usageId, isUserKey } = keyInfo;
@@ -33,8 +33,12 @@ const translateText = async (text, keyInfo, modelAI) => {
     const genAI = new GoogleGenerativeAI(key);
     const model = genAI.getGenerativeModel({ model: currentModelAI });
 
-    // Cải thiện prompt để dịch hiệu quả hơn
-    const prompt = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
+    let prompt;
+    if (type === "title") {
+      prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.\n\nTiêu đề: ${text}`;
+    } else {
+      // Cải thiện prompt để dịch hiệu quả hơn
+      const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
 
 ---
 
@@ -51,7 +55,7 @@ const translateText = async (text, keyInfo, modelAI) => {
 
 1. Đối tượng bắt buộc xử lý:
    - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
-   - Không xử lý các từ chung (VD: “ma vương”, “học viện”, “giám đốc” nếu không kèm tên cụ thể).
+   - Không xử lý các từ chung (VD: "ma vương", "học viện", "giám đốc" nếu không kèm tên cụ thể).
 
 2. Tính nhất quán:
    - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
@@ -70,7 +74,7 @@ const translateText = async (text, keyInfo, modelAI) => {
 | Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
 
 4. Lỗi và chuẩn hóa:
-   - Sửa lỗi dính chữ: “HọcviệnOnmyou” → “Học viện Onmyou”
+   - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
    - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
 
 ---
@@ -86,12 +90,14 @@ const translateText = async (text, keyInfo, modelAI) => {
 - KHÔNG giữ nguyên tên gốc nước ngoài nếu không hợp quy tắc.
 - KHÔNG phiên âm sai quy tắc thể loại.
 - KHÔNG thêm giải thích, chú thích, hoặc in ra danh sách tên riêng.
+- KHÔNG dùng đại từ nhân xưng. 
 - KHÔNG dịch sai nghĩa, sai chức năng của tên gọi (VD: nhầm chiêu thức là nhân vật).
 
 ---
 
-📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:
-`;
+📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:`;
+      prompt = promptContent;
+    }
 
     console.log("📝 Prompt gửi đi:", prompt.substring(0, 100) + "...");
 
