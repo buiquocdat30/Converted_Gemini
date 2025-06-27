@@ -336,6 +336,7 @@ const Translate = () => {
           chapters={chapters}
           setChapters={setChapters}
           model={model}
+          setModel={setModel}
           onUpdateChapter={handleUpdateChapterContent}
           onSelectChapter={() => {}}
           addChapter={addChapter}

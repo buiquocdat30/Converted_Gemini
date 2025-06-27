@@ -44,6 +44,9 @@ const ChapterList = ({
   // Sử dụng hook cho tiến độ từng chương
   const chapterProgressHooks = useRef({});
 
+  // State cho tiến độ tổng thực tế (bám sát số chương đã dịch)
+  const [manualTotalProgress, setManualTotalProgress] = useState(0);
+
   // Hàm khởi tạo hook tiến độ cho một chương
   const getChapterProgressHook = (index) => {
     if (!chapterProgressHooks.current[index]) {
@@ -144,13 +147,23 @@ const ChapterList = ({
     }
   }, [apiKey, results]);
 
+  // Callback cho translateAllChapters để điều khiển progress từng chương
+  const handleChapterStartProgress = (index) => {
+    const chapterHook = getChapterProgressHook(index);
+    chapterHook.startProgress();
+  };
+  const handleChapterStopProgress = (index) => {
+    const chapterHook = getChapterProgressHook(index);
+    chapterHook.stopProgress();
+  };
+
   // Hàm dịch tất cả các chương
   const translateAll = async () => {
     setIsTranslateAllDisabled(true);
     console.time("⏱️ Thời gian dịch toàn bộ");
 
     setIsTranslatingAll(true);
-    startTotalProgress(); // Bắt đầu tiến độ tổng
+    setManualTotalProgress(0); // Reset tiến độ tổng thực tế
     
     // Kiểm tra có key khả dụng không
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
@@ -164,7 +177,6 @@ const ChapterList = ({
         );
         setIsTranslateAllDisabled(true);
         setIsTranslatingAll(false);
-        stopTotalProgress(); // Dừng tiến độ tổng
         return;
       }
     }
@@ -186,9 +198,9 @@ const ChapterList = ({
 
     if (chaptersToTranslate.length === 0) {
       toast.success("Tất cả các chương trong trang này đã được dịch.");
-      stopTotalProgress(); // Dừng tiến độ tổng
-      setIsTranslateAllDisabled(true);
       setIsTranslatingAll(false);
+      setHasTranslatedAll(true);
+      setManualTotalProgress(100); // Đảm bảo lên 100% khi xong
       return;
     }
 
@@ -203,6 +215,9 @@ const ChapterList = ({
         setErrorMessages,
         onTranslationResult,
         isStopped: isStoppedRef.current,
+        onChapterStartProgress: handleChapterStartProgress,
+        onChapterStopProgress: handleChapterStopProgress,
+        onUpdateTotalProgress: (percent) => setManualTotalProgress(percent),
       });
     } catch (error) {
       console.error("Lỗi khi dịch chương:", error);
@@ -216,7 +231,7 @@ const ChapterList = ({
       console.timeEnd("⏱️ Thời gian dịch toàn bộ");
       setIsTranslatingAll(false);
       setHasTranslatedAll(true);
-      stopTotalProgress(); // Dừng tiến độ tổng
+      setManualTotalProgress(100); // Đảm bảo lên 100% khi xong
     }
   };
 
@@ -464,7 +479,7 @@ const ChapterList = ({
                     </button>
                   </div>
                 </div>
-                {isChapterTranslating && !isTranslatingAll && (
+                {isChapterTranslating && (
                   <div className="chapter-progress-bar-container">
                     <div
                       className="chapter-progress-bar"
@@ -621,10 +636,11 @@ const ChapterList = ({
         <div className="progress-bar-container">
           <div
             className="progress-bar"
-            style={{ width: `${totalProgress}%` }}
+            style={{ width: `${manualTotalProgress}%` }}
           ></div>
           <small className="progress-text">
-            Đang dịch... {totalProgress.toFixed(0)}%
+            Đang dịch... {manualTotalProgress.toFixed(0)}%<br/>
+            <span style={{fontSize:'12px',color:'#888'}}>Tiến độ tổng là ước lượng dựa trên số chương đã dịch, không phải thời gian thực tế.</span>
           </small>
         </div>
       )}
