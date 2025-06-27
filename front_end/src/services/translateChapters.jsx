@@ -8,7 +8,6 @@ export const translateAllChapters = async ({
   model,
   setResults,
   setTranslatedCount,
-  setTotalProgress,
   setErrorMessages,
   onTranslationResult,
   isStopped,
@@ -77,10 +76,6 @@ export const translateAllChapters = async ({
 
       translatedCount++;
       setTranslatedCount(translatedCount);
-
-      // Cập nhật tiến độ
-      const progress = Math.floor((translatedCount / totalChapters) * 100);
-      setTotalProgress(progress);
 
       // Xóa thông báo lỗi nếu có
       setErrorMessages((prev) => {

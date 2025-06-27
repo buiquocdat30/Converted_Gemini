@@ -18,18 +18,44 @@ const useTranslationProgress = (defaultTime = 15) => {
     try {
       const savedHistory = localStorage.getItem(STORAGE_KEY);
       if (savedHistory) {
-        const history = JSON.parse(savedHistory);
-        if (history.length > 0) {
-          // Tính trung bình thời gian dịch 1 từ của tối đa 6 chương gần nhất
-          const lastN = history.slice(-MAX_HISTORY);
-          const avg =
-            lastN.reduce((sum, h) => sum + h.duration / Math.max(h.wordCount, 1), 0) /
-            lastN.length;
-          setAverageTimePerWord(avg);
+        const history = JSON.parse(savedHistory); // Mảng các object: { duration, wordCount }
+
+        if (Array.isArray(history) && history.length > 0) {
+          // Lọc các bản ghi hợp lệ: duration > 0, duration < 60s/từ, wordCount > 0
+          const validHistory = history.filter(h => {
+            const perWord = h.duration / Math.max(h.wordCount || 1, 1);
+            return (
+              h.duration > 0 &&
+              h.wordCount > 0 &&
+              perWord > 0 &&
+              perWord < 60 // loại bỏ bản ghi quá bất thường
+            );
+          });
+
+          if (validHistory.length > 0) {
+            const lastN = validHistory.slice(-MAX_HISTORY);
+            const totalDuration = lastN.reduce(
+              (sum, h) => sum + (h.duration || 0),
+              0
+            );
+            const totalWords = lastN.reduce(
+              (sum, h) => sum + Math.max(h.wordCount || 0, 1),
+              0
+            );
+            const avg = totalDuration / totalWords;
+            setAverageTimePerWord(avg);
+          } else {
+            setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
+          }
+        } else {
+          setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
         }
+      } else {
+        setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
       }
-    } catch (error) {
+    }catch (error) {
       console.error('Lỗi khi đọc lịch sử dịch:', error);
+      setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
     }
   }, []);
 
@@ -40,8 +66,15 @@ const useTranslationProgress = (defaultTime = 15) => {
       const savedHistory = localStorage.getItem(STORAGE_KEY);
       let history = savedHistory ? JSON.parse(savedHistory) : [];
 
-      // Thêm bản ghi mới
-      history.push({ duration, wordCount });
+      // Chỉ lưu bản ghi hợp lệ
+      if (
+        duration > 0 &&
+        wordCount > 0 &&
+        duration / wordCount > 0 &&
+        duration / wordCount < 60
+      ) {
+        history.push({ duration, wordCount });
+      }
 
       // Giới hạn số lượng lịch sử
       if (history.length > MAX_HISTORY) {
@@ -52,16 +85,35 @@ const useTranslationProgress = (defaultTime = 15) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
 
       // Tính lại trung bình thời gian dịch 1 từ
-      const lastN = history.slice(-MAX_HISTORY);
-      const avg =
-        lastN.reduce((sum, h) => sum + h.duration / Math.max(h.wordCount, 1), 0) /
-        lastN.length;
-      setAverageTimePerWord(avg);
-
-      console.log('📊 Lịch sử dịch:', history);
-      console.log('⏱️ Trung bình thời gian dịch 1 từ:', avg.toFixed(3), 'giây');
+      const validHistory = history.filter(h => {
+        const perWord = h.duration / Math.max(h.wordCount || 1, 1);
+        return (
+          h.duration > 0 &&
+          h.wordCount > 0 &&
+          perWord > 0 &&
+          perWord < 60
+        );
+      });
+      if (validHistory.length > 0) {
+        const lastN = validHistory.slice(-MAX_HISTORY);
+        const totalDuration = lastN.reduce(
+          (sum, h) => sum + (h.duration || 0),
+          0
+        );
+        const totalWords = lastN.reduce(
+          (sum, h) => sum + Math.max(h.wordCount || 0, 1),
+          0
+        );
+        const avg = totalDuration / totalWords;
+        setAverageTimePerWord(avg);
+        console.log('📊 Lịch sử dịch:', validHistory);
+        console.log('⏱️ Trung bình thời gian dịch 1 từ:', avg.toFixed(3), 'giây');
+      } else {
+        setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
+      }
     } catch (error) {
       console.error('Lỗi khi cập nhật lịch sử dịch:', error);
+      setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
     }
   };
 

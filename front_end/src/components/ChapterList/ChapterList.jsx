@@ -37,9 +37,10 @@ const ChapterList = ({
     progress: totalProgress, 
     isTranslating: isTotalTranslating,
     startProgress: startTotalProgress,
-    stopProgress: stopTotalProgress 
+    stopProgress: stopTotalProgress,
+    averageTimePerWord
   } = useTranslationProgress(30);
-
+  console.log("đây là thời gian trung bình dịch từ:", averageTimePerWord)
   // Sử dụng hook cho tiến độ từng chương
   const chapterProgressHooks = useRef({});
 
@@ -379,6 +380,19 @@ const ChapterList = ({
     }
   };
 
+  // Tính tổng số từ của 1 trang hiện tại
+  const totalWordsInPage = currentChapters.reduce((sum, ch) => {
+    const titleWords = (ch.title || ch.chapterName || '').split(/\s+/).filter(Boolean).length;
+    const contentWords = (ch.content || ch.rawText || '').split(/\s+/).filter(Boolean).length;
+    return sum + titleWords + contentWords;
+  }, 0);
+
+  // Lấy averageTimePerWord từ hook
+  const estimatedTime = Math.round(totalWordsInPage * parseFloat(averageTimePerWord)); // giây
+  const estimatedTimeStr = estimatedTime < 60
+    ? `${estimatedTime} giây`
+    : `${Math.floor(estimatedTime / 60)} phút ${estimatedTime % 60} giây`;
+
   return (
     <div className="chapter-list">
       <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
@@ -619,6 +633,10 @@ const ChapterList = ({
           <p>{errorMessages.general}</p>
         </div>
       )}
+      {/* Thời gian dự kiến dịch trang */}
+      <div style={{margin: '8px 0', color: '#888', fontSize: '15px'}}>
+        ⏳ Thời gian dự kiến dịch trang này: <b>{estimatedTimeStr}</b> (Tổng {totalWordsInPage} từ, trung bình {averageTimePerWord} giây/từ)
+      </div>
     </div>
   );
 };
