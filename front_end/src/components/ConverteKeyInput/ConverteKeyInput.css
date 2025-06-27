@@ -231,16 +231,30 @@
   justify-content: center;
 }
 
-.select-all-key-btn,
-.apply-selected-keys-btn {
-  padding: 8px 16px;
+.key-actions .select-all-key-btn,
+.key-actions .apply-selected-keys-btn,
+.key-actions .close-button {
+  padding: 20px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.3s;
+  min-width: 120px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
-
+.key-actions .close-button{
+  background-color: #dc3545;
+  color: white;
+}
+.key-actions .close-button:hover{
+  background-color: #c82333;
+  color: white;
+}
 .select-all-key-btn {
   background-color: #f0f0f0;
   color: #333;
@@ -257,6 +271,15 @@
 
 .apply-selected-keys-btn:hover {
   background-color: #218838;
+}
+
+.close-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.close-button:hover {
+  background-color: #c82333;
 }
 
 /* Dark mode */
@@ -302,14 +325,46 @@
   background-color: #3d7559;
 }
 
-
-
 .key-list-modal {
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+/* Nút X để đóng modal */
+.key-list-modal .modal-close-button {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+  z-index: 10;
+}
+
+.key-list-modal .modal-close-button:hover {
+  background-color: #0e8713;
+  transform: scale(1.1);
+}
+
+.dark .key-list-modal .modal-close-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.dark .key-list-modal .modal-close-button:hover {
+  background-color: #0e8713;
 }
 
 .key-list-modal h3 {
@@ -441,15 +496,6 @@
   gap: 10px;
   justify-content: flex-end;
   flex-wrap: nowrap;
-}
-
-.key-list-modal .close-button {
-  background-color: #dc3545;
-  color: white;
-}
-
-.key-list-modal .close-button:hover {
-  background-color: #c82333;
 }
 
 /* Dark mode cho modal key list */

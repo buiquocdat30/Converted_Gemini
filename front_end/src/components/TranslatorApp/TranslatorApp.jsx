@@ -359,14 +359,25 @@ const TranslatorApp = ({
 
       return (
         <div
-          className="modal-overlay"
+          className="modal-overlay modal-add-chapter"
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
         >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-add-chapter-content" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
+            <button 
+              type="button"
+              className="modal-close-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetSelections();
+                onClose();
+              }}
+            >
+              ✕
+            </button>
               <h3>Thêm chương mới</h3>
               <div className="add-chapter-tabs">
                 <button
@@ -701,6 +712,12 @@ const TranslatorApp = ({
       {isMenuOpen && (
         <div className="modal-overlay modal-key-model">
           <div className="modal-content modal-key-model-content">
+            <button 
+              className="modal-close-button"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              ✕
+            </button>
             <h3>📘 Menu key</h3>
             <div className="top-menu-body">
               <ConverteKeyInput
@@ -729,10 +746,9 @@ const TranslatorApp = ({
               >
                 Áp dụng
               </button>
-            </div>
-            <div className="modal-buttons">
               <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
             </div>
+
           </div>
         </div>
       )}
