@@ -11,6 +11,9 @@ export const translateAllChapters = async ({
   setErrorMessages,
   onTranslationResult,
   isStopped,
+  onChapterStartProgress,
+  onChapterStopProgress,
+  onUpdateTotalProgress,
 }) => {
   const totalChapters = chaptersToTranslate.length;
   let translatedCount = 0;
@@ -23,6 +26,11 @@ export const translateAllChapters = async ({
 
     const chapter = chaptersToTranslate[i];
     const originalIndex = chapter.originalIndex;
+
+    // Bắt đầu progress từng chương
+    if (typeof onChapterStartProgress === 'function') {
+      onChapterStartProgress(originalIndex);
+    }
 
     try {
       console.log(`📖 Đang dịch chương ${i + 1}/${totalChapters}`);
@@ -77,12 +85,11 @@ export const translateAllChapters = async ({
       translatedCount++;
       setTranslatedCount(translatedCount);
 
-      // Xóa thông báo lỗi nếu có
-      setErrorMessages((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[originalIndex];
-        return newErrors;
-      });
+      // Cập nhật tiến độ tổng thực tế
+      if (typeof onUpdateTotalProgress === 'function') {
+        const percent = Math.floor((translatedCount / totalChapters) * 100);
+        onUpdateTotalProgress(percent);
+      }
 
     } catch (error) {
       console.error(`❌ Lỗi khi dịch chương ${originalIndex + 1}:`, error);
@@ -96,8 +103,34 @@ export const translateAllChapters = async ({
       setErrorMessages((prev) => ({ ...prev, [originalIndex]: errorMessage }));
     }
 
+    // Kết thúc progress từng chương
+    if (typeof onChapterStopProgress === 'function') {
+      onChapterStopProgress(originalIndex);
+    }
+
+    translatedCount++;
+    setTranslatedCount(translatedCount);
+
+    // Cập nhật tiến độ tổng thực tế
+    if (typeof onUpdateTotalProgress === 'function') {
+      const percent = Math.floor((translatedCount / totalChapters) * 100);
+      onUpdateTotalProgress(percent);
+    }
+
+    // Xóa thông báo lỗi nếu có
+    setErrorMessages((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[originalIndex];
+      return newErrors;
+    });
+
     // Thêm delay để tránh quá tải server
     await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  // Đảm bảo progress tổng lên 100% khi xong
+  if (typeof onUpdateTotalProgress === 'function') {
+    onUpdateTotalProgress(100);
   }
 
   return translatedCount;

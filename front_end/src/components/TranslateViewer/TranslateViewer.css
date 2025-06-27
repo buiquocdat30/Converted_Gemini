@@ -58,7 +58,7 @@
 }
 
 .translated-content {
-  max-height: 967px;
+  /* max-height: 967px; */
   overflow-y: auto;
   background: #f5f5f5;
   padding: 15px;
