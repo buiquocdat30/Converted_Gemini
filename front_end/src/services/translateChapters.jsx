@@ -1,6 +1,9 @@
 //hàm dịch toàn bộ chương
 import axios from "axios";
 
+// Số chương dịch song song tối đa mỗi batch
+const MAX_PARALLEL = 3;
+
 export const translateAllChapters = async ({
   chaptersToTranslate,
   chapters,
@@ -17,58 +20,36 @@ export const translateAllChapters = async ({
 }) => {
   const totalChapters = chaptersToTranslate.length;
   let translatedCount = 0;
+  let stopped = false;
 
-  for (let i = 0; i < totalChapters; i++) {
-    if (isStopped) {
-      console.log("🛑 Dừng dịch theo yêu cầu người dùng");
-      break;
-    }
+  // Tạo queue các chương cần dịch
+  const queue = [...chaptersToTranslate];
 
-    const chapter = chaptersToTranslate[i];
+  // Hàm dịch 1 chương (giữ nguyên logic cũ)
+  const translateOneChapter = async (chapter, i) => {
     const originalIndex = chapter.originalIndex;
-
-    // Bắt đầu progress từng chương
     if (typeof onChapterStartProgress === 'function') {
       onChapterStartProgress(originalIndex);
     }
-
     try {
-      console.log(`📖 Đang dịch chương ${i + 1}/${totalChapters}`);
-      
-      // Format dữ liệu gửi đi - hỗ trợ cả single key và multiple keys
+      console.log(`📖 [Song song] Đang dịch chương ${i + 1}/${totalChapters}`);
       const requestData = {
         chapters: [{
           title: chapter.chapterName || `Chương ${originalIndex + 1}`,
           content: chapter.rawText || chapter.content,
           chapterNumber: chapter.chapterNumber || originalIndex + 1
         }],
-        userKeys: Array.isArray(apiKey) ? apiKey : [apiKey], // Luôn gửi dưới dạng array
+        userKeys: Array.isArray(apiKey) ? apiKey : [apiKey],
         model: model,
       };
-
-      console.log('Request data:', requestData);
-      
       const token = localStorage.getItem("auth-token");
       const res = await axios.post("http://localhost:8000/translate", requestData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      console.log("Response data:", res.data);
-
       const chapterData = res?.data?.chapters?.[0];
       const translated = chapterData?.translatedContent || "";
       const translatedTitle = chapterData?.translatedTitle || "";
       const duration = chapterData?.timeTranslation || 0;
-
-      console.log("📌 Dịch chương:", {
-        index: originalIndex,
-        title: translatedTitle,
-        content: translated,
-        duration: duration.toFixed(2) + "s"
-      });
-
-      // Cập nhật kết quả dịch
       setResults((prev) => ({
         ...prev,
         [originalIndex]: {
@@ -78,60 +59,59 @@ export const translateAllChapters = async ({
           duration: duration
         },
       }));
-
-      // Gọi callback với kết quả dịch
       onTranslationResult(originalIndex, translated, translatedTitle, duration);
-
-      translatedCount++;
-      setTranslatedCount(translatedCount);
-
-      // Cập nhật tiến độ tổng thực tế
+      setTranslatedCount((prev) => prev + 1);
       if (typeof onUpdateTotalProgress === 'function') {
-        const percent = Math.floor((translatedCount / totalChapters) * 100);
+        const percent = Math.floor(((translatedCount + 1) / totalChapters) * 100);
         onUpdateTotalProgress(percent);
       }
-
+      console.log(`✅ [Song song] Dịch xong chương ${i + 1}`);
     } catch (error) {
-      console.error(`❌ Lỗi khi dịch chương ${originalIndex + 1}:`, error);
-      console.error("Error response:", error.response?.data);
-
+      console.error(`❌ [Song song] Lỗi khi dịch chương ${originalIndex + 1}:`, error);
       let errorMessage = `❌ Lỗi khi dịch chương ${originalIndex + 1}: ${chapter.chapterName || `Chương ${originalIndex + 1}`}`;
       if (error.response?.data?.message) {
         errorMessage += " - " + error.response.data.message;
       }
-
       setErrorMessages((prev) => ({ ...prev, [originalIndex]: errorMessage }));
     }
-
-    // Kết thúc progress từng chương
     if (typeof onChapterStopProgress === 'function') {
       onChapterStopProgress(originalIndex);
     }
-
-    translatedCount++;
-    setTranslatedCount(translatedCount);
-
-    // Cập nhật tiến độ tổng thực tế
-    if (typeof onUpdateTotalProgress === 'function') {
-      const percent = Math.floor((translatedCount / totalChapters) * 100);
-      onUpdateTotalProgress(percent);
-    }
-
-    // Xóa thông báo lỗi nếu có
     setErrorMessages((prev) => {
       const newErrors = { ...prev };
       delete newErrors[originalIndex];
       return newErrors;
     });
+  };
 
-    // Thêm delay để tránh quá tải server
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  // Xử lý queue theo batch song song
+  let batchIndex = 0;
+  while (queue.length > 0 && !stopped) {
+    if (isStopped) {
+      console.log('🛑 [Song song] Dừng dịch theo yêu cầu người dùng (trước batch)');
+      stopped = true;
+      break;
+    }
+    // Lấy batch chương tiếp theo
+    const batch = queue.splice(0, MAX_PARALLEL);
+    console.log(`🚀 [Song song] Bắt đầu batch ${batchIndex + 1}:`, batch.map(ch => ch.chapterName || ch.chapterNumber));
+    // Dịch song song batch này
+    await Promise.all(batch.map((chapter, idx) => translateOneChapter(chapter, batchIndex * MAX_PARALLEL + idx)));
+    translatedCount += batch.length;
+    if (isStopped) {
+      console.log('🛑 [Song song] Dừng dịch theo yêu cầu người dùng (sau batch)');
+      stopped = true;
+      break;
+    }
+    // Thêm delay nhỏ giữa các batch để tránh quá tải server
+    await new Promise(resolve => setTimeout(resolve, 500));
+    batchIndex++;
   }
 
   // Đảm bảo progress tổng lên 100% khi xong
   if (typeof onUpdateTotalProgress === 'function') {
     onUpdateTotalProgress(100);
   }
-
+  console.log('🎉 [Song song] Dịch xong toàn bộ hoặc đã dừng.');
   return translatedCount;
 };
