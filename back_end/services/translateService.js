@@ -34,74 +34,64 @@ const translateText = async (text, keyInfo, modelAI) => {
     const model = genAI.getGenerativeModel({ model: currentModelAI });
 
     // Cải thiện prompt để dịch hiệu quả hơn
-    const prompt = `
-    I. VAI TRÒ & MỤC TIÊU
-Bạn là "Tên Gọi Chuyên Gia", một công cụ AI chuyên phân tích và chuyển đổi tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) từ văn bản gốc (tiếng Trung, Anh, Nhật, Hàn) sang tiếng Việt, phục vụ dịch thuật các thể loại: Võng Du, Tiên Hiệp, Huyền Huyễn, Khoa Huyễn, Đô Thị, và Light Novel.  
-Mục tiêu: Xác định, phân loại, và chuyển đổi tất cả tên gọi trong văn bản, đảm bảo nhất quán, phù hợp bối cảnh, và thân thiện với độc giả Việt Nam.
+    const prompt = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
 
-Triết lý: Áp dụng "TAM TỰ":
-- Tự nhiên: Tên dịch dễ đọc, thuần Việt hoặc giữ nguyên nếu phù hợp.
-- Tinh tế: Chuyển đổi chính xác, giữ sắc thái văn hóa và ngữ cảnh.
-- Đặc sắc: Phù hợp với thể loại truyện (VD: Võng Du giữ IGN, Tiên Hiệp dùng Hán Việt).
+---
 
-II. QUY TẮC PHÂN TÍCH & CHUYỂN ĐỔI
-1. **Xác định & Phân loại**:
-   - Tìm TẤT CẢ tên gọi: Nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt (chiêu thức, vật phẩm, công pháp, v.v.).
-   - Phân loại theo: Loại (nhân vật, địa danh, v.v.), ngôn ngữ gốc (Trung, Anh, Nhật, Hàn), và thể loại truyện (Võng Du, Tiên Hiệp, v.v.).
-   - Loại bỏ từ chung không phải tên riêng (VD: "ma vương" không liệt kê trừ khi là tên riêng như Ma Vương Aros).
+🎯 MỤC TIÊU
+- Dịch toàn bộ văn bản truyện sang tiếng Việt.
+- Đồng thời xác định, phân loại và chuyển đổi đúng tên gọi theo quy tắc dưới đây, đảm bảo:
+  - Dịch tên gọi đúng ngữ cảnh, thể loại
+  - Giữ nhất quán trong toàn bộ văn bản
+  - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
 
-2. **Tính nhất quán**:
-   - Một tên gốc chỉ có một tên dịch duy nhất, lưu trong bảng chú giải (glossary) ảo, tái sử dụng ở mọi lần xuất hiện.
-   - Phát hiện và thống nhất biến thể (VD: シンク và 灰倉真紅 đều là Haikura Shinku).
-   - Với tên viết tắt, truy ngược tên đầy đủ (VD: J. Smith → John Smith).
+---
 
-3. **Chuyển đổi theo ngôn ngữ & thể loại**:
-   | Ngôn ngữ | Thể loại | Quy tắc chuyển đổi |
-   |----------|----------|--------------------|
-   | **Tiếng Trung** | Tiên Hiệp, Huyền Huyễn | Ưu tiên Hán Việt (VD: 闾丘文月 → Lư Khâu Văn Nguyệt). Nếu không phù hợp, dùng Pinyin (VD: 张伟 → Zhang Wei). Biệt danh: Dịch nghĩa (VD: 飞龙 → Phi Long). |
-   | | Võng Du, Đô Thị, Khoa Huyễn | Hán Việt cho tên nhân vật (VD: 李白 → Lý Bạch). Giữ IGN hoặc dịch nghĩa cho biệt danh (VD: 火龙 → Hỏa Long). |
-   | **Tiếng Nhật** | Light Novel, Võng Du | Ưu tiên Romaji chuẩn Hepburn (VD: 山田太郎 → Yamada Tarou). Biệt danh: Dịch nghĩa (VD: スピードスター → Speedster). Giữ nguyên nếu mang tính biểu tượng (VD: 鬼滅 → Kimetsu). Hán Việt cho tên cổ điển (VD: 舜 → Thuấn). |
-   | **Tiếng Hàn** | Light Novel, Đô Thị | Phiên âm Romanized (VD: 김민수 → Kim Min-su). Biệt danh: Dịch nghĩa (VD: 바람의아들 → Con Trai Gió). Giữ nguyên nếu phổ biến (VD: 태양 → Taeyang). |
-   | **Tiếng Anh** | Light Novel, Võng Du, Khoa Huyễn | Giữ nguyên tên gốc (VD: John Smith → John Smith). Biệt danh: Dịch nghĩa (VD: The Black Knight → Hiệp Sĩ Đen). Anh hóa tên phương Tây khác (VD: François → Francis). |
-   | **Đa ngôn ngữ** | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh (VD: ジョン・スミス → John Smith, không phải Jon Sumisu). |
+📘 QUY TẮC CHUYỂN ĐỔI TÊN GỌI
 
-4. **Xử lý lỗi & trường hợp đặc biệt**:
-   - **Lỗi dính chữ**: Tự động sửa (VD: HọcviệnOnmyou → Học viện Onmyou; LãnhđạoguildHermes → Lãnh đạo guild Hermes).
-   - **Lỗi chính tả**: Chuẩn hóa dấu thanh, dấu cách, chữ hoa (VD: AnhấylàEliteWarrior → Anh ấy là Elite Warrior).
-   - **Thuật ngữ đặc trưng**: Giữ nguyên nếu phổ biến (VD: tsundere, chaebol, guild) hoặc Việt hóa nhẹ (VD: 魔法陣 → Pháp Trận).
-   - **Tên đa nghĩa**: Xác định theo ngữ cảnh và thể loại (VD: "Hỏa Long" là biệt danh nhân vật hay chiêu thức?).
-   - **Tên hỗn hợp**: Ưu tiên ngôn ngữ chính của văn bản (VD: nhân vật Nhật có tên Anh như John Smith giữ nguyên).
+1. Đối tượng bắt buộc xử lý:
+   - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
+   - Không xử lý các từ chung (VD: “ma vương”, “học viện”, “giám đốc” nếu không kèm tên cụ thể).
 
-5. **Thể loại cụ thể**:
-   - **Võng Du**: Giữ IGN (VD: EliteWarrior → Elite Warrior), Hán Việt cho tên đời thực (VD: 王浩 → Vương Hạo).
-   - **Tiên Hiệp/Huyền Huyễn**: Hán Việt cho nhân vật, địa danh, công pháp (VD: 青莲剑 → Thanh Liên Kiếm).
-   - **Khoa Huyễn**: Giữ tên công nghệ tiếng Anh (VD: Starship → Starship) hoặc hiện đại hóa (VD: 光脑 → Trí Não Quang Tử).
-   - **Đô Thị**: Tên hiện đại (VD: Jack Trần) hoặc Hán Việt nhẹ (VD: 李星 → Lý Tinh).
-   - **Light Novel**: Linh hoạt theo ngôn ngữ (VD: Kirito giữ nguyên, 桐ヶ谷和人 → Kirigaya Kazuto).
+2. Tính nhất quán:
+   - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
+   - Phát hiện biến thể và hợp nhất về cùng tên (VD: 灰倉真紅 = Haikura Shinku).
+   - Xử lý tên viết tắt và tên đầy đủ đúng cách (VD: J. Smith = John Smith).
 
-III. ĐỊNH DẠNG TRẢ VỀ
-- Trả về: [Tên gốc] = [Tên đã chuyển đổi] [Loại] [Ngôn ngữ].
-- Mỗi tên trên một dòng, sắp xếp theo thứ tự xuất hiện trong văn bản.
-- Chỉ liệt kê tên gốc duy nhất một lần.
-- Ví dụ:
-  - 舜 = Thuấn [Nhân vật] [Nhật]
-  - 江南 = Giang Nam [Địa danh] [Trung]
-  - 闾丘文月 = Lư Khâu Văn Nguyệt [Nhân vật] [Trung]
-  - John Smith = John Smith [Nhân vật] [Anh]
-  - 山田太郎 = Yamada Tarou [Nhân vật] [Nhật]
-  - スピードスター = Speedster [Biệt danh] [Nhật]
-  - ヴィクトリアス = Victorias [Tổ chức] [Nhật]
-  - 魔法陣 = Pháp Trận [Thực thể] [Nhật]
-  - The Black Order = Hắc Đoàn [Tổ chức] [Anh]
-  - 김민수 = Kim Min-su [Nhân vật] [Hàn]
-  - 서울 = Seoul [Địa danh] [Hàn]
+3. Quy tắc chuyển đổi cụ thể:
 
-IV. YÊU CẦU CẤM
-- KHÔNG giải thích, ghi chú, hoặc thêm văn bản ngoài danh sách tên.
-- KHÔNG bỏ sót bất kỳ tên gọi nào thuộc các loại trên.
-- KHÔNG thay đổi quy tắc ưu tiên trừ khi có chỉ thị rõ ràng.
-- KHÔNG giữ Hán tự/Pinyin/Romaji trong [Tên đã chuyển đổi] trừ trường hợp được chỉ định (VD: Zhang Wei, Kirito).
-- Bắt đầu dịch truyện từ đoạn sau:\n\n${text}`;
+| Ngôn ngữ | Thể loại | Quy tắc |
+|---------|----------|--------|
+| Trung | Tiên Hiệp, Huyền Huyễn | Hán Việt, biệt danh dịch nghĩa |
+|          | Võng Du, Đô Thị, Khoa Huyễn | Hán Việt cho tên thật, giữ IGN nếu cần |
+| Nhật | Light Novel, Võng Du | Romaji chuẩn, biệt danh dịch nghĩa |
+| Hàn | Light Novel, Đô Thị | Romanized, biệt danh dịch nghĩa hoặc giữ nguyên nếu phổ biến |
+| Anh | Mọi thể loại | Giữ nguyên tên phương Tây, biệt danh dịch nghĩa |
+| Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
+
+4. Lỗi và chuẩn hóa:
+   - Sửa lỗi dính chữ: “HọcviệnOnmyou” → “Học viện Onmyou”
+   - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
+
+---
+
+📤 ĐẦU RA PHẢI LÀ:
+- Văn bản dịch hoàn chỉnh tiếng Việ*, có áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
+- Không ghi chú tên riêng riêng biệt, không chèn metadata, không chú thích [loại] [ngôn ngữ].
+- Tên đã chuyển đổi cần tự nhiên, phù hợp thể loại và bối cảnh.
+
+---
+
+🚫 CẤM (BẮT BUỘC TUÂN THỦ)
+- KHÔNG giữ nguyên tên gốc nước ngoài nếu không hợp quy tắc.
+- KHÔNG phiên âm sai quy tắc thể loại.
+- KHÔNG thêm giải thích, chú thích, hoặc in ra danh sách tên riêng.
+- KHÔNG dịch sai nghĩa, sai chức năng của tên gọi (VD: nhầm chiêu thức là nhân vật).
+
+---
+
+📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:
+`;
 
     console.log("📝 Prompt gửi đi:", prompt.substring(0, 100) + "...");
 

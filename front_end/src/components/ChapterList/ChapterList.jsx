@@ -168,13 +168,23 @@ const ChapterList = ({
       }
     }
 
-    const chaptersToTranslate = chapters
-      .map((chapter, index) => ({ ...chapter, originalIndex: index }))
-      .filter((_, index) => !results[index])
-      .slice(0, maxChapters - translatedCount);
+    // Lấy các chương trong trang hiện tại
+    const currentPageChapters = currentChapters.map((chapter, pageIndex) => {
+      // Tìm index thực tế trong mảng chapters gốc
+      const actualIndex = chapters.findIndex(ch => ch.chapterNumber === chapter.chapterNumber);
+      return { ...chapter, originalIndex: actualIndex, pageIndex };
+    });
+
+    // Lọc ra các chương chưa dịch trong trang hiện tại
+    const chaptersToTranslate = currentPageChapters
+      .filter((chapter) => !results[chapter.originalIndex])
+      .slice(0, hasApiKey ? currentPageChapters.length : Math.min(2 - translatedCount, currentPageChapters.length));
+
+    console.log("📄 Chương trong trang hiện tại:", currentPageChapters.map(ch => ch.chapterName));
+    console.log("📝 Chương sẽ dịch:", chaptersToTranslate.map(ch => ch.chapterName));
 
     if (chaptersToTranslate.length === 0) {
-      toast.success("Tất cả các chương đã được dịch.");
+      toast.success("Tất cả các chương trong trang này đã được dịch.");
       stopTotalProgress(); // Dừng tiến độ tổng
       setIsTranslateAllDisabled(true);
       setIsTranslatingAll(false);
@@ -580,9 +590,9 @@ const ChapterList = ({
               <FontAwesomeIcon icon={faSpinner} spin /> Đang dịch...
             </span>
           ) : hasTranslatedAll ? (
-            "🔁 Dịch lại toàn bộ chương"
+            "🔁 Dịch lại toàn bộ chương trong trang"
           ) : (
-            "📖 Dịch toàn bộ chương"
+            "📖 Dịch toàn bộ chương trong trang"
           )}
         </button>
         <button
