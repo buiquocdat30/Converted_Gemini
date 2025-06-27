@@ -143,6 +143,12 @@ const ConverteKeyInput = ({
       {isLoggedIn && userApiKey && userApiKey.length > 0 && showKeyList && (
         <div className="modal">
           <div className="modal-content key-list-modal">
+          <button 
+              className="modal-close-button"
+              onClick={() => setShowKeyList(false)}
+            >
+              ✕
+            </button>
             <h3>Danh sách API Key</h3>
             <div className="key-list">
               {userApiKey.map((key) => (
@@ -188,11 +194,17 @@ const ConverteKeyInput = ({
                       {key.key.substring(0, 33)}...
                     </span>
                     <span className="key-status">
-                      {key.status === "ACTIVE"
-                        ? "🟢 Hoạt động"
-                        : key.status === "COOLDOWN"
-                        ? "🟡 Đang nghỉ"
-                        : "🔴 Đã hết hạn"}
+                      {key.models && key.models.length > 0 ? (
+                        key.models.some(model => model.status === "ACTIVE") ? (
+                          "🟢 Hoạt động"
+                        ) : key.models.some(model => model.status === "COOLDOWN") ? (
+                          "🟡 Đang nghỉ"
+                        ) : (
+                          "🔴 Đã hết hạn"
+                        )
+                      ) : (
+                        "⚪ Chưa xác định"
+                      )}
                     </span>
                   </div>
                 </div>

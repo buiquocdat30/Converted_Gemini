@@ -478,6 +478,7 @@
   max-width: 800px;
   max-height: 90vh;
   margin: 0 auto;
+  position: relative;
 }
 
 .dark .modal-key-model-content {
@@ -497,6 +498,77 @@
 }
 
 .modal-key-model-content .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0;
+  padding: 4px;
+}
+
+/* Nút X để đóng modal */
+.modal-close-button {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+  z-index: 10;
+}
+
+.modal-close-button:hover {
+  background-color: #0e8713;
+  transform: scale(1.1);
+}
+
+.dark .modal-close-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.dark .modal-close-button:hover {
+  background-color: #0e8713;
+}
+
+/* Modal thêm chương riêng biệt */
+.modal-add-chapter {
+  z-index: 1500;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-add-chapter-content {
+  border: 2px solid #28a745;
+  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.15);
+  background: #f8fff8;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  margin: 0 auto;
+  position: relative;
+}
+
+.dark .modal-add-chapter-content {
+  background: #232d23;
+  border-color: #218838;
+  color: #A8C4B5;
+}
+
+.modal-add-chapter-content h3 {
+  color: #28a745;
+  text-align: center;
+}
+
+.modal-add-chapter-content .modal-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
