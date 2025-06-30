@@ -33,14 +33,14 @@ const ChapterList = ({
   const [chapterTranslatingStates, setChapterTranslatingStates] = useState({});
 
   // Sử dụng hook cho tiến độ tổng
-  const { 
-    progress: totalProgress, 
+  const {
+    progress: totalProgress,
     isTranslating: isTotalTranslating,
     startProgress: startTotalProgress,
     stopProgress: stopTotalProgress,
-    averageTimePerWord
+    averageTimePerWord,
   } = useTranslationProgress(30);
-  console.log("đây là thời gian trung bình dịch từ:", averageTimePerWord)
+  console.log("đây là thời gian trung bình dịch từ:", averageTimePerWord);
   // Sử dụng hook cho tiến độ từng chương
   const chapterProgressHooks = useRef({});
 
@@ -58,13 +58,13 @@ const ChapterList = ({
         progress: 0,
         isTranslating: false,
         startProgress: () => {
-          setChapterTranslatingStates(prev => ({ ...prev, [index]: true }));
-          setChapterProgresses(prev => ({ ...prev, [index]: 0 }));
-          
+          setChapterTranslatingStates((prev) => ({ ...prev, [index]: true }));
+          setChapterProgresses((prev) => ({ ...prev, [index]: 0 }));
+
           // Tạo interval để cập nhật tiến độ
           // Mỗi 150ms tăng 1% (6.6% mỗi giây)
           const interval = setInterval(() => {
-            setChapterProgresses(prev => {
+            setChapterProgresses((prev) => {
               const currentProgress = prev[index] || 0;
               const newProgress = Math.min(currentProgress + 1, 98); // Tăng 1% mỗi lần, dừng ở 98%
               return { ...prev, [index]: newProgress };
@@ -75,14 +75,14 @@ const ChapterList = ({
           chapterProgressHooks.current[index].interval = interval;
         },
         stopProgress: () => {
-          setChapterTranslatingStates(prev => ({ ...prev, [index]: false }));
-          setChapterProgresses(prev => ({ ...prev, [index]: 100 }));
-          
+          setChapterTranslatingStates((prev) => ({ ...prev, [index]: false }));
+          setChapterProgresses((prev) => ({ ...prev, [index]: 100 }));
+
           // Clear interval
           if (chapterProgressHooks.current[index].interval) {
             clearInterval(chapterProgressHooks.current[index].interval);
           }
-        }
+        },
       };
     }
     return chapterProgressHooks.current[index];
@@ -128,7 +128,7 @@ const ChapterList = ({
   useEffect(() => {
     // Kiểm tra có key khả dụng không (có thể là array hoặc string)
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
-    
+
     if (hasApiKey) {
       setIsTranslateAllDisabled(false); // ✅ Đã có key thì luôn bật nút
     } else {
@@ -167,7 +167,7 @@ const ChapterList = ({
 
     setIsTranslatingAll(true);
     setManualTotalProgress(0); // Reset tiến độ tổng thực tế
-    
+
     // Kiểm tra có key khả dụng không
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
     const maxChapters = hasApiKey ? chapters.length : 2;
@@ -187,17 +187,30 @@ const ChapterList = ({
     // Lấy các chương trong trang hiện tại
     const currentPageChapters = currentChapters.map((chapter, pageIndex) => {
       // Tìm index thực tế trong mảng chapters gốc
-      const actualIndex = chapters.findIndex(ch => ch.chapterNumber === chapter.chapterNumber);
+      const actualIndex = chapters.findIndex(
+        (ch) => ch.chapterNumber === chapter.chapterNumber
+      );
       return { ...chapter, originalIndex: actualIndex, pageIndex };
     });
 
     // Lọc ra các chương chưa dịch trong trang hiện tại
     const chaptersToTranslate = currentPageChapters
       .filter((chapter) => !results[chapter.originalIndex])
-      .slice(0, hasApiKey ? currentPageChapters.length : Math.min(2 - translatedCount, currentPageChapters.length));
+      .slice(
+        0,
+        hasApiKey
+          ? currentPageChapters.length
+          : Math.min(2 - translatedCount, currentPageChapters.length)
+      );
 
-    console.log("📄 Chương trong trang hiện tại:", currentPageChapters.map(ch => ch.chapterName));
-    console.log("📝 Chương sẽ dịch:", chaptersToTranslate.map(ch => ch.chapterName));
+    console.log(
+      "📄 Chương trong trang hiện tại:",
+      currentPageChapters.map((ch) => ch.chapterName)
+    );
+    console.log(
+      "📝 Chương sẽ dịch:",
+      chaptersToTranslate.map((ch) => ch.chapterName)
+    );
 
     if (chaptersToTranslate.length === 0) {
       toast.success("Tất cả các chương trong trang này đã được dịch.");
@@ -243,20 +256,26 @@ const ChapterList = ({
     // Nếu không được phép dịch thì return luôn, không chạy tiếp
     if (!canTranslate(index)) return;
     // Nếu chương đang PROCESSING hoặc PENDING thì không cho dịch lại
-    if (chapterStatus[index] === 'PROCESSING' || chapterStatus[index] === 'PENDING') return;
+    if (
+      chapterStatus[index] === "PROCESSING" ||
+      chapterStatus[index] === "PENDING"
+    )
+      return;
 
     // Đặt trạng thái PENDING
-    setChapterStatus(prev => ({ ...prev, [index]: 'PENDING' }));
+    setChapterStatus((prev) => ({ ...prev, [index]: "PENDING" }));
 
     // Đặt timeout nhỏ để mô phỏng delay gửi request (có thể bỏ nếu muốn gửi ngay)
     setTimeout(() => {
       // Nếu user đã hủy trước khi gửi request
-      if (chapterStatus[index] === 'CANCELLED') {
-        console.log(`[CHAPTER ${index}] Đã hủy trước khi gửi request, không gửi nữa.`);
+      if (chapterStatus[index] === "CANCELLED") {
+        console.log(
+          `[CHAPTER ${index}] Đã hủy trước khi gửi request, không gửi nữa.`
+        );
         return;
       }
       // Chuyển sang PROCESSING
-      setChapterStatus(prev => ({ ...prev, [index]: 'PROCESSING' }));
+      setChapterStatus((prev) => ({ ...prev, [index]: "PROCESSING" }));
       const chapterHook = getChapterProgressHook(index);
       chapterHook.startProgress(); // Bắt đầu tiến độ cho chương này
 
@@ -266,7 +285,7 @@ const ChapterList = ({
         apiKey,
         model,
         setProgress: (progress) => {
-          setChapterProgresses(prev => ({ ...prev, [index]: progress }));
+          setChapterProgresses((prev) => ({ ...prev, [index]: progress }));
         },
         setResults,
         setErrorMessages,
@@ -279,30 +298,32 @@ const ChapterList = ({
         isStopped: isStoppedRef.current,
         onComplete: (duration, error) => {
           // Nếu user đã hủy trong lúc đang dịch
-          if (chapterStatus[index] === 'CANCELLED') {
+          if (chapterStatus[index] === "CANCELLED") {
             chapterHook.stopProgress();
-            setChapterStatus(prev => ({ ...prev, [index]: 'CANCELLED' }));
-            console.log(`[CHAPTER ${index}] Đã hủy trong lúc đang dịch, bỏ qua kết quả.`);
+            setChapterStatus((prev) => ({ ...prev, [index]: "CANCELLED" }));
+            console.log(
+              `[CHAPTER ${index}] Đã hủy trong lúc đang dịch, bỏ qua kết quả.`
+            );
             return;
           }
           chapterHook.stopProgress();
           if (error) {
-            setChapterStatus(prev => ({ ...prev, [index]: 'FAILED' }));
+            setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
             console.log(`[CHAPTER ${index}] Lỗi khi dịch:`, error);
           } else {
-            setChapterStatus(prev => ({ ...prev, [index]: 'COMPLETE' }));
+            setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
             console.log(`[CHAPTER ${index}] Dịch xong.`);
           }
           stopTotalProgress();
-          setTranslationDurations(prev => ({ ...prev, [index]: duration }));
+          setTranslationDurations((prev) => ({ ...prev, [index]: duration }));
           setTimeout(() => {
-            setChapterProgresses(prev => {
+            setChapterProgresses((prev) => {
               const newProgresses = { ...prev };
               delete newProgresses[index];
               return newProgresses;
             });
           }, 2000);
-        }
+        },
       });
     }, 200); // delay nhỏ để user có thể bấm hủy ngay sau khi bấm dịch
   };
@@ -310,8 +331,11 @@ const ChapterList = ({
   // Hàm hủy dịch 1 chương
   const cancelTranslate = (index) => {
     // Chỉ cho hủy khi đang PENDING hoặc PROCESSING
-    if (chapterStatus[index] === 'PENDING' || chapterStatus[index] === 'PROCESSING') {
-      setChapterStatus(prev => ({ ...prev, [index]: 'CANCELLED' }));
+    if (
+      chapterStatus[index] === "PENDING" ||
+      chapterStatus[index] === "PROCESSING"
+    ) {
+      setChapterStatus((prev) => ({ ...prev, [index]: "CANCELLED" }));
       console.log(`[CHAPTER ${index}] User bấm hủy dịch.`);
     }
   };
@@ -430,16 +454,23 @@ const ChapterList = ({
 
   // Tính tổng số từ của 1 trang hiện tại
   const totalWordsInPage = currentChapters.reduce((sum, ch) => {
-    const titleWords = (ch.title || ch.chapterName || '').split(/\s+/).filter(Boolean).length;
-    const contentWords = (ch.content || ch.rawText || '').split(/\s+/).filter(Boolean).length;
+    const titleWords = (ch.title || ch.chapterName || "")
+      .split(/\s+/)
+      .filter(Boolean).length;
+    const contentWords = (ch.content || ch.rawText || "")
+      .split(/\s+/)
+      .filter(Boolean).length;
     return sum + titleWords + contentWords;
   }, 0);
 
   // Lấy averageTimePerWord từ hook
-  const estimatedTime = Math.round(totalWordsInPage * parseFloat(averageTimePerWord)); // giây
-  const estimatedTimeStr = estimatedTime < 60
-    ? `${estimatedTime} giây`
-    : `${Math.floor(estimatedTime / 60)} phút ${estimatedTime % 60} giây`;
+  const estimatedTime = Math.round(
+    totalWordsInPage * parseFloat(averageTimePerWord)
+  ); // giây
+  const estimatedTimeStr =
+    estimatedTime < 60
+      ? `${estimatedTime} giây`
+      : `${Math.floor(estimatedTime / 60)} phút ${estimatedTime % 60} giây`;
 
   return (
     <div className="chapter-list">
@@ -452,7 +483,7 @@ const ChapterList = ({
           );
           const isTranslated = !!results[idx];
           const duration = translationDurations[idx];
-          
+
           // Lấy progress từ state
           const chapterProgress = chapterProgresses[idx] || 0;
           const isChapterTranslating = chapterTranslatingStates[idx] || false;
@@ -478,57 +509,96 @@ const ChapterList = ({
                       ch.chapterName ||
                       `Chương ${calculatedChapterNumber}`}
                   </strong>
-                  {isTranslated && (
+                  {/* ĐÃ DỊCH: Đưa xuống dưới trạng thái */}
+                  {/* {isTranslated && (
                     <span className="translated-label">
-                      ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ''}
+                      ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
                     </span>
-                  )}
+                  )} */}
                   <div className="chapter-actions">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        translate(idx);
-                      }}
-                      disabled={!canTranslate(idx) || isTranslatingAll || chapterStatus[idx] === 'PROCESSING' || chapterStatus[idx] === 'PENDING'}
-                      className={`translate-sgn-button ${
-                        isTranslated ? "hidden" : ""
-                      }`}
-                    >
-                      📝 Dịch
-                    </button>
-                    {/* Nút hủy dịch */}
-                    {(chapterStatus[idx] === 'PENDING' || chapterStatus[idx] === 'PROCESSING') && (
+                    {/* Nút Dịch chỉ hiện khi không PROCESSING/PENDING */}
+                    {!(
+                      chapterStatus[idx] === "PROCESSING" ||
+                      chapterStatus[idx] === "PENDING"
+                    ) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          translate(idx);
+                        }}
+                        disabled={
+                          !canTranslate(idx) ||
+                          isTranslatingAll ||
+                          chapterStatus[idx] === "PROCESSING" ||
+                          chapterStatus[idx] === "PENDING"
+                        }
+                        className={`translate-sgn-button ${
+                          isTranslated ? "hidden" : ""
+                        }`}
+                      >
+                        📝 Dịch
+                      </button>
+                    )}
+                    {/* Nút hủy dịch chỉ hiện khi PROCESSING hoặc PENDING */}
+                    {(chapterStatus[idx] === "PENDING" ||
+                      chapterStatus[idx] === "PROCESSING") && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           cancelTranslate(idx);
                         }}
                         className="cancel-translate-button"
-                        style={{ marginLeft: 8, color: 'red' }}
+                        style={{ height: "100%" }}
                       >
-                        🛑 Hủy
+                        🛑 Hủy Dịch
                       </button>
                     )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteChapter(ch.chapterNumber);
-                      }}
-                      className="delete-chapter-button"
-                      style={
-                        isTranslated
-                          ? { width: "100%", height: "100%" }
-                          : { width: "50%" }
-                      }
-                    >
-                      ❌ Xoá
-                    </button>
+                    {/* Nút Xóa chỉ hiện khi không PROCESSING/PENDING */}
+                    {!(
+                      chapterStatus[idx] === "PROCESSING" ||
+                      chapterStatus[idx] === "PENDING"
+                    ) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteChapter(ch.chapterNumber);
+                        }}
+                        className={`delete-chapter-button${
+                          chapterStatus[idx] === "COMPLETE" ? " complete" : ""
+                        }`}
+                      >
+                        ❌ Xoá
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* Hiển thị trạng thái chương */}
                 {chapterStatus[idx] && (
-                  <div style={{ fontSize: 13, color: '#888', marginBottom: 2 }}>
-                    Trạng thái: <b>{chapterStatus[idx]}</b>
+                  <div className="chapter-status">
+                    <span>
+                      Trạng thái: <b>{chapterStatus[idx]}</b>
+                    </span>
+                    {/* Hiển thị thanh tiến độ nếu đang PROCESSING hoặc PENDING */}
+                    {(chapterStatus[idx] === "PROCESSING" ||
+                      chapterStatus[idx] === "PENDING") && (
+                      <div className="chapter-progress-bar-container">
+                        <div
+                          className="chapter-progress-bar"
+                          style={{ width: `${chapterProgress}%` }}
+                        ></div>
+                        <div className="progress-info">
+                          <small className="progress-text">
+                            Đang dịch... {chapterProgress.toFixed(0)}%
+                          </small>
+                        </div>
+                      </div>
+                    )}
+                    {/* Hiển thị label Đã dịch khi COMPLETE */}
+                    {chapterStatus[idx] === "COMPLETE" && (
+                      <span className="translated-label">
+                        ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
+                      </span>
+                    )}
                   </div>
                 )}
                 {errorMessages[idx] && (
@@ -678,8 +748,11 @@ const ChapterList = ({
             style={{ width: `${manualTotalProgress}%` }}
           ></div>
           <small className="progress-text">
-            Đang dịch... {manualTotalProgress.toFixed(0)}%<br/>
-            <span style={{fontSize:'12px',color:'#888'}}>Tiến độ tổng là ước lượng dựa trên số chương đã dịch, không phải thời gian thực tế.</span>
+            Đang dịch... {manualTotalProgress.toFixed(0)}%<br />
+            <span style={{ fontSize: "12px", color: "#888" }}>
+              Tiến độ tổng là ước lượng dựa trên số chương đã dịch, không phải
+              thời gian thực tế.
+            </span>
           </small>
         </div>
       )}
@@ -689,8 +762,9 @@ const ChapterList = ({
         </div>
       )}
       {/* Thời gian dự kiến dịch trang */}
-      <div style={{margin: '8px 0', color: '#888', fontSize: '15px'}}>
-        ⏳ Thời gian dự kiến dịch trang này: <b>{estimatedTimeStr}</b> (Tổng {totalWordsInPage} từ, trung bình {averageTimePerWord} giây/từ)
+      <div style={{ margin: "8px 0", color: "#888", fontSize: "15px" }}>
+        ⏳ Thời gian dự kiến dịch trang này: <b>{estimatedTimeStr}</b> (Tổng{" "}
+        {totalWordsInPage} từ, trung bình {averageTimePerWord} giây/từ)
       </div>
     </div>
   );

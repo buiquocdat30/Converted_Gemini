@@ -122,10 +122,10 @@ const TranslatorApp = ({
       setCurrentIndex(index);
 
       // Thông báo thành công
-      toast.success(`✅ Đã dịch xong chương ${chapter.chapterNumber}`);
+      toast.success(`Đã dịch xong chương ${chapter.chapterNumber}`);
     } catch (error) {
       console.error("❌ Lỗi khi lưu kết quả dịch:", error);
-      toast.error("❌ Lỗi khi lưu kết quả dịch: " + error.message);
+      toast.error("Lỗi khi lưu kết quả dịch: " + error.message);
     }
   };
 
@@ -365,19 +365,22 @@ const TranslatorApp = ({
             onClose();
           }}
         >
-          <div className="modal-content modal-add-chapter-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content modal-add-chapter-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <form onSubmit={handleSubmit}>
-            <button 
-              type="button"
-              className="modal-close-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                resetSelections();
-                onClose();
-              }}
-            >
-              ✕
-            </button>
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetSelections();
+                  onClose();
+                }}
+              >
+                ✕
+              </button>
               <h3>Thêm chương mới</h3>
               <div className="add-chapter-tabs">
                 <button
@@ -712,7 +715,7 @@ const TranslatorApp = ({
       {isMenuOpen && (
         <div className="modal-overlay modal-key-model">
           <div className="modal-content modal-key-model-content">
-            <button 
+            <button
               className="modal-close-button"
               onClick={() => setIsMenuOpen(false)}
             >
@@ -748,7 +751,6 @@ const TranslatorApp = ({
               </button>
               <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
             </div>
-
           </div>
         </div>
       )}
