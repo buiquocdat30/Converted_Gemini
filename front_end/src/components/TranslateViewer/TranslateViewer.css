@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .translation-viewer {
   padding: 10px;
   /* margin-top: 20px; */
@@ -45,7 +47,7 @@
   padding: 6px 10px;
   border-radius: 6px;
   border: none;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -53,7 +55,7 @@
 }
 
 .menu-bar button:disabled {
-  background-color: #888;
+  background-color: var(--button-background-disabled);
   cursor: not-allowed;
 }
 
@@ -132,4 +134,16 @@ textarea:focus {
   textarea {
     height: 100px;
   }
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
 }

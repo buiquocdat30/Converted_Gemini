@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .comparison-container {
   padding: 20px;
   font-family: Arial, sans-serif;
@@ -10,8 +12,8 @@
 }
 
 .header button {
-  background-color: #32744f;
-  color: #fff;
+  background-color: var(--button-green-background);
+  color: white;
   border: none;
   border-radius: 4px;
   padding: 10px 15px;
@@ -19,7 +21,11 @@
 }
 
 .header button:hover {
-  background-color: #064409;
+  background-color: var(--button-green-background-hover);
+}
+
+.header button:disabled {
+  background-color: var(--button-background-disabled);
 }
 
 .columns {
@@ -62,8 +68,8 @@
 }
 
 .actions button {
-  background-color: #32744f;
-  color: #fff;
+  background-color: var(--button-green-background);
+  color: white;
   border: none;
   border-radius: 4px;
   padding: 10px 15px;
@@ -71,6 +77,6 @@
 }
 
 .dark .actions button {
-  background-color: #32744f;
-  color: #fff;
+  background-color: var(--button-green-background);
+  color: white;
 }

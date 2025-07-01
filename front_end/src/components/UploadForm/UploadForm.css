@@ -1,3 +1,4 @@
+@import '../../css/App.css';
 /* body {
   margin: 0;
   padding: 0;
@@ -92,7 +93,7 @@
   width: 100%;
   padding: 10px 20px;
   font-size: 16px;
-  background-color: #32744f;
+  background-color:var(--button-green-background);
   color: #fff;
   font-size: 1.3rem;
   margin-top: 10px;
@@ -103,7 +104,7 @@
 }
 
 .converter-btn>.btn-submit:hover {
-  background-color: #064409;
+  background-color:  var(--button-green-background-hover);
 }
 
 /* chọn model AI */
@@ -418,4 +419,16 @@
   border-radius: 4px;
   margin: 10px 0;
   text-align: center;
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
 }

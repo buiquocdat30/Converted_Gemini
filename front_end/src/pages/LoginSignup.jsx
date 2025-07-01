@@ -175,7 +175,7 @@ const LoginSignup = () => {
             />
           </div>
         </div>
-        <button
+        <button className="loginsignup-btn"
           onClick={() => {
             state === "Login" ? login() : signup();
           }}

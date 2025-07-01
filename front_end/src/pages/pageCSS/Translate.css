@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 /* Đặt màu nền tổng thể cho toàn trang */
 body {
     margin: 0;
@@ -8,8 +10,17 @@ body {
     color: rgb(104, 146, 119);
 }
 
-
-
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
+}
 
 /* Scrollbar tùy chỉnh nếu có danh sách dài */
 ::-webkit-scrollbar {

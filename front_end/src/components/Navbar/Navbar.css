@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .navbar {
     display: flex;
     justify-content: space-between;
@@ -116,7 +118,7 @@
 }
 
 .login-button {
-    background-color: #32744f;
+    background-color: var(--button-green-background);
     color: white;
     border: none;
     padding: 0.79rem 1rem;
@@ -127,15 +129,15 @@
 }
 
 .dark .login-button {
-    background-color: #32744f;
+    background-color:var(--button-green-background);
 }
 
 .login-button:hover {
-    background-color: #064409;
+    background-color: var(--button-green-background-hover);
 }
 
 .dark .login-button:hover {
-    background-color: #2b6cb0;
+    background-color: var(--button-green-background-hover);
 }
 
 /* User menu styles */
@@ -148,6 +150,15 @@
     border: none;
     cursor: pointer;
     padding: 0;
+}
+
+.user-button:hover,
+.user-button:focus {
+    background: none !important;
+    color: inherit !important;
+    box-shadow: none !important;
+    outline: none !important;
+    filter: none !important;
 }
 
 .user-avatar-container {
@@ -217,7 +228,7 @@
 }
 
 .dropdown-link:hover {
-    color: #32744f;
+    color: var(--button-green-background-hover);
 }
 
 .dark .dropdown-link:hover {
@@ -230,19 +241,16 @@
     padding: 0.5rem 0.5rem 0.5rem 0;
     background: none;
     border: none;
-    color: #dc3545;
+    color: var(--button-red-background);
     cursor: pointer;
     text-align: left;
     transition: color 0.3s ease;
 }
 
 .dropdown-logout:hover {
-    color: #c82333;
+    background-color: white !important;
+    color: var(--button-red-background-hover) !important;
 }
-
-
-
-
 
 /* Mobile menu button */
 .mobile-menu-button {
@@ -481,4 +489,16 @@
     .nav-login-cart {
         transform: scale(0.81);
     }
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
 }

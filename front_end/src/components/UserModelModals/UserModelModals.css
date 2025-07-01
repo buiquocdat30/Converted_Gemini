@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .model-modal-overlay {
   position: fixed;
   top: 0;
@@ -248,4 +250,16 @@
 .dark .status-exhausted {
   background-color: #721c24;
   color: #fff;
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
 }

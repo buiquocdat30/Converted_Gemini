@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .user-story-card {
   border: 1px solid #ccc;
   padding: 16px;
@@ -129,8 +131,8 @@
   gap: 10px;
 }
 
-.btn-delete-stories,
-.btn-update-stories {
+.stories-update-btn .btn-delete-stories,
+.stories-update-btn .btn-update-stories {
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
@@ -141,22 +143,30 @@
   /* Đảm bảo nút có độ rộng tối thiểu */
 }
 
-.btn-delete-stories {
-  background-color: #32744f;
+.stories-update-btn .btn-delete-stories {
+  background-color: var(--button-red-background);
   color: white;
 }
 
-.btn-delete-stories:hover {
-  background-color: #064409;
+.stories-update-btn .btn-delete-stories:hover {
+  background-color: var(--button-red-background-hover);
 }
 
-.btn-update-stories {
-  background-color: #32744f;
+.stories-update-btn .btn-delete-stories:disabled {
+  background-color: var(--button-background-disabled);
+}
+
+.stories-update-btn .btn-update-stories {
+  background-color: var(--button-green-background);
   color: white;
 }
 
-.btn-update-stories:hover {
-  background-color: #064409;
+.stories-update-btn .btn-update-stories:hover {
+  background-color: var(--button-green-background-hover);
+}
+
+.stories-update-btn .btn-update-stories:disabled {
+  background-color: var(--button-background-disabled);
 }
 
 /* Dark theme styles */
@@ -395,4 +405,44 @@
 
 .dark .completed-badge {
   color: #2ecc71;
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
+}
+
+.btn-submit {
+  background-color: var(--button-green-background);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+.btn-submit:hover {
+  background-color: var(--button-green-background-hover);
+}
+.btn-submit:disabled {
+  background-color: var(--button-background-disabled);
+}
+
+.btn-complete-stories {
+  background-color: var(--button-green-background);
+  color: white;
+}
+.btn-complete-stories:hover {
+  background-color: var(--button-green-background-hover);
+}
+.btn-complete-stories:disabled {
+  background-color: var(--button-background-disabled);
 }
