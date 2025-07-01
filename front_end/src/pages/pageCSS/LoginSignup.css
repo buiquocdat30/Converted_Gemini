@@ -57,8 +57,13 @@
     margin-top: 30px;
 }
 
-.loginsignup-container button {
+.loginsignup-container .loginsignup-btn {
     border-radius: 6px;
+    background-color: var(--button-green-background);
+}
+
+.loginsignup-container .loginsignup-btn:hover {
+    background-color: var(--button-green-background-hover);
 }
 
 .loginsignup-fields {

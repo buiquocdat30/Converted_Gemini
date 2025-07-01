@@ -36,7 +36,7 @@
 
 .chapter-list button {
   padding: 5px 10px;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   border: none;
   border-radius: 5px;
@@ -45,15 +45,15 @@
 }
 
 .chapter-list button:hover {
-  background-color: #0e8713;
+  background-color: var(--button-green-background-hover);
 }
 
 .chapter-list button:disabled {
-  background-color: #6c757d;
+  background-color: var(--button-background-disabled);
 }
 
 .chapter-list button:disabled:hover {
-  background-color: #6c757d;
+  background-color: var(--button-background-disabled);
 }
 
 .chapter-list .error-message {
@@ -185,7 +185,8 @@
 }
 
 .chapter-header .chapter-actions>.cancel-translate-button {
-  color: red;
+  color: white;
+  background-color: var(--button-red-background);
   margin-left: 8px;
   border: none;
   border-radius: 5px;
@@ -193,6 +194,18 @@
   padding: 5px 2px;
   width: 100%;
   height: 100%;
+}
+
+.chapter-header .chapter-actions>.cancel-translate-button:hover {
+  background-color: var(--button-red-background-hover);
+}
+
+.chapter-header .chapter-actions>.delete-chapter-button {
+  background-color: var(--button-red-background);
+}
+
+.chapter-header .chapter-actions>.delete-chapter-button:hover {
+  background-color: var(--button-red-background-hover);
 }
 
 .hidden {

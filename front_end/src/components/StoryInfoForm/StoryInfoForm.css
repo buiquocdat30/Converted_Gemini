@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .story-info-form {
     margin-top: 10px;
     background: #fff;
@@ -91,7 +93,7 @@
 }
 
 .save-button {
-    background-color: #32744f;
+    background-color: var(--button-green-background);
     color: white;
     border: none;
     padding: 8px 15px;
@@ -103,10 +105,22 @@
 }
 
 .save-button:hover {
-    background-color: #064409;
+    background-color: var(--button-green-background-hover);
 }
 
 .save-button:disabled {
-    background-color: #0e0606;
+    background-color: var(--button-background-disabled);
     cursor: not-allowed;
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
 }

@@ -1,3 +1,4 @@
+@import '../../css/App.css';
 /* pageCSS/Users.css */
 .users-page {
     display: flex;
@@ -47,12 +48,16 @@
 }
 
 .users-page.light button {
-    background-color: #32744f;
+    background-color: var(--button-green-background);
     color: white;
 }
 
 .users-page.light button:hover {
-    background-color: #064409;
+    background-color: var(--button-green-background-hover);
+}
+
+.users-page.light button:disabled {
+    background-color: var(--button-background-disabled);
 }
 
 .users-page.light table th,
@@ -115,13 +120,17 @@ body.dark .users-page,
 }
 
 .users-page.dark button {
-    background-color: #555;
+    background-color: var(--button-green-background);
     color: #e0e0e0;
     border: 1px solid #777;
 }
 
 .users-page.dark button:hover {
-    background-color: #666;
+    background-color: var(--button-green-background-hover);
+}
+
+.users-page.dark button:disabled {
+    background-color: var(--button-background-disabled);
 }
 
 .users-page.dark table {

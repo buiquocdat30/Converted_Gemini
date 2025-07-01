@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .home {
     padding: 20px;
     min-height: 100vh;
@@ -202,4 +204,16 @@
         padding: 12px 24px;
         font-size: 1rem;
     }
+}
+
+/* Nếu có style cho button */
+button {
+  background-color: var(--button-green-background);
+  color: white;
+}
+button:hover {
+  background-color: var(--button-green-background-hover);
+}
+button:disabled {
+  background-color: var(--button-background-disabled);
 }

@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 .translator-app-wrapper {
   /* display: flex;
   flex-direction: column; */
@@ -30,7 +32,7 @@
   right: 25px;
   width: 40px;
   height: 40px;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   font-size: 1rem;
   border-radius: 50%;
@@ -71,6 +73,7 @@
 .menu-toggle-button:hover {
   transform: scale(1.1);
   /* Tăng nhẹ khi hover */
+  background-color: var(--button-green-background-hover);
 }
 
 .top-menu {
@@ -126,7 +129,7 @@
   margin-top: 37px;
   padding: 10px 12px;
   color: white;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   font-size: 16px;
   cursor: pointer;
   border: none;
@@ -136,7 +139,7 @@
 }
 
 .top-menu-body>button:hover {
-  background-color: #218838;
+  background-color: var(--button-green-background-hover);
 }
 
 .top-menu-body>.converte-key {
@@ -153,13 +156,11 @@
 }
 
 .converter-key-container>button {
-
   max-width: 100%;
   height: auto;
-
   padding: 10px 12px;
   color: white;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   font-size: 16px;
   cursor: pointer;
   border: none;
@@ -168,19 +169,23 @@
   transition: background-color 0.3s ease;
 }
 
+.converter-key-container>button:hover {
+  background-color: var(--button-green-background-hover);
+}
+
 /* Khi bị disable */
 .confirm-key-btn:disabled {
-  background-color: #6c757d;
+  background-color: var(--button-background-disabled);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
 .confirm-key-btn:disabled:hover {
-  background-color: #6c757d;
+  background-color: var(--button-background-disabled);
 }
 
 .check-key-btn:hover {
-  background-color: #218838;
+  background-color: var(--button-green-background-hover);
 }
 
 .content {
@@ -268,7 +273,7 @@
 }
 
 .add-chapter-tabs button.active {
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: #333;
   font-weight: 500;
 }
@@ -422,17 +427,17 @@
 }
 
 .modal-buttons button[type="submit"] {
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   min-width: 150px;
 }
 
 .modal-buttons button[type="submit"]:hover:not(:disabled) {
-  background-color: #218838;
+  background-color: var(--button-green-background-hover);
 }
 
 .modal-buttons button[type="submit"]:disabled {
-  background-color: #ccc;
+  background-color: var(--button-background-disabled);
   cursor: not-allowed;
 }
 
@@ -512,7 +517,7 @@
   right: 15px;
   width: 30px;
   height: 30px;
-  background-color: #28a745;
+  background-color: var(--button-red-background);
   color: white;
   border: none;
   border-radius: 50%;
@@ -527,7 +532,7 @@
 }
 
 .modal-close-button:hover {
-  background-color: #0e8713;
+  background-color: var(--button-red-background-hover);
   transform: scale(1.1);
 }
 

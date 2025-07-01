@@ -1,3 +1,4 @@
+@import '../../css/App.css';
 /* Khu vực nhập API key */
 .converte-key {
   width: 100%;
@@ -30,16 +31,17 @@
   margin-top: 10px;
   padding: 10px;
   cursor: pointer;
-  background-color: #d3e5db;
+  background-color: var(--button-green-background);
   border: none;
   border-radius: 6px;
   font-weight: bold;
   font-size: 1rem;
   transition: background-color 0.3s ease;
+  color: white;
 }
 
 .converte-key button:hover {
-  background-color: #c2d8cc;
+  background-color: var(--button-green-background-hover);
 }
 
 /* Container cho input + icon */
@@ -106,16 +108,15 @@
 .modal-content button {
   margin-top: 10px;
   padding: 12px 12px;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-
 }
 
 .modal-content button:hover {
-  background-color: #0e8713;
+  background-color: var(--button-green-background-hover);
 }
 
 .list_api_key {
@@ -248,11 +249,11 @@
   box-sizing: border-box;
 }
 .key-actions .close-button{
-  background-color: #dc3545;
+  background-color: var(--button-red-background);
   color: white;
 }
 .key-actions .close-button:hover{
-  background-color: #c82333;
+  background-color: var(--button-red-background-hover);
   color: white;
 }
 .select-all-key-btn {
@@ -265,21 +266,21 @@
 }
 
 .apply-selected-keys-btn {
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
 }
 
 .apply-selected-keys-btn:hover {
-  background-color: #218838;
+  background-color: var(--button-green-background-hover);
 }
 
 .close-button {
-  background-color: #dc3545;
+  background-color: var(--button-red-background);
   color: white;
 }
 
 .close-button:hover {
-  background-color: #c82333;
+  background-color: var(--button-red-background-hover);
 }
 
 /* Dark mode */
@@ -340,7 +341,7 @@
   right: 15px;
   width: 30px;
   height: 30px;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   border: none;
   cursor: pointer;
@@ -354,17 +355,17 @@
 }
 
 .key-list-modal .modal-close-button:hover {
-  background-color: #0e8713;
+  background-color: var(--button-green-background-hover);
   transform: scale(1.1);
 }
 
 .dark .key-list-modal .modal-close-button {
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
 }
 
 .dark .key-list-modal .modal-close-button:hover {
-  background-color: #0e8713;
+  background-color: var(--button-green-background-hover);
 }
 
 .key-list-modal h3 {

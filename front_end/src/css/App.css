@@ -1,3 +1,11 @@
+:root {
+  --button-green-background: #28a745;
+  --button-green-background-hover: #45a049;
+  --button-red-background: #dc3545;
+  --button-red-background-hover: #c82333;
+  --button-background-disabled: #6c757d;
+}
+
 /* Đặt màu nền tổng thể cho toàn trang */
 body {
     max-width: 1240px;
