@@ -90,7 +90,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content") => {
 - KHÔNG giữ nguyên tên gốc nước ngoài nếu không hợp quy tắc.
 - KHÔNG phiên âm sai quy tắc thể loại.
 - KHÔNG thêm giải thích, chú thích, hoặc in ra danh sách tên riêng.
-- KHÔNG dùng đại từ nhân xưng. 
+- KHÔNG dùng đại từ nhân xưng cho bản thân nhân vật. 
 - KHÔNG dịch sai nghĩa, sai chức năng của tên gọi (VD: nhầm chiêu thức là nhân vật).
 
 ---

@@ -50,6 +50,9 @@ const ChapterList = ({
   // Quản lý trạng thái từng chương
   const [chapterStatus, setChapterStatus] = useState({}); // { [index]: 'PENDING' | 'PROCESSING' | 'COMPLETE' | 'CANCELLED' | 'FAILED' }
 
+  // Ref để lưu trạng thái hủy dịch của từng chương
+  const cancelMapRef = useRef({});
+
   // Hàm khởi tạo hook tiến độ cho một chương
   const getChapterProgressHook = (index) => {
     if (!chapterProgressHooks.current[index]) {
@@ -220,16 +223,47 @@ const ChapterList = ({
       return;
     }
 
+    // Reset trạng thái hủy cho các chương sắp dịch
+    chaptersToTranslate.forEach(ch => {
+      cancelMapRef.current[ch.originalIndex] = false;
+    });
+
     try {
       await translateAllChapters({
         chaptersToTranslate,
         chapters,
         apiKey,
         model,
-        setResults,
+        setResults: (updater) => {
+          // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
+          if (typeof updater === 'function') {
+            setResults((prev) => {
+              const next = updater(prev);
+              // Loại bỏ kết quả các chương đã bị hủy
+              const filtered = { ...next };
+              Object.keys(filtered).forEach(idx => {
+                if (cancelMapRef.current[idx]) delete filtered[idx];
+              });
+              return filtered;
+            });
+          } else {
+            // updater là object
+            const filtered = { ...updater };
+            Object.keys(filtered).forEach(idx => {
+              if (cancelMapRef.current[idx]) delete filtered[idx];
+            });
+            setResults(filtered);
+          }
+        },
         setTranslatedCount,
         setErrorMessages,
-        onTranslationResult,
+        onTranslationResult: (index, translated, translatedTitle, duration) => {
+          if (cancelMapRef.current[index]) {
+            console.log(`[CHAPTER ${index}] Đã hủy, bỏ qua cập nhật kết quả.`);
+            return;
+          }
+          onTranslationResult(index, translated, translatedTitle, duration);
+        },
         isStopped: isStoppedRef.current,
         onChapterStartProgress: handleChapterStartProgress,
         onChapterStopProgress: handleChapterStopProgress,
@@ -253,6 +287,7 @@ const ChapterList = ({
 
   // Hàm dịch từng chương
   const translate = (index) => {
+    cancelMapRef.current[index] = false; // Reset trạng thái hủy khi dịch lại
     // Nếu không được phép dịch thì return luôn, không chạy tiếp
     if (!canTranslate(index)) return;
     // Nếu chương đang PROCESSING hoặc PENDING thì không cho dịch lại
@@ -287,13 +322,26 @@ const ChapterList = ({
         setProgress: (progress) => {
           setChapterProgresses((prev) => ({ ...prev, [index]: progress }));
         },
-        setResults,
+        setResults: (updater) => {
+          // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
+          if (cancelMapRef.current[index]) {
+            console.log(`[CHAPTER ${index}] Đã hủy, bỏ qua cập nhật kết quả.`);
+            return;
+          }
+          setResults(updater);
+        },
         setErrorMessages,
         setTranslatedCount,
         setTotalProgress: (progress) => {
           startTotalProgress();
         },
-        onTranslationResult,
+        onTranslationResult: (idx, translated, translatedTitle, duration) => {
+          if (cancelMapRef.current[idx]) {
+            console.log(`[CHAPTER ${idx}] Đã hủy, bỏ qua cập nhật kết quả.`);
+            return;
+          }
+          onTranslationResult(idx, translated, translatedTitle, duration);
+        },
         onSelectChapter,
         isStopped: isStoppedRef.current,
         onComplete: (duration, error) => {
@@ -311,6 +359,10 @@ const ChapterList = ({
             setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
             console.log(`[CHAPTER ${index}] Lỗi khi dịch:`, error);
           } else {
+            if (cancelMapRef.current[index]) {
+              console.log(`[CHAPTER ${index}] Đã hủy, không set COMPLETE.`);
+              return;
+            }
             setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
             console.log(`[CHAPTER ${index}] Dịch xong.`);
           }
@@ -336,7 +388,9 @@ const ChapterList = ({
       chapterStatus[index] === "PROCESSING"
     ) {
       setChapterStatus((prev) => ({ ...prev, [index]: "CANCELLED" }));
+      cancelMapRef.current[index] = true;
       console.log(`[CHAPTER ${index}] User bấm hủy dịch.`);
+      toast("Đã huỷ dịch chương thành công!", { icon: "🛑" });
     }
   };
 

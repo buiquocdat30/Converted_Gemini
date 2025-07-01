@@ -17,6 +17,7 @@ export const translateAllChapters = async ({
   onChapterStartProgress,
   onChapterStopProgress,
   onUpdateTotalProgress,
+  getChapterStatus,
 }) => {
   const totalChapters = chaptersToTranslate.length;
   let translatedCount = 0;
@@ -50,6 +51,14 @@ export const translateAllChapters = async ({
       const translated = chapterData?.translatedContent || "";
       const translatedTitle = chapterData?.translatedTitle || "";
       const duration = chapterData?.timeTranslation || 0;
+      if (getChapterStatus && getChapterStatus(originalIndex) === "CANCELLED") {
+        console.warn(`[LOG] Chương ${originalIndex} đã CANCELLED (realtime), bỏ qua cập nhật kết quả.`);
+        if (typeof onChapterStopProgress === 'function') {
+          onChapterStopProgress(originalIndex);
+        }
+        return;
+      }
+      console.log(`[LOG] Cập nhật kết quả chương ${originalIndex}: trạng thái hiện tại:`, getChapterStatus ? getChapterStatus(originalIndex) : undefined);
       setResults((prev) => ({
         ...prev,
         [originalIndex]: {
