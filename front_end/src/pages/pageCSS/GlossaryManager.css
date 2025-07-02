@@ -1,3 +1,5 @@
+@import '../../css/App.css';
+
 /* GlossaryManager.css */
 
 .glossary-wrapper {
@@ -57,16 +59,30 @@
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .glossary-btn:disabled {
   background: var(--button-background-disabled);
   cursor: not-allowed;
 }
-.glossary-btn-refresh { background: var(--button-green-background-hover); }
-.glossary-btn-export { background: var(--button-green-background-hover); }
-.glossary-btn-save { background: var(--button-green-background-hover); margin-right: 4px; }
-.glossary-btn-cancel { background: #eee; color: var(--button-green-background); }
-.glossary-btn-edit { background: var(--button-green-background); margin-right: 4px; }
-.glossary-btn-delete { background: #eee; color: var(--button-green-background); }
+
+.glossary-btn-refresh, .glossary-btn-export {
+  background: var(--button-green-background);
+}
+
+.glossary-btn-edit, .glossary-btn-save  {
+  background: var(--button-green-background);
+  margin-right: 4px;
+}
+
+.glossary-btn-cancel,
+.glossary-btn-delete {
+  background: var(--button-red-background);
+}
+
+.glossary-btn-cancel:hover,
+.glossary-btn-delete:hover {
+  background: var(--button-red-background-hover);
+}
 
 .glossary-count {
   margin-bottom: 16px;
@@ -88,7 +104,8 @@
   font-size: 15px;
 }
 
-.glossary-table th, .glossary-table td {
+.glossary-table th,
+.glossary-table td {
   padding: 8px;
   border-bottom: 1px solid #b2e2c6;
 }
@@ -112,6 +129,7 @@
 .glossary-row:last-child td {
   border-bottom: none;
 }
+
 
 .glossary-empty {
   text-align: center;
