@@ -2,6 +2,7 @@ require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const ApiKeyManager = require("./apiKeyManagers");
 const publicModelService = require("./publicModelService");
+const { extractAndSaveGlossary, getGlossaryByStoryId, formatGlossaryForAI } = require("./glossaryService");
 
 // Mặc định sử dụng Gemini Pro
 const DEFAULT_MODEL = "gemini-2.0-flash";
@@ -9,7 +10,7 @@ const DEFAULT_MODEL = "gemini-2.0-flash";
 // ⏳ Delay helper
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const translateText = async (text, keyInfo, modelAI, type = "content") => {
+const translateText = async (text, keyInfo, modelAI, type = "content", storyId = null) => {
   console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
 
   const { key, usageId, isUserKey } = keyInfo;
@@ -37,7 +38,19 @@ const translateText = async (text, keyInfo, modelAI, type = "content") => {
     if (type === "title") {
       prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.\n\nTiêu đề: ${text}`;
     } else {
-      // Cải thiện prompt để dịch hiệu quả hơn
+      // Lấy glossary nếu có storyId
+      let glossaryText = "";
+      if (storyId) {
+        try {
+          const glossaryItems = await getGlossaryByStoryId(storyId);
+          glossaryText = formatGlossaryForAI(glossaryItems);
+          console.log(`📚 Đã tải ${glossaryItems.length} items từ glossary cho truyện ${storyId}`);
+        } catch (error) {
+          console.error("⚠️ Lỗi khi tải glossary:", error);
+        }
+      }
+
+      // Cải thiện prompt để dịch hiệu quả hơn với glossary
       const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
 
 ---
@@ -79,8 +92,13 @@ const translateText = async (text, keyInfo, modelAI, type = "content") => {
 
 ---
 
+📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
+${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
+
+---
+
 📤 ĐẦU RA PHẢI LÀ:
-- Văn bản dịch hoàn chỉnh tiếng Việ*, có áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
+- Văn bản dịch hoàn chỉnh tiếng Việt, có áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
 - Không ghi chú tên riêng riêng biệt, không chèn metadata, không chú thích [loại] [ngôn ngữ].
 - Tên đã chuyển đổi cần tự nhiên, phù hợp thể loại và bối cảnh.
 
@@ -95,7 +113,18 @@ const translateText = async (text, keyInfo, modelAI, type = "content") => {
 
 ---
 
-📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:`;
+📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:
+
+---
+
+📚 THƯ VIỆN TỪ MỚI:
+Sau khi dịch xong, hãy liệt kê các tên riêng mới phát hiện trong đoạn văn này theo format:
+Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
+
+Ví dụ:
+张伟 = Trương Vĩ [Nhân vật] [Trung]
+M都 = M Đô [Địa danh] [Trung]
+Haikura Shinku = Haikura Shinku [Nhân vật] [Nhật]`;
       prompt = promptContent;
     }
 
@@ -129,6 +158,20 @@ const translateText = async (text, keyInfo, modelAI, type = "content") => {
         response.usageMetadata,
         isUserKey
       );
+    }
+
+    // Lưu glossary nếu có storyId và không phải dịch title
+    if (storyId && type !== "title") {
+      try {
+        // Tìm và trích xuất glossary từ response
+        const glossaryMatch = translated.match(/📚 THƯ VIỆN TỪ MỚI:\n([\s\S]*?)(?=\n---|$)/);
+        if (glossaryMatch) {
+          const glossaryText = glossaryMatch[1].trim();
+          await extractAndSaveGlossary(storyId, glossaryText);
+        }
+      } catch (error) {
+        console.error("⚠️ Lỗi khi lưu glossary:", error);
+      }
     }
 
     console.log(

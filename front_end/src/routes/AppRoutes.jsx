@@ -4,7 +4,7 @@ import Home from "../pages/Home";
 import Translate from "../pages/Translate";
 import Converte from "../pages/Converte";
 import LoginSignup from "../pages/LoginSignup";
-import Dictionary from "../pages/Dictionary";
+import GlossaryManager from "../pages/GlossaryManager";
 import Users from "../pages/Users";
 
 const AppRoutes = () => {
@@ -14,7 +14,7 @@ const AppRoutes = () => {
       <Route path="/translate" element={<Translate />} />
       <Route path="/converte" element={<Converte />} />
       <Route path="/login" element={<LoginSignup />} />
-      <Route path="/dictionary" element={<Dictionary />} />
+      <Route path="/dictionary" element={<GlossaryManager />} />
       <Route path="/user" element={<Users />} />
     </Routes>
   );

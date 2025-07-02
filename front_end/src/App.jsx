@@ -7,7 +7,7 @@ import Home from "../src/pages/Home";
 import Translate from "../src/pages/Translate";
 import Converte from "../src/pages/Converte";
 import LoginSignup from "../src/pages/LoginSignup";
-import Dictionary from "../src/pages/Dictionary";
+import GlossaryManager from "../src/pages/GlossaryManager";
 import Users from "../src/pages/Users";
 import Navbar from "./components/Navbar/Navbar";
 import Footer from "./components/Footer/Footer";

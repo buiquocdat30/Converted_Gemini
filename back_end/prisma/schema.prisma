@@ -201,3 +201,19 @@ model DefaultKeyUsage {
   @@unique([defaultKeyId, modelId])
   @@map("DefaultKeyUsage")
 }
+
+// Thư viện từ cho từng truyện
+model GlossaryItem {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  storyId    String   @db.ObjectId // Mã truyện
+  original   String   // Tên gốc
+  translated String   // Tên dịch
+  type       String   // Nhân vật, địa danh, tổ chức, biệt danh, v.v.
+  lang       String   // Trung, Nhật, Anh, Hàn
+  frequency  Int      @default(1) // Số lần xuất hiện
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([storyId, original])
+  @@map("GlossaryItem")
+}

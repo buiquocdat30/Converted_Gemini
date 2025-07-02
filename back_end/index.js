@@ -9,6 +9,7 @@ const userRoute = require("./routes/userRoute");
 const userApiKeyRoute = require("./routes/userApiKeyRoute");
 const userLibraryRoute = require("./routes/userLibraryRoute");
 const publicModelRoute = require("./routes/publicModelRoute");
+const glossaryRoute = require("./routes/glossaryRoute");
 const path = require("path");
 
 // Admin routes mới
@@ -47,6 +48,7 @@ app.use("/models", publicModelRoute);
 // Quản lý tài nguyên của user
 app.use("/user/keys", userApiKeyRoute); // API keys của user
 app.use("/user/library", userLibraryRoute); // Thư viện truyện của user
+app.use("/user/glossary", glossaryRoute); // Thư viện từ của user
 
 //quản lý user
 app.use("/user", userRoute);

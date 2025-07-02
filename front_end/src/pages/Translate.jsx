@@ -344,6 +344,7 @@ const Translate = () => {
           getAuthToken={getAuthToken}
           onChapterAdded={handleChapterAdded}
           deleteChapter={deleteChapter}
+          currentStory={currentStory}
         />
       );
     }

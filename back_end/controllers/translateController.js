@@ -4,7 +4,7 @@ const { prisma } = require("../config/prismaConfig");
 const { toObjectId } = require("../config/prismaConfig");
 
 exports.translateText = async (req, res) => {
-  const { chapters, userKey, userKeys, model } = req.body;
+  const { chapters, userKey, userKeys, model, storyId } = req.body;
   const userId = req.user?.id; // Lấy userId từ token nếu có
 
   console.log("📌 Yêu cầu dịch nhận được:", {
@@ -14,6 +14,7 @@ exports.translateText = async (req, res) => {
     hasUserKeys: !!userKeys,
     userKeysCount: userKeys?.length || 0,
     modelAI: model,
+    storyId: storyId,
     userId: userId || "anonymous",
   });
 
@@ -104,14 +105,14 @@ exports.translateText = async (req, res) => {
           })`
         );
 
-        // Xử lý nội dung
+        // Xử lý nội dung - truyền storyId vào translateText
         const titlePromise = ch.title
-          ? translateText(ch.title, keyData, model, 'title')
+          ? translateText(ch.title, keyData, model, 'title', storyId)
           : Promise.resolve({ translated: ch.title, usage: null, isUnchanged: false });
 
-        // Dịch nội dung nếu có
+        // Dịch nội dung nếu có - truyền storyId vào translateText
         const contentPromise = ch.content
-          ? translateText(ch.content, keyData, model)
+          ? translateText(ch.content, keyData, model, 'content', storyId)
           : Promise.resolve({ translated: ch.content, usage: null, isUnchanged: false });
 
         const [titleResult, contentResult] = await Promise.all([
@@ -297,6 +298,7 @@ exports.translateText = async (req, res) => {
           : "Không có nội dung",
         hasTranslatedContent: !!ch.translatedContent,
         status: ch.status,
+        timeTranslation: ch.timeTranslation,
       })),
     });
 
