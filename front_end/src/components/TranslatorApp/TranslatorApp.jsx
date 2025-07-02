@@ -26,6 +26,7 @@ const TranslatorApp = ({
   deleteChapter,
   setModel,
   isDarkMode,
+  currentStory,
 }) => {
   const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
@@ -41,7 +42,7 @@ const TranslatorApp = ({
   const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
   const [selectedKeys, setSelectedKeys] = useState([]); // Thêm state để lưu danh sách key đã chọn
   const [tempModel, setTempModel] = useState(model); // State model tạm thời
-
+  console.log("Đây là truyện hiện tại",currentStory)
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
     if (shouldRefresh) {
@@ -679,8 +680,11 @@ const TranslatorApp = ({
       <h2
         className="translator-app-title"
         onClick={() => (window.location.href = "/")}
+        
       >
-        📘 Gemini Converte{" "}
+        {/* Ưu tiên lấy tên truyện từ currentStory.name, nếu không có thì lấy từ chương đầu tiên, nếu không có thì fallback */}
+        📘 {currentStory?.name || (chapters && chapters[0] && (chapters[0].storyName || chapters[0].name)) || "Gemini Converte"}
+        
       </h2>
       {/* Nút tròn để mở menu */}
       <div

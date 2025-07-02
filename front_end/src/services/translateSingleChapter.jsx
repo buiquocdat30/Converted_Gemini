@@ -7,6 +7,7 @@ export const translateSingleChapter = async ({
   chapters,
   apiKey,
   model,
+  storyId,
   setProgress,
   setResults,
   setErrorMessages,
@@ -43,6 +44,7 @@ export const translateSingleChapter = async ({
         },
       ],
       model: model,
+      storyId: storyId,
     };
     // Chỉ thêm userKeys nếu apiKey hợp lệ
     if (

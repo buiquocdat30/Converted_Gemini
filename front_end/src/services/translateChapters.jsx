@@ -9,6 +9,7 @@ export const translateAllChapters = async ({
   chapters,
   apiKey,
   model,
+  storyId,
   setResults,
   setTranslatedCount,
   setErrorMessages,
@@ -42,6 +43,7 @@ export const translateAllChapters = async ({
         }],
         userKeys: Array.isArray(apiKey) ? apiKey : [apiKey],
         model: model,
+        storyId: storyId,
       };
       const token = localStorage.getItem("auth-token");
       const res = await axios.post("http://localhost:8000/translate", requestData, {

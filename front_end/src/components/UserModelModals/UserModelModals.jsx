@@ -34,7 +34,7 @@ const UserModelModals = ({ keyData, onClose }) => {
     <div className="model-modal-overlay" onClick={onClose}>
       <div className="model-modal-content" onClick={e => e.stopPropagation()}>
         <div className="model-modal-header">
-          <h3>Chi tiết Key: {keyData.key}</h3>
+          <h3>Chi tiết Key: {keyData.key?.length > 32 ? keyData.key.slice(0, 32) + '...' : keyData.key}</h3>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 

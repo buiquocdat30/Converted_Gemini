@@ -234,6 +234,7 @@ const ChapterList = ({
         chapters,
         apiKey,
         model,
+        storyId,
         setResults: (updater) => {
           // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
           if (typeof updater === 'function') {
@@ -319,6 +320,7 @@ const ChapterList = ({
         chapters,
         apiKey,
         model,
+        storyId,
         setProgress: (progress) => {
           setChapterProgresses((prev) => ({ ...prev, [index]: progress }));
         },
