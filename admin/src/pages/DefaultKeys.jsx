@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
-import { defaultKeysAPI } from '../services/api';
-import toast from 'react-hot-toast';
-import DefaultKeyModal from '../components/DefaultKeyModal';
-import UsageModal from '../components/UsageModal';
+import React, { useState, useEffect } from "react";
+import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { defaultKeysAPI } from "../services/api";
+import toast from "react-hot-toast";
+import DefaultKeyModal from "../components/DefaultKeyModal/DefaultKeyModal";
+import UsageModal from "../components/UsageModal/UsageModal";
 
 const DefaultKeys = () => {
   const [defaultKeys, setDefaultKeys] = useState([]);
@@ -23,8 +23,8 @@ const DefaultKeys = () => {
       const response = await defaultKeysAPI.getAll();
       setDefaultKeys(response.data.data);
     } catch (error) {
-      console.error('Error fetching default keys:', error);
-      toast.error('Lỗi khi tải danh sách default keys');
+      console.error("Error fetching default keys:", error);
+      toast.error("Lỗi khi tải danh sách default keys");
     } finally {
       setLoading(false);
     }
@@ -41,17 +41,17 @@ const DefaultKeys = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa default key này?')) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa default key này?")) {
       return;
     }
 
     try {
       await defaultKeysAPI.delete(id);
-      toast.success('Xóa default key thành công');
+      toast.success("Xóa default key thành công");
       fetchDefaultKeys();
     } catch (error) {
-      console.error('Error deleting default key:', error);
-      toast.error('Lỗi khi xóa default key');
+      console.error("Error deleting default key:", error);
+      toast.error("Lỗi khi xóa default key");
     }
   };
 
@@ -72,27 +72,27 @@ const DefaultKeys = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'status-active';
-      case 'COOLDOWN':
-        return 'status-cooldown';
-      case 'EXHAUSTED':
-        return 'status-exhausted';
+      case "ACTIVE":
+        return "status-active";
+      case "COOLDOWN":
+        return "status-cooldown";
+      case "EXHAUSTED":
+        return "status-exhausted";
       default:
-        return '';
+        return "";
     }
   };
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'Hoạt động';
-      case 'COOLDOWN':
-        return 'Đang nghỉ';
-      case 'EXHAUSTED':
-        return 'Đã hết quota';
+      case "ACTIVE":
+        return "Hoạt động";
+      case "COOLDOWN":
+        return "Đang nghỉ";
+      case "EXHAUSTED":
+        return "Đã hết quota";
       default:
-        return 'Không xác định';
+        return "Không xác định";
     }
   };
 
@@ -132,22 +132,27 @@ const DefaultKeys = () => {
           </thead>
           <tbody>
             {defaultKeys.map((key) => {
-              const totalUsage = key.usage.reduce((sum, usage) => sum + usage.usageCount, 0);
-              const activeUsage = key.usage.filter(usage => usage.status === 'ACTIVE').length;
-              
+              const totalUsage = key.usage.reduce(
+                (sum, usage) => sum + usage.usageCount,
+                0
+              );
+              const activeUsage = key.usage.filter(
+                (usage) => usage.status === "ACTIVE"
+              ).length;
+
               return (
                 <tr key={key.id}>
                   <td>
                     <code>{key.key.substring(0, 20)}...</code>
                   </td>
-                  <td>{key.label || 'Không có nhãn'}</td>
+                  <td>{key.label || "Không có nhãn"}</td>
                   <td>
                     <span className="status-badge status-active">
                       {activeUsage}/{key.usage.length}
                     </span>
                   </td>
                   <td>{totalUsage.toLocaleString()}</td>
-                  <td>{new Date(key.createdAt).toLocaleDateString('vi-VN')}</td>
+                  <td>{new Date(key.createdAt).toLocaleDateString("vi-VN")}</td>
                   <td>
                     <div className="flex gap-2">
                       <button
@@ -188,7 +193,7 @@ const DefaultKeys = () => {
 
       {showModal && (
         <DefaultKeyModal
-          key={editingKey?.id || 'new'}
+          key={editingKey?.id || "new"}
           defaultKey={editingKey}
           onClose={handleModalClose}
           onSuccess={handleModalSuccess}
@@ -206,4 +211,4 @@ const DefaultKeys = () => {
   );
 };
 
-export default DefaultKeys; 
+export default DefaultKeys;

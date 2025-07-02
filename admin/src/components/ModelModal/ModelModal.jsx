@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { modelsAPI, providersAPI } from '../services/api';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { modelsAPI, providersAPI } from "../../services/api";
+import toast from "react-hot-toast";
 
 const ModelModal = ({ model, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    providerId: '',
-    value: '',
-    label: '',
-    description: '',
-    rpm: '',
-    tpm: '',
-    rpd: ''
+    providerId: "",
+    value: "",
+    label: "",
+    description: "",
+    rpm: "",
+    tpm: "",
+    rpd: "",
   });
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,10 +25,10 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
         providerId: model.providerId,
         value: model.value,
         label: model.label,
-        description: model.description || '',
-        rpm: model.rpm || '',
-        tpm: model.tpm || '',
-        rpd: model.rpd || ''
+        description: model.description || "",
+        rpm: model.rpm || "",
+        tpm: model.tpm || "",
+        rpd: model.rpd || "",
       });
     }
   }, [model]);
@@ -38,41 +38,41 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
       const response = await providersAPI.getAll();
       setProviders(response.data.data);
     } catch (error) {
-      console.error('Error fetching providers:', error);
-      toast.error('Lỗi khi tải danh sách providers');
+      console.error("Error fetching providers:", error);
+      toast.error("Lỗi khi tải danh sách providers");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.providerId || !formData.value || !formData.label) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
 
     try {
       setLoading(true);
-      
+
       const submitData = {
         ...formData,
         rpm: formData.rpm ? parseInt(formData.rpm) : null,
         tpm: formData.tpm ? parseInt(formData.tpm) : null,
-        rpd: formData.rpd ? parseInt(formData.rpd) : null
+        rpd: formData.rpd ? parseInt(formData.rpd) : null,
       };
-      
+
       if (isEditing) {
         await modelsAPI.update(model.id, submitData);
-        toast.success('Cập nhật model thành công');
+        toast.success("Cập nhật model thành công");
       } else {
         await modelsAPI.create(submitData);
-        toast.success('Tạo model thành công');
+        toast.success("Tạo model thành công");
       }
-      
+
       onSuccess();
     } catch (error) {
-      console.error('Error saving model:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi lưu model');
+      console.error("Error saving model:", error);
+      toast.error(error.response?.data?.message || "Lỗi khi lưu model");
     } finally {
       setLoading(false);
     }
@@ -80,10 +80,10 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">
-            {isEditing ? 'Sửa Model' : 'Thêm Model'}
+            {isEditing ? "Sửa Model" : "Thêm Model"}
           </h3>
           <button className="close-button" onClick={onClose}>
             <X size={20} />
@@ -96,12 +96,14 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
             <select
               className="form-control"
               value={formData.providerId}
-              onChange={(e) => setFormData(prev => ({ ...prev, providerId: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, providerId: e.target.value }))
+              }
               required
               disabled={isEditing}
             >
               <option value="">Chọn provider</option>
-              {providers.map(provider => (
+              {providers.map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.name}
                 </option>
@@ -115,7 +117,9 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
               type="text"
               className="form-control"
               value={formData.value}
-              onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, value: e.target.value }))
+              }
               placeholder="Ví dụ: gemini-2.0-flash"
               required
             />
@@ -127,7 +131,9 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
               type="text"
               className="form-control"
               value={formData.label}
-              onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, label: e.target.value }))
+              }
               placeholder="Ví dụ: Gemini 2.0 Flash"
               required
             />
@@ -138,7 +144,12 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
             <textarea
               className="form-control"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
               placeholder="Mô tả về model"
               rows="3"
             />
@@ -151,7 +162,9 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
                 type="number"
                 className="form-control"
                 value={formData.rpm}
-                onChange={(e) => setFormData(prev => ({ ...prev, rpm: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, rpm: e.target.value }))
+                }
                 placeholder="Requests per minute"
                 min="0"
               />
@@ -163,7 +176,9 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
                 type="number"
                 className="form-control"
                 value={formData.tpm}
-                onChange={(e) => setFormData(prev => ({ ...prev, tpm: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, tpm: e.target.value }))
+                }
                 placeholder="Tokens per minute"
                 min="0"
               />
@@ -175,7 +190,9 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
                 type="number"
                 className="form-control"
                 value={formData.rpd}
-                onChange={(e) => setFormData(prev => ({ ...prev, rpd: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, rpd: e.target.value }))
+                }
                 placeholder="Requests per day"
                 min="0"
               />
@@ -196,7 +213,7 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? 'Đang lưu...' : (isEditing ? 'Cập nhật' : 'Tạo')}
+              {loading ? "Đang lưu..." : isEditing ? "Cập nhật" : "Tạo"}
             </button>
           </div>
         </form>
@@ -205,4 +222,4 @@ const ModelModal = ({ model, onClose, onSuccess }) => {
   );
 };
 
-export default ModelModal; 
+export default ModelModal;

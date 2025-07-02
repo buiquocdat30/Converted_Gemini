@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Eye, Edit, Trash2 } from 'lucide-react';
-import { usersAPI } from '../services/api';
-import toast from 'react-hot-toast';
-import UserModal from '../components/UserModal';
+import React, { useState, useEffect } from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
+import { usersAPI } from "../services/api";
+import toast from "react-hot-toast";
+import UserModal from "../components/UserModal/UserModal";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -20,8 +20,8 @@ const Users = () => {
       const response = await usersAPI.getAll();
       setUsers(response.data.data);
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Lỗi khi tải danh sách users');
+      console.error("Error fetching users:", error);
+      toast.error("Lỗi khi tải danh sách users");
     } finally {
       setLoading(false);
     }
@@ -33,17 +33,21 @@ const Users = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa user này? Hành động này sẽ xóa tất cả dữ liệu liên quan.')) {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn xóa user này? Hành động này sẽ xóa tất cả dữ liệu liên quan."
+      )
+    ) {
       return;
     }
 
     try {
       await usersAPI.delete(id);
-      toast.success('Xóa user thành công');
+      toast.success("Xóa user thành công");
       fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi xóa user');
+      console.error("Error deleting user:", error);
+      toast.error(error.response?.data?.message || "Lỗi khi xóa user");
     }
   };
 
@@ -104,7 +108,7 @@ const Users = () => {
                       <strong>{user.username}</strong>
                       {user.birthdate && (
                         <div className="text-sm text-gray-600">
-                          {new Date(user.birthdate).toLocaleDateString('vi-VN')}
+                          {new Date(user.birthdate).toLocaleDateString("vi-VN")}
                         </div>
                       )}
                     </div>
@@ -119,19 +123,25 @@ const Users = () => {
                     </div>
                     <div className="stat-item">
                       <span className="stat-label">Truyện:</span>
-                      <span className="stat-value">{user.stats.totalStories}</span>
+                      <span className="stat-value">
+                        {user.stats.totalStories}
+                      </span>
                     </div>
                     <div className="stat-item">
                       <span className="stat-label">Chương:</span>
-                      <span className="stat-value">{user.stats.totalChapters}</span>
+                      <span className="stat-value">
+                        {user.stats.totalChapters}
+                      </span>
                     </div>
                     <div className="stat-item">
                       <span className="stat-label">Usage:</span>
-                      <span className="stat-value">{user.stats.totalUsage}</span>
+                      <span className="stat-value">
+                        {user.stats.totalUsage}
+                      </span>
                     </div>
                   </div>
                 </td>
-                <td>{new Date(user.createdAt).toLocaleDateString('vi-VN')}</td>
+                <td>{new Date(user.createdAt).toLocaleDateString("vi-VN")}</td>
                 <td>
                   <div className="flex gap-2">
                     <button
@@ -163,15 +173,13 @@ const Users = () => {
         </table>
 
         {users.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            Chưa có user nào
-          </div>
+          <div className="text-center py-8 text-gray-500">Chưa có user nào</div>
         )}
       </div>
 
       {showModal && (
         <UserModal
-          key={editingUser?.id || 'new'}
+          key={editingUser?.id || "new"}
           user={editingUser}
           onClose={handleModalClose}
           onSuccess={handleModalSuccess}
@@ -181,4 +189,4 @@ const Users = () => {
   );
 };
 
-export default Users; 
+export default Users;
