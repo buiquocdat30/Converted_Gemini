@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import { providersAPI } from '../services/api';
-import toast from 'react-hot-toast';
-import ProviderModal from '../components/ProviderModal';
+import React, { useState, useEffect } from "react";
+import { Plus, Edit, Trash2 } from "lucide-react";
+import { providersAPI } from "../services/api";
+import toast from "react-hot-toast";
+import ProviderModal from "../components/ProviderModal/ProviderModal";
 
 const Providers = () => {
   const [providers, setProviders] = useState([]);
@@ -20,8 +20,8 @@ const Providers = () => {
       const response = await providersAPI.getAll();
       setProviders(response.data.data);
     } catch (error) {
-      console.error('Error fetching providers:', error);
-      toast.error('Lỗi khi tải danh sách providers');
+      console.error("Error fetching providers:", error);
+      toast.error("Lỗi khi tải danh sách providers");
     } finally {
       setLoading(false);
     }
@@ -38,17 +38,17 @@ const Providers = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa provider này?')) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa provider này?")) {
       return;
     }
 
     try {
       await providersAPI.delete(id);
-      toast.success('Xóa provider thành công');
+      toast.success("Xóa provider thành công");
       fetchProviders();
     } catch (error) {
-      console.error('Error deleting provider:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi xóa provider');
+      console.error("Error deleting provider:", error);
+      toast.error(error.response?.data?.message || "Lỗi khi xóa provider");
     }
   };
 
@@ -139,7 +139,7 @@ const Providers = () => {
 
       {showModal && (
         <ProviderModal
-          key={editingProvider?.id || 'new'}
+          key={editingProvider?.id || "new"}
           provider={editingProvider}
           onClose={handleModalClose}
           onSuccess={handleModalSuccess}
@@ -149,4 +149,4 @@ const Providers = () => {
   );
 };
 
-export default Providers; 
+export default Providers;

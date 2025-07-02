@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import { modelsAPI } from '../services/api';
-import toast from 'react-hot-toast';
-import ModelModal from '../components/ModelModal';
+import React, { useState, useEffect } from "react";
+import { Plus, Edit, Trash2 } from "lucide-react";
+import { modelsAPI } from "../services/api";
+import toast from "react-hot-toast";
+import ModelModal from "../components/ModelModal/ModelModal";
 
 const Models = () => {
   const [models, setModels] = useState([]);
@@ -20,8 +20,8 @@ const Models = () => {
       const response = await modelsAPI.getAll();
       setModels(response.data.data);
     } catch (error) {
-      console.error('Error fetching models:', error);
-      toast.error('Lỗi khi tải danh sách models');
+      console.error("Error fetching models:", error);
+      toast.error("Lỗi khi tải danh sách models");
     } finally {
       setLoading(false);
     }
@@ -38,17 +38,17 @@ const Models = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa model này?')) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa model này?")) {
       return;
     }
 
     try {
       await modelsAPI.delete(id);
-      toast.success('Xóa model thành công');
+      toast.success("Xóa model thành công");
       fetchModels();
     } catch (error) {
-      console.error('Error deleting model:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi xóa model');
+      console.error("Error deleting model:", error);
+      toast.error(error.response?.data?.message || "Lỗi khi xóa model");
     }
   };
 
@@ -115,7 +115,7 @@ const Models = () => {
                 </td>
                 <td>
                   <div className="text-sm text-gray-600">
-                    {model.description || 'Không có mô tả'}
+                    {model.description || "Không có mô tả"}
                   </div>
                 </td>
                 <td>
@@ -150,7 +150,7 @@ const Models = () => {
 
       {showModal && (
         <ModelModal
-          key={editingModel?.id || 'new'}
+          key={editingModel?.id || "new"}
           model={editingModel}
           onClose={handleModalClose}
           onSuccess={handleModalSuccess}
@@ -160,4 +160,4 @@ const Models = () => {
   );
 };
 
-export default Models; 
+export default Models;

@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { usersAPI } from '../services/api';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { usersAPI } from "../../services/api";
+import toast from "react-hot-toast";
 
 const UserModal = ({ user, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    avatar: '',
-    backgroundImage: '',
-    birthdate: ''
+    username: "",
+    email: "",
+    avatar: "",
+    backgroundImage: "",
+    birthdate: "",
   });
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -20,30 +20,32 @@ const UserModal = ({ user, onClose, onSuccess }) => {
       setFormData({
         username: user.username,
         email: user.email,
-        avatar: user.avatar || '',
-        backgroundImage: user.backgroundImage || '',
-        birthdate: user.birthdate ? new Date(user.birthdate).toISOString().split('T')[0] : ''
+        avatar: user.avatar || "",
+        backgroundImage: user.backgroundImage || "",
+        birthdate: user.birthdate
+          ? new Date(user.birthdate).toISOString().split("T")[0]
+          : "",
       });
     }
   }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.username.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
 
     try {
       setLoading(true);
-      
+
       await usersAPI.update(user.id, formData);
-      toast.success('Cập nhật user thành công');
+      toast.success("Cập nhật user thành công");
       onSuccess();
     } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi cập nhật user');
+      console.error("Error updating user:", error);
+      toast.error(error.response?.data?.message || "Lỗi khi cập nhật user");
     } finally {
       setLoading(false);
     }
@@ -51,7 +53,7 @@ const UserModal = ({ user, onClose, onSuccess }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">Thông tin User</h3>
           <button className="close-button" onClick={onClose}>
@@ -66,7 +68,9 @@ const UserModal = ({ user, onClose, onSuccess }) => {
               type="text"
               className="form-control"
               value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, username: e.target.value }))
+              }
               placeholder="Username"
               required
             />
@@ -78,7 +82,9 @@ const UserModal = ({ user, onClose, onSuccess }) => {
               type="email"
               className="form-control"
               value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, email: e.target.value }))
+              }
               placeholder="Email"
               required
             />
@@ -90,7 +96,9 @@ const UserModal = ({ user, onClose, onSuccess }) => {
               type="url"
               className="form-control"
               value={formData.avatar}
-              onChange={(e) => setFormData(prev => ({ ...prev, avatar: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, avatar: e.target.value }))
+              }
               placeholder="URL hình đại diện"
             />
           </div>
@@ -101,7 +109,12 @@ const UserModal = ({ user, onClose, onSuccess }) => {
               type="url"
               className="form-control"
               value={formData.backgroundImage}
-              onChange={(e) => setFormData(prev => ({ ...prev, backgroundImage: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  backgroundImage: e.target.value,
+                }))
+              }
               placeholder="URL hình nền"
             />
           </div>
@@ -112,7 +125,9 @@ const UserModal = ({ user, onClose, onSuccess }) => {
               type="date"
               className="form-control"
               value={formData.birthdate}
-              onChange={(e) => setFormData(prev => ({ ...prev, birthdate: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, birthdate: e.target.value }))
+              }
             />
           </div>
 
@@ -174,7 +189,7 @@ const UserModal = ({ user, onClose, onSuccess }) => {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? 'Đang lưu...' : 'Cập nhật'}
+              {loading ? "Đang lưu..." : "Cập nhật"}
             </button>
           </div>
         </form>
@@ -183,4 +198,4 @@ const UserModal = ({ user, onClose, onSuccess }) => {
   );
 };
 
-export default UserModal; 
+export default UserModal;

@@ -1,13 +1,13 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import DefaultKeys from './pages/DefaultKeys';
-import Providers from './pages/Providers';
-import Models from './pages/Models';
-import Users from './pages/Users';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import Sidebar from "./components/Sidebar/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import DefaultKeys from "./pages/DefaultKeys";
+import Providers from "./pages/Providers";
+import Models from "./pages/Models";
+import Users from "./pages/Users";
+import "./App.css";
 
 function App() {
   return (
@@ -23,13 +23,13 @@ function App() {
             <Route path="/users" element={<Users />} />
           </Routes>
         </main>
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 3000,
             style: {
-              background: '#363636',
-              color: '#fff',
+              background: "#363636",
+              color: "#fff",
             },
           }}
         />
