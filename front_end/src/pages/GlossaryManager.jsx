@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import "../pages/pageCSS/GlossaryManager.css";
+import { API_URL } from '../config/config';
+import { AuthContext } from "../context/ConverteContext";
 
 
 
@@ -23,7 +25,7 @@ const GlossaryManager = ({ storyId: propStoryId }) => {
   const [editData, setEditData] = useState({});
   const [log, setLog] = useState([]);
   const [typeFilter, setTypeFilter] = useState("");
-  const [stories, setStories] = useState([]); // Danh sách truyện của user
+  const { stories, fetchStories } = useContext(AuthContext);
 
   // Lấy token auth từ localStorage
   const token = localStorage.getItem("auth-token");
@@ -39,18 +41,8 @@ const GlossaryManager = ({ storyId: propStoryId }) => {
 
   // Lấy danh sách truyện của user khi mount
   useEffect(() => {
-    const fetchStories = async () => {
-      try {
-        const res = await axios.get("/user/library/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStories(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        setStories([]);
-      }
-    };
     fetchStories();
-  }, [token]);
+  }, []);
 
   // Lấy glossary khi storyId đổi
   useEffect(() => {
@@ -65,9 +57,10 @@ const GlossaryManager = ({ storyId: propStoryId }) => {
     setLoading(true);
     try {
       addLog("Gọi API lấy glossary", { storyId });
-      const res = await axios.get(`/user/glossary/${storyId}`, {
+      const res = await axios.get(`${API_URL}/user/glossary/${storyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("đây là khi hàm gọi glossary trả về kq:",res.data.data);
       // Nếu không phải mảng thì fallback về []
       setGlossary(Array.isArray(res.data.data) ? res.data.data : []);
       addLog("Glossary nhận được", res.data.data);
@@ -84,7 +77,7 @@ const GlossaryManager = ({ storyId: propStoryId }) => {
     setLoading(true);
     try {
       addLog("Gọi API tìm kiếm glossary", { storyId, keyword });
-      const res = await axios.get(`/user/glossary/${storyId}/search?keyword=${encodeURIComponent(keyword)}`,
+      const res = await axios.get(`${API_URL}/user/glossary/${storyId}/search?keyword=${encodeURIComponent(keyword)}`,
         { headers: { Authorization: `Bearer ${token}` } });
       setGlossary(Array.isArray(res.data.data) ? res.data.data : []);
       addLog("Kết quả tìm kiếm", res.data.data);
@@ -112,7 +105,7 @@ const GlossaryManager = ({ storyId: propStoryId }) => {
     setLoading(true);
     try {
       addLog("Gọi API cập nhật glossary", editData);
-      await axios.put(`/user/glossary/items/${editingId}`, editData, {
+      await axios.put(`${API_URL}/user/glossary/items/${editingId}`, editData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       addLog("Cập nhật thành công", editData);
@@ -131,7 +124,7 @@ const GlossaryManager = ({ storyId: propStoryId }) => {
     setLoading(true);
     try {
       addLog("Gọi API xóa glossary", { id });
-      await axios.delete(`/user/glossary/items/${id}`, {
+      await axios.delete(`${API_URL}/user/glossary/items/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       addLog("Xóa thành công", { id });
