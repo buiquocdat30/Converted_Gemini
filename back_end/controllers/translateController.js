@@ -2,6 +2,7 @@ const { translateText } = require("../services/translateService");
 const ApiKeyManager = require("../services/apiKeyManagers");
 const { prisma } = require("../config/prismaConfig");
 const { toObjectId } = require("../config/prismaConfig");
+const { myQueue } = require('../utils/queue');
 
 exports.translateText = async (req, res) => {
   const { chapters, userKey, userKeys, model, storyId } = req.body;
@@ -378,5 +379,16 @@ exports.translateText = async (req, res) => {
       error: "Dịch thất bại. Kiểm tra lại API key hoặc nội dung.",
       details: err.message,
     });
+  }
+};
+
+// Thêm job vào hàng đợi BullMQ (ví dụ demo)
+exports.addJobToQueue = async (req, res) => {
+  try {
+    const { storyId, chapterNumber, content } = req.body;
+    await myQueue.add('translate-chapter', { storyId, chapterNumber, content });
+    res.json({ success: true, message: 'Đã thêm job dịch chương vào hàng đợi!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Lỗi khi thêm job vào queue', error: err.message });
   }
 };

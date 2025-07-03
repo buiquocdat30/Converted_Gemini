@@ -54,7 +54,7 @@
 - Hiển thị trạng thái từng chương ngay dưới tiêu đề.
 - Khi đang PENDING/PROCESSING có nút 🛑 Hủy dịch.
 - Khi COMPLETE/FAILED/CANCELLED có thể dịch lại.
-- Khi dịch all, hiển thị tiến độ tổng và từng chương.
+- Khi dịch all, hiển thị thời gian ước tính và tiến độ từng chương.
 
 ---
 

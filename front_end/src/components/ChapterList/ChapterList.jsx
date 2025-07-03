@@ -299,7 +299,11 @@ const ChapterList = ({
       return;
 
     // Đặt trạng thái PENDING
-    setChapterStatus((prev) => ({ ...prev, [index]: "PENDING" }));
+    setChapterStatus((prev) => {
+      const newStatus = { ...prev, [index]: "PENDING" };
+      console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: PENDING`);
+      return newStatus;
+    });
 
     // Đặt timeout nhỏ để mô phỏng delay gửi request (có thể bỏ nếu muốn gửi ngay)
     setTimeout(() => {
@@ -311,7 +315,11 @@ const ChapterList = ({
         return;
       }
       // Chuyển sang PROCESSING
-      setChapterStatus((prev) => ({ ...prev, [index]: "PROCESSING" }));
+      setChapterStatus((prev) => {
+        const newStatus = { ...prev, [index]: "PROCESSING" };
+        console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: PROCESSING`);
+        return newStatus;
+      });
       const chapterHook = getChapterProgressHook(index);
       chapterHook.startProgress(); // Bắt đầu tiến độ cho chương này
 
@@ -350,7 +358,11 @@ const ChapterList = ({
           // Nếu user đã hủy trong lúc đang dịch
           if (chapterStatus[index] === "CANCELLED") {
             chapterHook.stopProgress();
-            setChapterStatus((prev) => ({ ...prev, [index]: "CANCELLED" }));
+            setChapterStatus((prev) => {
+              const newStatus = { ...prev, [index]: "CANCELLED" };
+              console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: CANCELLED (user hủy trong lúc đang dịch)`);
+              return newStatus;
+            });
             console.log(
               `[CHAPTER ${index}] Đã hủy trong lúc đang dịch, bỏ qua kết quả.`
             );
@@ -358,14 +370,22 @@ const ChapterList = ({
           }
           chapterHook.stopProgress();
           if (error) {
-            setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
+            setChapterStatus((prev) => {
+              const newStatus = { ...prev, [index]: "FAILED" };
+              console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: FAILED. Lý do:`, error);
+              return newStatus;
+            });
             console.log(`[CHAPTER ${index}] Lỗi khi dịch:`, error);
           } else {
             if (cancelMapRef.current[index]) {
               console.log(`[CHAPTER ${index}] Đã hủy, không set COMPLETE.`);
               return;
             }
-            setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
+            setChapterStatus((prev) => {
+              const newStatus = { ...prev, [index]: "COMPLETE" };
+              console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: COMPLETE`);
+              return newStatus;
+            });
             console.log(`[CHAPTER ${index}] Dịch xong.`);
           }
           stopTotalProgress();
@@ -389,7 +409,11 @@ const ChapterList = ({
       chapterStatus[index] === "PENDING" ||
       chapterStatus[index] === "PROCESSING"
     ) {
-      setChapterStatus((prev) => ({ ...prev, [index]: "CANCELLED" }));
+      setChapterStatus((prev) => {
+        const newStatus = { ...prev, [index]: "CANCELLED" };
+        console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: CANCELLED (user bấm hủy)`);
+        return newStatus;
+      });
       cancelMapRef.current[index] = true;
       console.log(`[CHAPTER ${index}] User bấm hủy dịch.`);
       toast("Đã huỷ dịch chương thành công!", { icon: "🛑" });
@@ -649,7 +673,12 @@ const ChapterList = ({
                         </div>
                       </div>
                     )}
-                    {/* Hiển thị label Đã dịch khi COMPLETE */}
+                    {/* Hiển thị label Đang dịch hoặc Đã dịch */}
+                    {(chapterStatus[idx] === "PROCESSING" || chapterStatus[idx] === "PENDING") && (
+                      <span className="translated-label" >
+                        🔄 Đang dịch, vui lòng chờ...
+                      </span>
+                    )}
                     {chapterStatus[idx] === "COMPLETE" && (
                       <span className="translated-label">
                         ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
