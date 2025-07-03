@@ -174,9 +174,9 @@
   transition: all 0.2s;
 } */
 
-.chapter-header .chapter-actions>.delete-chapter-button.complete {
-  width: 100%;
-  height: 42px;
+.delete-chapter-button.complete {
+  width: 100% !important;
+  height: 42px !important;
 }
 
 .translate-button:disabled,
@@ -323,10 +323,10 @@
 }
 
 .chapter-list .translate-all-button,
-.chapter-list .stop-translate-button {
+.chapter-list .stop-translate-all-button {
 
   padding: 10px;
-  background-color: #28a745;
+
   color: white;
   border: none;
   border-radius: 5px;
@@ -336,14 +336,25 @@
 
 }
 
-.chapter-list .stop-translate-button:hover:enabled,
+.chapter-list .stop-translate-all-button{
+  background-color: var(--button-red-background);
+}
+
+.chapter-list .translate-all-button{
+  background-color: var(--button-green-background);
+}
+
+.chapter-list .stop-translate-all-button:hover:enabled{
+  background-color: var(--button-red-background-hover);
+}
+
 .chapter-list .translate-all-button:hover:enabled {
-  background-color: #0e8713;
+  background-color: var(--button-green-background-hover);
 }
 
 .chapter-list .translate-all-button:disabled,
-.chapter-list .stop-translate-button:disabled {
-  background-color: #ccc;
+.chapter-list .stop-translate-all-button:disabled {
+  background-color: var(--button-background-disabled);
   cursor: not-allowed;
 
 }

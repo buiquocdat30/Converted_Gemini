@@ -4,6 +4,9 @@ import axios from "axios";
 // Số chương dịch song song tối đa mỗi batch
 const MAX_PARALLEL = 3;
 
+// Lưu batch đã bị huỷ
+let cancelledBatchIndexes = new Set();
+
 export const translateAllChapters = async ({
   chaptersToTranslate,
   chapters,
@@ -19,6 +22,7 @@ export const translateAllChapters = async ({
   onChapterStopProgress,
   onUpdateTotalProgress,
   getChapterStatus,
+  onBatchCancel, // callback khi batch bị cancel
 }) => {
   const totalChapters = chaptersToTranslate.length;
   let translatedCount = 0;
@@ -27,13 +31,28 @@ export const translateAllChapters = async ({
   // Tạo queue các chương cần dịch
   const queue = [...chaptersToTranslate];
 
-  // Hàm dịch 1 chương (giữ nguyên logic cũ)
-  const translateOneChapter = async (chapter, i) => {
+  // Hàm dịch 1 chương (giữ nguyên logic cũ, thêm batchIndex)
+  const translateOneChapter = async (chapter, i, batchIndex) => {
     const originalIndex = chapter.originalIndex;
+    // Set trạng thái PENDING trước khi bắt đầu dịch
+    if (typeof window.setChapterStatusGlobal === 'function') {
+      window.setChapterStatusGlobal(originalIndex, 'PENDING');
+    }
     if (typeof onChapterStartProgress === 'function') {
       onChapterStartProgress(originalIndex);
     }
     try {
+      // Set trạng thái PROCESSING ngay trước khi gửi request
+      if (typeof window.setChapterStatusGlobal === 'function') {
+        window.setChapterStatusGlobal(originalIndex, 'PROCESSING');
+      }
+      // Nếu batch đã bị cancel, bỏ qua luôn
+      if (cancelledBatchIndexes.has(batchIndex)) {
+        if (typeof onChapterStopProgress === 'function') {
+          onChapterStopProgress(originalIndex);
+        }
+        return { success: false };
+      }
       console.log(`📖 [Song song] Đang dịch chương ${i + 1}/${totalChapters}`);
       const requestData = {
         chapters: [{
@@ -49,6 +68,13 @@ export const translateAllChapters = async ({
       const res = await axios.post("http://localhost:8000/translate", requestData, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // Nếu batch đã bị cancel sau khi gửi request, bỏ qua luôn
+      if (cancelledBatchIndexes.has(batchIndex)) {
+        if (typeof onChapterStopProgress === 'function') {
+          onChapterStopProgress(originalIndex);
+        }
+        return { success: false };
+      }
       const chapterData = res?.data?.chapters?.[0];
       const translated = chapterData?.translatedContent || "";
       const translatedTitle = chapterData?.translatedTitle || "";
@@ -58,9 +84,8 @@ export const translateAllChapters = async ({
         if (typeof onChapterStopProgress === 'function') {
           onChapterStopProgress(originalIndex);
         }
-        return;
+        return { success: false };
       }
-      console.log(`[LOG] Cập nhật kết quả chương ${originalIndex}: trạng thái hiện tại:`, getChapterStatus ? getChapterStatus(originalIndex) : undefined);
       setResults((prev) => ({
         ...prev,
         [originalIndex]: {
@@ -76,23 +101,14 @@ export const translateAllChapters = async ({
         const percent = Math.floor(((translatedCount + 1) / totalChapters) * 100);
         onUpdateTotalProgress(percent);
       }
-      console.log(`✅ [Song song] Dịch xong chương ${i + 1}`);
+      return { success: true };
     } catch (error) {
-      console.error(`❌ [Song song] Lỗi khi dịch chương ${originalIndex + 1}:`, error);
-      let errorMessage = `❌ Lỗi khi dịch chương ${originalIndex + 1}: ${chapter.chapterName || `Chương ${originalIndex + 1}`}`;
-      if (error.response?.data?.message) {
-        errorMessage += " - " + error.response.data.message;
+      if (typeof onChapterStopProgress === 'function') {
+        onChapterStopProgress(originalIndex);
       }
-      setErrorMessages((prev) => ({ ...prev, [originalIndex]: errorMessage }));
+      setErrorMessages((prev) => ({ ...prev, [originalIndex]: `❌ Lỗi khi dịch chương ${originalIndex + 1}` }));
+      return { success: false };
     }
-    if (typeof onChapterStopProgress === 'function') {
-      onChapterStopProgress(originalIndex);
-    }
-    setErrorMessages((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[originalIndex];
-      return newErrors;
-    });
   };
 
   // Xử lý queue theo batch song song
@@ -101,17 +117,26 @@ export const translateAllChapters = async ({
     if (isStopped) {
       console.log('🛑 [Song song] Dừng dịch theo yêu cầu người dùng (trước batch)');
       stopped = true;
+      // Đánh dấu batch hiện tại là CANCELLED
+      cancelledBatchIndexes.add(batchIndex);
+      if (typeof onBatchCancel === 'function') onBatchCancel(batchIndex);
       break;
     }
     // Lấy batch chương tiếp theo
     const batch = queue.splice(0, MAX_PARALLEL);
     console.log(`🚀 [Song song] Bắt đầu batch ${batchIndex + 1}:`, batch.map(ch => ch.chapterName || ch.chapterNumber));
     // Dịch song song batch này
-    await Promise.all(batch.map((chapter, idx) => translateOneChapter(chapter, batchIndex * MAX_PARALLEL + idx)));
+    const batchResults = await Promise.all(batch.map((chapter, idx) => translateOneChapter(chapter, batchIndex * MAX_PARALLEL + idx, batchIndex)));
+    const batchSuccess = batchResults.filter(r => r && r.success).length;
+    const batchFail = batch.length - batchSuccess;
+    console.log(`✅ [Batch ${batchIndex + 1}] Thành công: ${batchSuccess}, Thất bại: ${batchFail}`);
     translatedCount += batch.length;
     if (isStopped) {
       console.log('🛑 [Song song] Dừng dịch theo yêu cầu người dùng (sau batch)');
       stopped = true;
+      // Đánh dấu batch tiếp theo là CANCELLED
+      cancelledBatchIndexes.add(batchIndex + 1);
+      if (typeof onBatchCancel === 'function') onBatchCancel(batchIndex + 1);
       break;
     }
     // Thêm delay nhỏ giữa các batch để tránh quá tải server
@@ -123,6 +148,6 @@ export const translateAllChapters = async ({
   if (typeof onUpdateTotalProgress === 'function') {
     onUpdateTotalProgress(100);
   }
-  console.log('🎉 [Song song] Dịch xong toàn bộ hoặc đã dừng.');
+  cancelledBatchIndexes.clear(); // reset cho lần dịch sau
   return translatedCount;
 };

@@ -9,7 +9,7 @@
 }
 
 .glossary-title {
-  color: var(--button-green-background);
+
   margin-bottom: 16px;
   font-size: 24px;
   font-weight: bold;
@@ -87,7 +87,7 @@
 .glossary-count {
   margin-bottom: 16px;
   font-weight: 500;
-  color: var(--button-green-background);
+
 }
 
 .glossary-table-container {
@@ -148,7 +148,6 @@
 }
 
 .glossary-log-title {
-  color: var(--button-green-background);
   font-size: 18px;
   margin-bottom: 8px;
 }
