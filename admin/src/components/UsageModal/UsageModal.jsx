@@ -1,36 +1,37 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React from "react";
+import { X } from "lucide-react";
+import "./UsageModal.css";
 
 const UsageModal = ({ data, onClose }) => {
   const getStatusColor = (status) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'status-active';
-      case 'COOLDOWN':
-        return 'status-cooldown';
-      case 'EXHAUSTED':
-        return 'status-exhausted';
+      case "ACTIVE":
+        return "status-active";
+      case "COOLDOWN":
+        return "status-cooldown";
+      case "EXHAUSTED":
+        return "status-exhausted";
       default:
-        return '';
+        return "";
     }
   };
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'Hoạt động';
-      case 'COOLDOWN':
-        return 'Đang nghỉ';
-      case 'EXHAUSTED':
-        return 'Đã hết quota';
+      case "ACTIVE":
+        return "Hoạt động";
+      case "COOLDOWN":
+        return "Đang nghỉ";
+      case "EXHAUSTED":
+        return "Đã hết quota";
       default:
-        return 'Không xác định';
+        return "Không xác định";
     }
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">Chi tiết Usage</h3>
           <button className="close-button" onClick={onClose}>
@@ -41,9 +42,16 @@ const UsageModal = ({ data, onClose }) => {
         <div className="usage-details">
           <div className="key-info">
             <h4>Thông tin Key</h4>
-            <p><strong>Key:</strong> <code>{data.key}</code></p>
-            <p><strong>Label:</strong> {data.label || 'Không có nhãn'}</p>
-            <p><strong>Ngày tạo:</strong> {new Date(data.createdAt).toLocaleString('vi-VN')}</p>
+            <p>
+              <strong>Key:</strong> <code>{data.key}</code>
+            </p>
+            <p>
+              <strong>Label:</strong> {data.label || "Không có nhãn"}
+            </p>
+            <p>
+              <strong>Ngày tạo:</strong>{" "}
+              {new Date(data.createdAt).toLocaleString("vi-VN")}
+            </p>
           </div>
 
           <div className="usage-list">
@@ -56,23 +64,43 @@ const UsageModal = ({ data, onClose }) => {
                   <div key={usage.id} className="usage-card">
                     <div className="usage-header">
                       <h5>{usage.model.label}</h5>
-                      <span className={`status-badge ${getStatusColor(usage.status)}`}>
+                      <span
+                        className={`status-badge ${getStatusColor(
+                          usage.status
+                        )}`}
+                      >
                         {getStatusText(usage.status)}
                       </span>
                     </div>
-                    
+
                     <div className="usage-info">
-                      <p><strong>Model:</strong> {usage.model.value}</p>
-                      <p><strong>Provider:</strong> {usage.model.provider.name}</p>
-                      <p><strong>Số lần sử dụng:</strong> {usage.usageCount}</p>
-                      <p><strong>Prompt tokens:</strong> {usage.promptTokens.toLocaleString()}</p>
-                      <p><strong>Completion tokens:</strong> {usage.completionTokens.toLocaleString()}</p>
-                      <p><strong>Tổng tokens:</strong> {usage.totalTokens.toLocaleString()}</p>
-                      <p><strong>Lần sử dụng cuối:</strong> {
-                        usage.lastUsedAt 
-                          ? new Date(usage.lastUsedAt).toLocaleString('vi-VN')
-                          : 'Chưa sử dụng'
-                      }</p>
+                      <p>
+                        <strong>Model:</strong> {usage.model.value}
+                      </p>
+                      <p>
+                        <strong>Provider:</strong> {usage.model.provider.name}
+                      </p>
+                      <p>
+                        <strong>Số lần sử dụng:</strong> {usage.usageCount}
+                      </p>
+                      <p>
+                        <strong>Prompt tokens:</strong>{" "}
+                        {usage.promptTokens.toLocaleString()}
+                      </p>
+                      <p>
+                        <strong>Completion tokens:</strong>{" "}
+                        {usage.completionTokens.toLocaleString()}
+                      </p>
+                      <p>
+                        <strong>Tổng tokens:</strong>{" "}
+                        {usage.totalTokens.toLocaleString()}
+                      </p>
+                      <p>
+                        <strong>Lần sử dụng cuối:</strong>{" "}
+                        {usage.lastUsedAt
+                          ? new Date(usage.lastUsedAt).toLocaleString("vi-VN")
+                          : "Chưa sử dụng"}
+                      </p>
                     </div>
 
                     {usage.model.rpm && (
@@ -100,4 +128,4 @@ const UsageModal = ({ data, onClose }) => {
   );
 };
 
-export default UsageModal; 
+export default UsageModal;

@@ -1,8 +1,8 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+
+  margin: 0;
   text-align: center;
+
 }
 
 .logo {
@@ -50,10 +50,30 @@
   background-color: #f5f5f5;
 }
 
+.sidebar {
+  width: 30%;
+  min-width: 220px;
+  max-width: 350px;
+  position: relative;
+  height: auto;
+}
+
 .main-content {
-  flex: 1;
   padding: 20px;
   overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .admin-app {
+    flex-direction: column;
+  }
+
+  .sidebar,
+  .main-content {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 /* Card styles */
@@ -277,6 +297,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .main-content {
+    margin-left: 60px;
     padding: 10px;
   }
 

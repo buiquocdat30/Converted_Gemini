@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { modelsAPI, providersAPI } from "../../services/api";
 import toast from "react-hot-toast";
+import "./ModelModal.css";
 
 const ModelModal = ({ model, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
