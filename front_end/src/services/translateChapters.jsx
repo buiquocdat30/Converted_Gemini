@@ -79,12 +79,19 @@ export const translateAllChapters = async ({
       const translated = chapterData?.translatedContent || "";
       const translatedTitle = chapterData?.translatedTitle || "";
       const duration = chapterData?.timeTranslation || 0;
-      if (getChapterStatus && getChapterStatus(originalIndex) === "CANCELLED") {
-        console.warn(`[LOG] Chương ${originalIndex} đã CANCELLED (realtime), bỏ qua cập nhật kết quả.`);
-        if (typeof onChapterStopProgress === 'function') {
-          onChapterStopProgress(originalIndex);
+      if (getChapterStatus) {
+        try {
+          const status = await getChapterStatus(originalIndex);
+          if (status === "CANCELLED") {
+            console.warn(`[LOG] Chương ${originalIndex} đã CANCELLED (realtime), bỏ qua cập nhật kết quả.`);
+            if (typeof onChapterStopProgress === 'function') {
+              onChapterStopProgress(originalIndex);
+            }
+            return { success: false };
+          }
+        } catch (error) {
+          console.warn(`[LOG] Lỗi khi kiểm tra trạng thái chương ${originalIndex}:`, error);
         }
-        return { success: false };
       }
       setResults((prev) => ({
         ...prev,
@@ -96,6 +103,15 @@ export const translateAllChapters = async ({
         },
       }));
       onTranslationResult(originalIndex, translated, translatedTitle, duration);
+      
+      // Set trạng thái COMPLETE khi dịch thành công
+      if (typeof window.setChapterStatusGlobal === 'function') {
+        window.setChapterStatusGlobal(originalIndex, 'COMPLETE');
+      }
+      if (typeof onChapterStopProgress === 'function') {
+        onChapterStopProgress(originalIndex);
+      }
+      
       setTranslatedCount((prev) => prev + 1);
       if (typeof onUpdateTotalProgress === 'function') {
         const percent = Math.floor(((translatedCount + 1) / totalChapters) * 100);
@@ -105,6 +121,10 @@ export const translateAllChapters = async ({
     } catch (error) {
       if (typeof onChapterStopProgress === 'function') {
         onChapterStopProgress(originalIndex);
+      }
+      // Set trạng thái FAILED khi có lỗi
+      if (typeof window.setChapterStatusGlobal === 'function') {
+        window.setChapterStatusGlobal(originalIndex, 'FAILED');
       }
       setErrorMessages((prev) => ({ ...prev, [originalIndex]: `❌ Lỗi khi dịch chương ${originalIndex + 1}` }));
       return { success: false };
