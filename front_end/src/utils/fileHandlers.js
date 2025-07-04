@@ -1,5 +1,16 @@
 import ePub from "epubjs";
 
+// Hàm lọc nội dung để loại bỏ phần glossary khi xuất file
+export const cleanContentForExport = (content) => {
+  if (!content) return "";
+  
+  // Loại bỏ phần "📚 THƯ VIỆN TỪ MỚI:" và tất cả nội dung sau đó
+  const cleanedContent = content.replace(/📚 THƯ VIỆN TỪ MỚI:[\s\S]*$/g, '');
+  
+  // Loại bỏ các dòng trống thừa ở cuối
+  return cleanedContent.trim();
+};
+
 //đếm số lượng từ
 const calculateChapterStats = (chapters) => {
   const totalChapters = chapters.length;

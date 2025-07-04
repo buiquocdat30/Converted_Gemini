@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import ePub from "epubjs"; // nếu dùng epub.js
 import axios from "axios";
+import { saveAs } from "file-saver";
+import { cleanContentForExport } from "../utils/fileHandlers";
 import ConversionComparison from "../components/ConversionComparison/ConversionComparison";
 import TranslationInfoPanel from "../components/TranslationInfoPanel/TranslationInfoPanel";
 import "./pageCSS/Converte.css"; // Import file CSS
@@ -208,6 +210,30 @@ const Converte = () => {
     setConvertedChapters(updated);
   };
 
+  const handleExport = () => {
+    if (convertedChapters.length === 0) {
+      alert("Không có nội dung đã chuyển đổi để xuất.");
+      return;
+    }
+
+    // Tạo nội dung file với nội dung đã được lọc sạch
+    const fullText = convertedChapters
+      .map((ch) => {
+        const cleanedContent = cleanContentForExport(ch.content);
+        return `${ch.title}\n\n${cleanedContent}`;
+      })
+      .join("\n\n");
+
+    // Tạo tên file
+    const fileName = `${books || "converted"}.epub`;
+
+    // Tạo và lưu file
+    const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, fileName);
+    
+    alert("✅ Đã xuất file EPUB thành công! (Đã loại bỏ phần glossary)");
+  };
+
   return (
     <div className="converter-page">
       <h2 className="converter-title">📘 Chuyển đổi định dạng chương</h2>
@@ -250,6 +276,7 @@ const Converte = () => {
         onBack={handleBack}
         onNext={handleNext}
         onConvertedChange={handleConvertedChange}
+        onExport={handleExport}
         className="conversion-comparison-section"
       />
     </div>

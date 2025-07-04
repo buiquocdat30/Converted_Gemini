@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
 import { toast } from "react-hot-toast";
+import { cleanContentForExport } from "../../utils/fileHandlers";
 import "./TranslateViewer.css";
 
 const TranslateViewer = ({
@@ -101,9 +102,12 @@ const TranslateViewer = ({
       return;
     }
 
-    // Tạo nội dung file
+    // Tạo nội dung file với nội dung đã được lọc sạch
     const fullText = translatedChapters
-      .map((ch) => `${ch.title}\n\n${ch.content}`)
+      .map((ch) => {
+        const cleanedContent = cleanContentForExport(ch.content);
+        return `${ch.title}\n\n${cleanedContent}`;
+      })
       .join("\n\n");
 
     // Tạo tên file
@@ -121,6 +125,8 @@ const TranslateViewer = ({
     // Tạo và lưu file
     const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
     saveAs(blob, fileName);
+    
+    toast.success(`✅ Đã xuất file ${type.toUpperCase()} thành công! (Đã loại bỏ phần glossary)`);
   };
 
   const goToChapter = (offset) => {
