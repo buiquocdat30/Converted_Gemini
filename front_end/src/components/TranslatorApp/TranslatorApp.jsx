@@ -11,6 +11,7 @@ import {
   checkFileFormatFromText,
 } from "../../utils/fileHandlers";
 import ModelSelector from "../ModelSelector/ModelSelector";
+import { useSession } from "../../context/SessionContext";
 
 const TranslatorApp = ({
   apiKey,
@@ -28,10 +29,19 @@ const TranslatorApp = ({
   isDarkMode,
   currentStory,
 }) => {
-  const [currentApiKey, setCurrentApiKey] = useState(apiKey || ""); //key đã nhập
+  const {
+    selectedKeys: sessionSelectedKeys,
+    currentKey: sessionCurrentKey,
+    selectedModel: sessionSelectedModel,
+    updateSelectedKeys,
+    updateCurrentKey,
+    updateSelectedModel,
+  } = useSession();
+
+  const [currentApiKey, setCurrentApiKey] = useState(sessionCurrentKey || apiKey || ""); //key đã nhập
   const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
-  const [tempKey, setTempKey] = useState(apiKey || ""); //kiểm soát key
+  const [tempKey, setTempKey] = useState(sessionCurrentKey || apiKey || ""); //kiểm soát key
   const [isMenuOpen, setIsMenuOpen] = useState(false); //kiểm soát topmenu
   const [isAddChapterModalOpen, setIsAddChapterModalOpen] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState("");
@@ -40,9 +50,30 @@ const TranslatorApp = ({
   const [addChapterMode, setAddChapterMode] = useState("manual"); // "manual" hoặc "file"
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
   const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
-  const [selectedKeys, setSelectedKeys] = useState([]); // Thêm state để lưu danh sách key đã chọn
-  const [tempModel, setTempModel] = useState(model); // State model tạm thời
+  const [selectedKeys, setSelectedKeys] = useState(sessionSelectedKeys || []); // Thêm state để lưu danh sách key đã chọn
+  const [tempModel, setTempModel] = useState(sessionSelectedModel || model); // State model tạm thời
   console.log("Đây là truyện hiện tại",currentStory)
+
+  // Đồng bộ session state với local state
+  useEffect(() => {
+    if (sessionCurrentKey && sessionCurrentKey !== currentApiKey) {
+      setCurrentApiKey(sessionCurrentKey);
+      setTempKey(sessionCurrentKey);
+    }
+  }, [sessionCurrentKey, currentApiKey]);
+
+  useEffect(() => {
+    if (sessionSelectedKeys && sessionSelectedKeys.length !== selectedKeys.length) {
+      setSelectedKeys(sessionSelectedKeys);
+    }
+  }, [sessionSelectedKeys, selectedKeys]);
+
+  useEffect(() => {
+    if (sessionSelectedModel && sessionSelectedModel !== tempModel) {
+      setTempModel(sessionSelectedModel);
+    }
+  }, [sessionSelectedModel, tempModel]);
+
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
     if (shouldRefresh) {
@@ -54,8 +85,10 @@ const TranslatorApp = ({
 
   // Đồng bộ model khi model cha thay đổi
   useEffect(() => {
-    setTempModel(model);
-  }, [model]);
+    if (model && model !== tempModel && !sessionSelectedModel) {
+      setTempModel(model);
+    }
+  }, [model, tempModel, sessionSelectedModel]);
 
   //Chọn chương để Nhảy
   const handleSelectJumbChapter = (index) => {
@@ -77,6 +110,13 @@ const TranslatorApp = ({
   const handleKeysSelected = (keys) => {
     console.log("🔑 Keys đã được chọn:", keys);
     setSelectedKeys(keys);
+    updateSelectedKeys(keys);
+  };
+
+  // Hàm xử lý khi người dùng thay đổi key hiện tại
+  const handleCurrentKey = (key) => {
+    setCurrentApiKey(key);
+    updateCurrentKey(key);
   };
 
   // Khi nhận kết quả dịch từ ChapterList
@@ -148,7 +188,7 @@ const TranslatorApp = ({
       index,
       chapters,
       apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey, // Ưu tiên selectedKeys
-      model,
+      model: tempModel,
       onTranslationResult: (
         idx,
         translated,
@@ -173,10 +213,6 @@ const TranslatorApp = ({
     });
   };
 
-  const handleCurrentKey = () => {
-    setCurrentApiKey(tempKey);
-  };
-
   const mergedChapters = chapters.map((ch, i) => ({
     ...ch,
     ...translatedChapters[i],
@@ -198,24 +234,27 @@ const TranslatorApp = ({
         apiKey: tempKey,
         onTranslationResult: (_, translated) => {
           if (
-            translated.toLowerCase().includes("kiểm tra") ||
-            translated.toLowerCase().includes("dịch")
+            translated &&
+            translated.length > 0 &&
+            translated !== fakeChapter.content
           ) {
-            alert("✅ Key hợp lệ và có thể sử dụng.");
+            toast.success("✅ Key hợp lệ!");
+            setCurrentApiKey(tempKey);
+            updateCurrentKey(tempKey);
           } else {
-            alert("⚠️ Key không trả kết quả dịch rõ ràng.");
+            toast.error("❌ Key không hợp lệ hoặc có vấn đề!");
           }
         },
-        onSelectChapter: () => {}, // tránh lỗi
+        onSelectChapter: () => {},
         setProgress: () => {},
         setResults: () => {},
         setErrorMessages: () => {},
         setTranslatedCount: () => {},
         setTotalProgress: () => {},
       });
-    } catch (err) {
-      console.error("Lỗi khi kiểm tra key:", err);
-      alert("❌ Key không hợp lệ hoặc đã vượt hạn mức.");
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra key:", error);
+      toast.error("❌ Lỗi khi kiểm tra key: " + error.message);
     }
   };
 
@@ -672,7 +711,7 @@ const TranslatorApp = ({
         }
       }
     },
-    [chapters, addChapter, storyId, getAuthToken, onChapterAdded]
+    [chapters, addChapter, storyId, getAuthToken, onChapterAdded, updateCurrentKey]
   );
 
   return (
@@ -735,25 +774,31 @@ const TranslatorApp = ({
               />
               <ModelSelector
                 selectedModel={tempModel}
-                onModelChange={setTempModel}
+                onModelChange={(newModel) => {
+                  setTempModel(newModel);
+                  updateSelectedModel(newModel);
+                }}
                 isDarkMode={isDarkMode}
               />
             </div>
             <div className="modal-buttons">
-              <button
+              <button className="select-key-modal-btn"
                 onClick={() => {
                   if (selectedKeys.length > 0) {
                     setCurrentApiKey(selectedKeys);
+                    updateCurrentKey(selectedKeys[0]);
                   } else {
                     setCurrentApiKey(tempKey);
+                    updateCurrentKey(tempKey);
                   }
                   setModel && setModel(tempModel);
+                  updateSelectedModel(tempModel);
                   setIsMenuOpen(false);
                 }}
               >
                 Áp dụng
               </button>
-              <button onClick={() => setIsMenuOpen(false)}>Đóng</button>
+              <button className="cancel-key-modal-btn" onClick={() => setIsMenuOpen(false)}>Đóng</button>
             </div>
           </div>
         </div>
@@ -765,7 +810,7 @@ const TranslatorApp = ({
           <ChapterList
             chapters={mergedChapters}
             apiKey={selectedKeys.length > 0 ? selectedKeys : currentApiKey}
-            model={model}
+            model={tempModel}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={handleChapterChange}
             onSelectJumbChapter={handleSelectJumbChapter}

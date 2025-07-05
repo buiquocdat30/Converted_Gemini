@@ -123,8 +123,16 @@ const ChapterList = ({
 
   const canTranslate = (index) => {
     if (results[index]) return false; // đã dịch rồi
-    const translatedSoFar = getTranslatedCount();
-    if (!apiKey && translatedSoFar >= 2) return false; // vượt giới hạn
+    
+    // Kiểm tra có key khả dụng không
+    const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
+    
+    // Nếu không có key (dùng defaultKey), chỉ cho phép dịch 2 chương đầu tiên (index 0, 1)
+    if (!hasApiKey && index >= 2) {
+      return false; // Chương từ index 2 trở đi không được dịch trong chế độ free
+    }
+    
+    // Nếu có key, cho phép dịch tất cả
     return true;
   };
 
@@ -203,13 +211,16 @@ const ChapterList = ({
 
     // Lọc ra các chương chưa dịch trong trang hiện tại
     const chaptersToTranslate = currentPageChapters
-      .filter((chapter) => !results[chapter.originalIndex])
-      .slice(
-        0,
-        hasApiKey
-          ? currentPageChapters.length
-          : Math.min(2 - translatedCount, currentPageChapters.length)
-      );
+      .filter((chapter) => {
+        // Chỉ lấy chương chưa dịch
+        if (results[chapter.originalIndex]) return false;
+        
+        // Nếu không có key, chỉ cho phép dịch 2 chương đầu tiên (index 0, 1)
+        if (!hasApiKey && chapter.originalIndex >= 2) return false;
+        
+        return true;
+      })
+      .slice(0, hasApiKey ? currentPageChapters.length : currentPageChapters.length);
 
     console.log(
       "📄 Chương trong trang hiện tại:",
