@@ -21,7 +21,7 @@ export const translateSingleChapter = async ({
   onSelectChapter?.(index); // 👈 gọi để hiển thị chương trước khi dịch
 
   if (!apiKey && index >= 2) {
-    alert(
+    toast.error(
       "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
     );
     return;

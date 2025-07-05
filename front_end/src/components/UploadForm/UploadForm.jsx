@@ -4,6 +4,7 @@ import "./UploadForm.css";
 import StoryInfoModal from "../StoryInfoModal/StoryInfoModal.jsx";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput.jsx";
 import { AuthContext } from "../../context/ConverteContext";
+import { useSession } from "../../context/SessionContext";
 import TranslationInfoPanel from "../TranslationInfoPanel/TranslationInfoPanel.jsx";
 import ModelSelector from "../ModelSelector/ModelSelector.jsx";
 import axios from "axios";
@@ -36,6 +37,16 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
     model,
     setModel,
   } = useContext(AuthContext);
+
+  const {
+    selectedKeys,
+    currentKey,
+    selectedModel: sessionSelectedModel,
+    updateSelectedKeys,
+    updateCurrentKey,
+    updateSelectedModel,
+  } = useSession();
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
   const [chapters, setChapters] = useState([]);
@@ -55,16 +66,35 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   const [totalWords, setTotalWords] = useState(0); //tổng từ
   const [averageWords, setAverageWords] = useState(0); //trung bình từ
 
-  //selected model
-  const [selectedModel, setSelectedModel] = useState(model || "gemini-2.0-flash");
+  // Sử dụng model từ session nếu có, nếu không thì dùng từ context
+  const [selectedModel, setSelectedModel] = useState(sessionSelectedModel || model || "gemini-2.0-flash");
 
-  // Thêm state local để quản lý apiKey
-  const [localApiKey, setLocalApiKey] = useState(apiKey || "");
+  // Sử dụng key từ session nếu có, nếu không thì dùng từ context
+  const [localApiKey, setLocalApiKey] = useState(currentKey || apiKey || "");
 
-  // Thêm state để lưu danh sách key đã chọn
-  const [selectedApiKeys, setSelectedApiKeys] = useState([]);
+  // Sử dụng selectedKeys từ session
+  const [selectedApiKeys, setSelectedApiKeys] = useState(selectedKeys || []);
 
   const fileInputRef = useRef(null);
+
+  // Đồng bộ session state với local state
+  useEffect(() => {
+    if (sessionSelectedModel && sessionSelectedModel !== selectedModel) {
+      setSelectedModel(sessionSelectedModel);
+    }
+  }, [sessionSelectedModel, selectedModel]);
+
+  useEffect(() => {
+    if (currentKey && currentKey !== localApiKey) {
+      setLocalApiKey(currentKey);
+    }
+  }, [currentKey, localApiKey]);
+
+  useEffect(() => {
+    if (selectedKeys && selectedKeys.length !== selectedApiKeys.length) {
+      setSelectedApiKeys(selectedKeys);
+    }
+  }, [selectedKeys, selectedApiKeys]);
 
   // Thêm hàm xử lý khi file được chọn
   const handleFileChange = async (e) => {
@@ -141,7 +171,7 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
         "👥 Người dùng chưa đăng nhập, chuyển sang chế độ dịch thông thường"
       );
       // Truyền danh sách key đã chọn vào hàm onFileParsed
-      onFileParsed([], selectedApiKeys, model);
+      onFileParsed([], selectedApiKeys, selectedModel);
     }
   };
 
@@ -206,6 +236,7 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   // Thêm hàm xử lý khi apiKey thay đổi
   const handleApiKeyChange = (newKey) => {
     setLocalApiKey(newKey);
+    updateCurrentKey(newKey);
     if (setApiKey) {
       setApiKey(newKey);
     }
@@ -214,11 +245,21 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
   // Hàm xử lý khi có key được chọn
   const handleKeysSelected = (keys) => {
     setSelectedApiKeys(keys);
+    updateSelectedKeys(keys);
     // Nếu có key đầu tiên, sử dụng nó làm key hiện tại
     if (keys.length > 0) {
-      setLocalApiKey(keys[0]);
-      if (setApiKey) setApiKey(keys[0]);
+      const firstKey = keys[0];
+      setLocalApiKey(firstKey);
+      updateCurrentKey(firstKey);
+      if (setApiKey) setApiKey(firstKey);
     }
+  };
+
+  // Hàm xử lý khi model thay đổi
+  const handleModelChange = (newModel) => {
+    setSelectedModel(newModel);
+    updateSelectedModel(newModel);
+    if (setModel) setModel(newModel);
   };
 
   return (
@@ -228,10 +269,11 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
         apiKey={localApiKey}
         setApiKey={handleApiKeyChange}
         onKeysSelected={handleKeysSelected}
+        onCurrentKey={updateCurrentKey}
       />
       <div className="notify">
         <small>
-          {apiKey
+          {localApiKey
             ? "🔐 Đã nhập API key - Bạn có thể dịch toàn bộ chương."
             : "🔓 Chế độ miễn phí - Chỉ dịch được 2 chương đầu tiên."}
         </small>
@@ -252,10 +294,7 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
       
       <ModelSelector
         selectedModel={selectedModel}
-        onModelChange={(newModel) => {
-          setSelectedModel(newModel);
-          if (setModel) setModel(newModel);
-        }}
+        onModelChange={handleModelChange}
         isDarkMode={isDarkMode}
       />
 

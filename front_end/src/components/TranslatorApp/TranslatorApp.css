@@ -509,6 +509,13 @@
   margin: 0;
   padding: 4px;
 }
+.modal-key-model-content .cancel-key-modal-btn{
+  background-color: var(--button-red-background);
+}
+
+.modal-key-model-content .cancel-key-modal-btn:hover{
+  background-color: var(--button-red-background-hover);
+}
 
 /* Nút X để đóng modal */
 .modal-close-button {

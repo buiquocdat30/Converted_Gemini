@@ -3,6 +3,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { AuthContext } from "../../context/ConverteContext";
+import { useSession } from "../../context/SessionContext";
 import "./ConverteKeyInput.css"; // dùng luôn css cũ
 
 const ConverteKeyInput = ({
@@ -21,10 +22,24 @@ const ConverteKeyInput = ({
     userApiKey,
     fetchApiKey,
   } = useContext(AuthContext);
+  
+  const {
+    selectedKeys,
+    currentKey,
+    updateSelectedKeys,
+    updateCurrentKey,
+  } = useSession();
+
   const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState([]);
   const [showKeyList, setShowKeyList] = useState(false);
+
+  // Khởi tạo từ session state
+  useEffect(() => {
+    if (currentKey && currentKey !== apiKey) {
+      setApiKey(currentKey);
+    }
+  }, [currentKey, apiKey, setApiKey]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -51,7 +66,10 @@ const ConverteKeyInput = ({
         .filter((line) => line.length > 0); // loại dòng trống
 
       if (keys.length > 0) {
-        setApiKey(keys[0]); // Lấy key đầu tiên
+        const newKey = keys[0];
+        setApiKey(newKey);
+        updateCurrentKey(newKey);
+        updateSelectedKeys([newKey]);
       } else {
         alert("❗ File không chứa nội dung hợp lệ.");
       }
@@ -62,23 +80,27 @@ const ConverteKeyInput = ({
 
   const handleKeySelect = (key) => {
     setApiKey(key);
-    setSelectedKeys([key]);
+    updateCurrentKey(key);
+    updateSelectedKeys([key]);
   };
 
   const handleSelectAll = () => {
     if (selectedKeys.length === userApiKey.length) {
       // Nếu đã chọn tất cả thì bỏ chọn
-      setSelectedKeys([]);
+      updateSelectedKeys([]);
       setApiKey("");
+      updateCurrentKey("");
       if (onKeysSelected) onKeysSelected([]);
     } else {
       // Nếu chưa chọn tất cả thì chọn tất cả các key
       const allKeys = userApiKey.map((key) => key.key);
-      setSelectedKeys(allKeys);
+      updateSelectedKeys(allKeys);
       // Gọi callback với tất cả các key đã chọn
       if (onKeysSelected) onKeysSelected(allKeys);
       // Vẫn giữ key đầu tiên làm key đang sử dụng
-      setApiKey(allKeys[0]);
+      const firstKey = allKeys[0];
+      setApiKey(firstKey);
+      updateCurrentKey(firstKey);
     }
   };
 
@@ -88,12 +110,56 @@ const ConverteKeyInput = ({
       if (onKeysSelected) onKeysSelected(selectedKeys);
       console.log("Đây là các key đã được chọn selectedKeys", selectedKeys);
       // Vẫn giữ key đầu tiên làm key đang sử dụng
-      const currentKey = selectedKeys[0];
-      setApiKey(currentKey);
+      const currentKeyValue = selectedKeys[0];
+      setApiKey(currentKeyValue);
+      updateCurrentKey(currentKeyValue);
       // Gọi onCurrentKey với key hiện tại
-      if (onCurrentKey) onCurrentKey(currentKey);
+      if (onCurrentKey) onCurrentKey(currentKeyValue);
     }
     setShowKeyList(false);
+  };
+
+  const handleKeyToggle = (key) => {
+    if (selectedKeys.includes(key)) {
+      const newSelectedKeys = selectedKeys.filter((k) => k !== key);
+      updateSelectedKeys(newSelectedKeys);
+      // Nếu key bị bỏ chọn là key hiện tại, chuyển sang key khác hoặc xóa
+      if (currentKey === key) {
+        if (newSelectedKeys.length > 0) {
+          const newCurrentKey = newSelectedKeys[0];
+          setApiKey(newCurrentKey);
+          updateCurrentKey(newCurrentKey);
+        } else {
+          setApiKey("");
+          updateCurrentKey("");
+        }
+      }
+    } else {
+      const newSelectedKeys = [...selectedKeys, key];
+      updateSelectedKeys(newSelectedKeys);
+    }
+  };
+
+  const handleCheckboxChange = (e, key) => {
+    e.stopPropagation();
+    if (e.target.checked) {
+      const newSelectedKeys = [...selectedKeys, key];
+      updateSelectedKeys(newSelectedKeys);
+    } else {
+      const newSelectedKeys = selectedKeys.filter((k) => k !== key);
+      updateSelectedKeys(newSelectedKeys);
+      // Nếu key bị bỏ chọn là key hiện tại, chuyển sang key khác hoặc xóa
+      if (currentKey === key) {
+        if (newSelectedKeys.length > 0) {
+          const newCurrentKey = newSelectedKeys[0];
+          setApiKey(newCurrentKey);
+          updateCurrentKey(newCurrentKey);
+        } else {
+          setApiKey("");
+          updateCurrentKey("");
+        }
+      }
+    }
   };
 
   return (
@@ -104,7 +170,11 @@ const ConverteKeyInput = ({
           <input
             type={showKey ? "text" : "password"}
             value={apiKey || ""}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => {
+              const newKey = e.target.value;
+              setApiKey(newKey);
+              updateCurrentKey(newKey);
+            }}
             placeholder="API Key..."
             className="api-input"
           />
@@ -157,33 +227,12 @@ const ConverteKeyInput = ({
                   className={`key-item ${
                     selectedKeys.includes(key.key) ? "selected" : ""
                   }`}
-                  onClick={() => {
-                    if (selectedKeys.includes(key.key)) {
-                      const newSelectedKeys = selectedKeys.filter(
-                        (k) => k !== key.key
-                      );
-                      setSelectedKeys(newSelectedKeys);
-                    } else {
-                      const newSelectedKeys = [...selectedKeys, key.key];
-                      setSelectedKeys(newSelectedKeys);
-                    }
-                  }}
+                  onClick={() => handleKeyToggle(key.key)}
                 >
                   <input
                     type="checkbox"
                     checked={selectedKeys.includes(key.key)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      if (e.target.checked) {
-                        const newSelectedKeys = [...selectedKeys, key.key];
-                        setSelectedKeys(newSelectedKeys);
-                      } else {
-                        const newSelectedKeys = selectedKeys.filter(
-                          (k) => k !== key.key
-                        );
-                        setSelectedKeys(newSelectedKeys);
-                      }
-                    }}
+                    onChange={(e) => handleCheckboxChange(e, key.key)}
                   />
 
                   <div className="key-info">

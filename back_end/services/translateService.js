@@ -36,7 +36,9 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
 
     let prompt;
     if (type === "title") {
-      prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.\n\nTiêu đề: ${text}`;
+      prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.
+      Lưu ý quan trọng: Khi dịch số chương, hãy sử dụng số Ả Rập (1, 2, 3...) thay vì số từ (một, hai, ba...). Ví dụ: "chương 1", "chương 2", "chương 3" thay vì "chương một", "chương hai", "chương ba".
+      Tiêu đề: ${text}`;
     } else {
       // Lấy glossary nếu có storyId
       let glossaryText = "";
@@ -60,6 +62,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
         - Dịch tên gọi đúng ngữ cảnh, thể loại
         - Giữ nhất quán trong toàn bộ văn bản
         - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
+        - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào
 
       ---
 
@@ -89,6 +92,10 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
         - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
         - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
 
+      5. KIỂM TRA BẮT BUỘC:
+        - Sau khi dịch xong, kiểm tra lại toàn bộ văn bản để đảm bảo KHÔNG CÒN từ tiếng nước ngoài nào chưa được dịch
+        - Đặc biệt chú ý các ký tự tiếng Trung, Nhật, Hàn còn sót lại
+
       ---
 
       📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
@@ -112,6 +119,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       - KHÔNG thêm giải thích, chú thích, hoặc in ra danh sách tên riêng.
       - KHÔNG dùng đại từ nhân xưng cho bản thân nhân vật. 
       - KHÔNG dịch sai nghĩa, sai chức năng của tên gọi (VD: nhầm chiêu thức là nhân vật).
+      - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào trong văn bản.
 
       ---
 
@@ -120,6 +128,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       ---
 
       📚 THƯ VIỆN TỪ MỚI:
+      ⚠️ LƯU Ý: Phần "THƯ VIỆN TỪ MỚI" này chỉ dùng để tạo thư viện từ mới, KHÔNG được xuất ra file cuối cùng.
       Sau khi dịch xong, hãy liệt kê các tên riêng mới phát hiện trong đoạn văn này theo format:
       Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
 
@@ -128,7 +137,8 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       M都 = M Đô [Địa danh] [Trung]
       Haikura Shinku = Haikura Shinku [Nhân vật] [Nhật]
 
-      ⚠️ LƯU Ý: Phần "THƯ VIỆN TỪ MỚI" này chỉ dùng để tạo thư viện từ mới, KHÔNG được xuất ra file cuối cùng.`;
+      ⚠️ QUAN TRỌNG: Chỉ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh), KHÔNG liệt kê tên tiếng Việt.
+      `;
       prompt = promptContent;
     }
 
@@ -172,6 +182,9 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
         if (glossaryMatch) {
           const glossaryText = glossaryMatch[1].trim();
           await extractAndSaveGlossary(storyId, glossaryText);
+          
+          // Loại bỏ phần glossary khỏi text dịch cuối cùng
+          translated = translated.replace(/📚 THƯ VIỆN TỪ MỚI:\n[\s\S]*?(?=\n---|$)/, '').trim();
         }
       } catch (error) {
         console.error("⚠️ Lỗi khi lưu glossary:", error);

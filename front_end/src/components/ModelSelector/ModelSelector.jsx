@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { modelService } from '../../services/modelService';
+import { useSession } from '../../context/SessionContext';
 import './ModelSelector.css';
 
 const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
+    const { selectedModel: sessionSelectedModel, updateSelectedModel } = useSession();
     const [providers, setProviders] = useState([]);
     const [models, setModels] = useState([]);
     const [selectedProvider, setSelectedProvider] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Sử dụng model từ session nếu có, nếu không thì dùng prop
+    const currentSelectedModel = sessionSelectedModel || selectedModel;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -51,6 +56,14 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
         }
     };
 
+    const handleModelChange = (modelValue) => {
+        // Cập nhật cả session và callback
+        updateSelectedModel(modelValue);
+        if (onModelChange) {
+            onModelChange(modelValue);
+        }
+    };
+
     if (loading) {
         return <div className="model-selector-loading">Đang tải dữ liệu...</div>;
     }
@@ -82,8 +95,8 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
                     {models.map(model => (
                         <div 
                             key={model.id} 
-                            className={`model-option ${selectedModel === model.value ? 'selected' : ''}`}
-                            onClick={() => onModelChange(model.value)}
+                            className={`model-option ${currentSelectedModel === model.value ? 'selected' : ''}`}
+                            onClick={() => handleModelChange(model.value)}
                         >
                             <div className="model-info">
                                 <h4>{model.label}</h4>

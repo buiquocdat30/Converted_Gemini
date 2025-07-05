@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./context/ConverteContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { SessionProvider } from "./context/SessionContext";
 import { Toaster } from 'react-hot-toast';
 import Home from "../src/pages/Home";
 import Translate from "../src/pages/Translate";
@@ -18,33 +19,35 @@ const App = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#333',
-                color: '#fff',
-              },
-              success: {
+        <SessionProvider>
+          <Router>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
                 duration: 3000,
-                theme: {
-                  primary: '#4aed88',
+                style: {
+                  background: '#333',
+                  color: '#fff',
                 },
-              },
-              error: {
-                duration: 3000,
-                theme: {
-                  primary: '#ff4b4b',
+                success: {
+                  duration: 3000,
+                  theme: {
+                    primary: '#4aed88',
+                  },
                 },
-              },
-            }}
-          />
-          <Navbar />
-          <AppRoutes />
-          <Footer />
-        </Router>
+                error: {
+                  duration: 3000,
+                  theme: {
+                    primary: '#ff4b4b',
+                  },
+                },
+              }}
+            />
+            <Navbar />
+            <AppRoutes />
+            <Footer />
+          </Router>
+        </SessionProvider>
       </AuthProvider>
     </ThemeProvider>
   );
