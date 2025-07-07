@@ -234,6 +234,16 @@ const TranslateViewer = ({
             {currentContent}
           </div>
         )}
+
+        {/* Hiển thị glossary nếu có */}
+        {chapters[currentIndex]?.glossary && (
+          <div className="chapter-glossary" style={{ marginTop: 24, background: "#f8f8f8", padding: 12, borderRadius: 8 }}>
+            <h4 style={{ margin: 0, color: '#2d6a4f' }}>📚 THƯ VIỆN TỪ MỚI:</h4>
+            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", margin: 0 }}>
+              {chapters[currentIndex].glossary}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   );
