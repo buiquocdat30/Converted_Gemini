@@ -76,10 +76,15 @@ exports.translateText = async (req, res) => {
       });
     }
 
+    // Tích lũy glossary đã xuất hiện trong batch
+    let glossarySet = new Set();
+
     const translationPromises = validChapters.map(async (ch, index) => {
       const startTime = Date.now();
       let keyData;
       let translatedTitle, translatedContent;
+      let glossarySection = "";
+      let glossaryRaw = "";
 
       try {
         // Log thông tin chương để kiểm tra
@@ -138,7 +143,22 @@ exports.translateText = async (req, res) => {
           translatedPreview: contentResult.translated?.substring(0, 50) + "..."
         });
 
-        // Xử lý kết quả dịch - KHÔNG throw error khi isUnchanged
+        // Xử lý kết quả dịch - Kiểm tra lỗi trước
+        if (titleResult.hasError || contentResult.hasError) {
+          console.warn(
+            `⚠️ Có lỗi trong quá trình dịch chương ${ch.chapterNumber}:`,
+            {
+              titleError: titleResult.error,
+              contentError: contentResult.error,
+            }
+          );
+          
+          // Nếu có lỗi, throw error để Promise.allSettled có thể bắt được
+          const errorMessage = titleResult.error || contentResult.error || "Lỗi dịch không xác định";
+          throw new Error(errorMessage);
+        }
+
+        // Nếu không có lỗi, xử lý kết quả bình thường
         translatedTitle = titleResult.translated || ch.title;
         translatedContent = contentResult.translated || ch.content;
 
@@ -164,23 +184,43 @@ exports.translateText = async (req, res) => {
           }`
         );
 
-        // Log warning nếu bản dịch không thay đổi nhưng vẫn trả về kết quả
+        // Log warning nếu bản dịch không thay đổi
         if (titleResult.isUnchanged || contentResult.isUnchanged) {
           console.warn(
-            `⚠️ Bản dịch không thay đổi cho chương ${ch.chapterNumber}, nhưng vẫn trả về kết quả`
+            `⚠️ Bản dịch không thay đổi cho chương ${ch.chapterNumber}`
           );
         }
 
-        // Kiểm tra nếu có error trong kết quả dịch
-        if (titleResult.error || contentResult.error) {
-          console.warn(
-            `⚠️ Có lỗi trong quá trình dịch chương ${ch.chapterNumber}:`,
-            {
-              titleError: titleResult.error,
-              contentError: contentResult.error,
+        // Sau khi dịch xong nội dung, parse glossary nếu có
+        if (contentResult.translated) {
+          const glossaryMatch = contentResult.translated.match(/📚 THƯ VIỆN TỪ MỚI:\n([\s\S]*?)(?=\n---|$)/);
+          if (glossaryMatch) {
+            glossaryRaw = glossaryMatch[1].trim();
+            // Lấy từng dòng glossary
+            let glossaryLines = glossaryRaw.split('\n').map(l => l.trim()).filter(l => l && l !== 'Không có từ mới');
+            // Loại bỏ các từ đã xuất hiện ở các chương trước
+            let newGlossaryLines = [];
+            for (let line of glossaryLines) {
+              // Lấy tên gốc phía trước dấu =
+              const match = line.match(/^(.+?)\s*=\s*/);
+              if (match) {
+                const original = match[1].trim();
+                if (!glossarySet.has(original)) {
+                  glossarySet.add(original);
+                  newGlossaryLines.push(line);
+                }
+              }
             }
-          );
-          // Vẫn tiếp tục với text gốc thay vì throw error
+            if (newGlossaryLines.length > 0) {
+              glossarySection = newGlossaryLines.join('\n');
+            } else {
+              glossarySection = 'Không có từ mới';
+            }
+          } else {
+            glossarySection = 'Không có từ mới';
+          }
+        } else {
+          glossarySection = 'Không có từ mới';
         }
 
       } catch (err) {
@@ -246,6 +286,7 @@ exports.translateText = async (req, res) => {
         ...ch,
         translatedTitle,
         translatedContent,
+        glossary: glossarySection,
         timeTranslation: translationTime, // 👉 Thêm thời gian dịch
         status: "TRANSLATED",
       };

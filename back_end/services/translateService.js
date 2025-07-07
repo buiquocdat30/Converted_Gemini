@@ -129,16 +129,27 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
 
       📚 THƯ VIỆN TỪ MỚI:
       ⚠️ LƯU Ý: Phần "THƯ VIỆN TỪ MỚI" này chỉ dùng để tạo thư viện từ mới, KHÔNG được xuất ra file cuối cùng.
-      Sau khi dịch xong, hãy liệt kê các tên riêng mới phát hiện trong đoạn văn này theo format:
+      
+      BẮT BUỘC: Sau khi dịch xong, PHẢI luôn có phần này, ngay cả khi không có từ mới.
+      
+      Nếu có tên riêng mới phát hiện trong đoạn văn này, hãy liệt kê theo format:
       Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
-
+      
+      Nếu KHÔNG có tên riêng mới nào, hãy ghi: "Không có từ mới"
+      
+      QUY TẮC LIỆT KÊ:
+      1. Chỉ liệt kê các DANH TỪ RIÊNG: Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt
+      2. KHÔNG liệt kê các từ chung như "ma vương", "học viện", "giám đốc" (trừ khi có tên cụ thể)
+      3. Chỉ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh), KHÔNG liệt kê tên tiếng Việt
+      4. KHÔNG liệt kê những tên đã có trong THƯ VIỆN TỪ ĐÃ CÓ ở trên
+      
       Ví dụ:
       张伟 = Trương Vĩ [Nhân vật] [Trung]
       M都 = M Đô [Địa danh] [Trung]
       Haikura Shinku = Haikura Shinku [Nhân vật] [Nhật]
-
-      ⚠️ QUAN TRỌNG: Chỉ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh), KHÔNG liệt kê tên tiếng Việt.
-      `;
+      
+      ⚠️ QUAN TRỌNG: Nếu không có tên riêng mới nào, PHẢI ghi "Không có từ mới"
+    `;
       prompt = promptContent;
     }
 
@@ -181,10 +192,19 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
         const glossaryMatch = translated.match(/📚 THƯ VIỆN TỪ MỚI:\n([\s\S]*?)(?=\n---|$)/);
         if (glossaryMatch) {
           const glossaryText = glossaryMatch[1].trim();
-          await extractAndSaveGlossary(storyId, glossaryText);
+          
+          // Kiểm tra xem có từ mới thực sự không (không phải "Không có từ mới")
+          if (glossaryText && glossaryText !== "Không có từ mới" && !glossaryText.includes("Không có từ mới")) {
+            await extractAndSaveGlossary(storyId, glossaryText);
+            console.log(`📚 Đã lưu ${glossaryText.split('\n').filter(line => line.trim() && line.includes('=')).length} từ mới vào glossary`);
+          } else {
+            console.log("📚 Không có từ mới để lưu vào glossary");
+          }
           
           // Loại bỏ phần glossary khỏi text dịch cuối cùng
           translated = translated.replace(/📚 THƯ VIỆN TỪ MỚI:\n[\s\S]*?(?=\n---|$)/, '').trim();
+        } else {
+          console.warn("⚠️ Không tìm thấy phần '📚 THƯ VIỆN TỪ MỚI:' trong response");
         }
       } catch (error) {
         console.error("⚠️ Lỗi khi lưu glossary:", error);
@@ -214,13 +234,14 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     const errorMessage = error.message || error.toString();
     console.error("⚠️ Lỗi dịch:", errorMessage);
 
-    // Trả về text gốc nếu có lỗi nhưng không throw error
-    console.log("🔄 Trả về text gốc do lỗi dịch");
+    // Trả về thông tin lỗi rõ ràng thay vì giả vờ thành công
+    console.log("🔄 Trả về thông tin lỗi do dịch thất bại");
     return {
-      translated: text, // Trả về text gốc
+      translated: null, // Không có bản dịch
       usage: null,
-      isUnchanged: true,
-      error: errorMessage, // Thêm thông tin lỗi
+      isUnchanged: false, // Không phải không thay đổi mà là lỗi
+      error: errorMessage, // Thông tin lỗi
+      hasError: true, // Flag để controller biết có lỗi
     };
   }
 };
