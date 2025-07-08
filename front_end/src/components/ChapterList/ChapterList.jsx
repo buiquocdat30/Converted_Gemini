@@ -414,12 +414,18 @@ const ChapterList = ({
         setTotalProgress: (progress) => {
           startTotalProgress();
         },
-        onTranslationResult: (idx, translated, translatedTitle, duration) => {
-          console.log(`[LOG][onTranslationResult-single] idx=${idx}, cancelFlag=${cancelMapRef.current[idx]}`);
-          if (cancelMapRef.current[idx]) {
-            console.log(`[SKIP][onTranslationResult-single] Bỏ qua cập nhật vì đã CANCELLED hoặc cờ hủy.`);
+        onTranslationResult: (idx, translated, translatedTitle, duration, errorObj) => {
+          // Áp dụng errorHandlerService: Nếu có lỗi, đánh FAILED và toast
+          if (errorObj && (errorObj.hasError || errorObj.status === 'FAILED' || errorObj.translationError)) {
+            console.warn(`[LOG][FAILED][onTranslationResult] idx=${idx}: hasError=${errorObj.hasError}, status=${errorObj.status}, translationError=${errorObj.translationError}`);
+            setChapterStatus((prev) => ({ ...prev, [idx]: "FAILED" }));
+            toast.error(errorObj.error || errorObj.userMessage || "Lỗi không xác định khi dịch chương!");
+            chapterHook.stopProgress();
+            setChapterProgresses((prev) => ({ ...prev, [idx]: 0 }));
+            setErrorMessages((prev) => ({ ...prev, [idx]: errorObj.error || errorObj.userMessage }));
             return;
           }
+          // ... logic cập nhật chương khi dịch thành công ...
           onTranslationResult(idx, translated, translatedTitle, duration);
         },
         onSelectChapter,
@@ -445,6 +451,8 @@ const ChapterList = ({
               console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: FAILED. Lý do:`, error);
               return newStatus;
             });
+            setErrorMessages((prev) => ({ ...prev, [index]: error.message || "Dịch thất bại" }));
+            toast.error(error.message || "Dịch thất bại");
             console.log(`[CHAPTER ${index}] Lỗi khi dịch:`, error);
           } else {
             if (cancelMapRef.current[index]) {
@@ -684,6 +692,14 @@ const ChapterList = ({
           const chapterProgress = chapterProgresses[idx] || 0;
           const isChapterTranslating = chapterTranslatingStates[idx] || false;
 
+          // Khi render trạng thái chương hoặc xử lý kết quả dịch:
+          const isFailed = chapterStatus[idx] === 'FAILED' || results[idx]?.hasError || !!results[idx]?.translationError;
+          if (isFailed) {
+            console.warn(`[LOG][FAILED] Chương ${calculatedChapterNumber} - idx=${idx}: status=${chapterStatus[idx]}, hasError=${results[idx]?.hasError}, translationError=${results[idx]?.translationError}`);
+            toast.error(results[idx]?.translationError || "Dịch thất bại!");
+            // Hiển thị trạng thái FAILED trên UI
+          }
+
           return (
             <li key={ch.chapterNumber}>
               <div
@@ -798,6 +814,11 @@ const ChapterList = ({
                     {chapterStatus[idx] === "COMPLETE" && (
                       <span className="translated-label">
                         ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
+                      </span>
+                    )}
+                    {chapterStatus[idx] === "FAILED" && (
+                      <span className="translated-label" style={{ color: "red" }}>
+                        ❌ Đã dịch thất bại
                       </span>
                     )}
                   </div>

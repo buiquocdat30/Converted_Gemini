@@ -15,7 +15,7 @@
   "description": "",
   "dependencies": {
     "@bull-board/express": "^6.10.1",
-    "@google/generative-ai": "^0.24.0",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.6.0",
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",

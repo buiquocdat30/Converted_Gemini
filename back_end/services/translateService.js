@@ -3,12 +3,16 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const ApiKeyManager = require("./apiKeyManagers");
 const publicModelService = require("./publicModelService");
 const { extractAndSaveGlossary, getGlossaryByStoryId, formatGlossaryForAI } = require("./glossaryService");
+const ErrorHandlerService = require("./errorHandlerService");
 
 // Mặc định sử dụng Gemini Pro
 const DEFAULT_MODEL = "gemini-2.0-flash";
 
 // ⏳ Delay helper
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Khởi tạo ErrorHandlerService
+const errorHandler = new ErrorHandlerService();
 
 const translateText = async (text, keyInfo, modelAI, type = "content", storyId = null) => {
   console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
@@ -130,7 +134,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       📚 THƯ VIỆN TỪ MỚI:
       ⚠️ LƯU Ý: Phần "THƯ VIỆN TỪ MỚI" này chỉ dùng để tạo thư viện từ mới, KHÔNG được xuất ra file cuối cùng.
       
-      BẮT BUỘC: Sau khi dịch xong, PHẢI luôn có phần này, ngay cả khi không có từ mới.
+      BẮT BUỘC: Sau khi dịch xong, PHẢI luôn có phần này, phần này nằm sau cùng của nội dung dịch, ngay cả khi không có từ mới.
       
       Nếu có tên riêng mới phát hiện trong đoạn văn này, hãy liệt kê theo format:
       Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
@@ -231,8 +235,16 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
 
     return resultObj;
   } catch (error) {
-    const errorMessage = error.message || error.toString();
-    console.error("⚠️ Lỗi dịch:", errorMessage);
+    // Sử dụng ErrorHandlerService để phân tích lỗi
+    const errorInfo = errorHandler.logError(error, {
+      model: currentModelAI,
+      key: key.substring(0, 8) + "...",
+      type: type,
+      storyId: storyId,
+      textLength: text?.length || 0
+    });
+
+    console.error("⚠️ Lỗi dịch chi tiết:", errorHandler.createDeveloperMessage(errorInfo));
 
     // Trả về thông tin lỗi rõ ràng thay vì giả vờ thành công
     console.log("🔄 Trả về thông tin lỗi do dịch thất bại");
@@ -240,8 +252,12 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       translated: null, // Không có bản dịch
       usage: null,
       isUnchanged: false, // Không phải không thay đổi mà là lỗi
-      error: errorMessage, // Thông tin lỗi
+      error: errorInfo.userMessage, // Thông báo lỗi thân thiện với user
+      errorDetails: errorHandler.createDeveloperMessage(errorInfo), // Chi tiết lỗi cho developer
       hasError: true, // Flag để controller biết có lỗi
+      retryable: errorInfo.retryable, // Có thể retry hay không
+      errorType: errorInfo.type, // Loại lỗi
+      solution: errorInfo.solution // Giải pháp cho user
     };
   }
 };
