@@ -48,6 +48,8 @@ const userLibraryController = {
         return res.status(404).json({ error: "Không tìm thấy truyện" });
       }
 
+      
+
       res.json(story);
     } catch (error) {
       console.error("Error getting story:", error);
@@ -219,7 +221,12 @@ const userLibraryController = {
       }
 
       const chapters = await userLibraryService.getChapters(storyId, userId);
-      res.json(chapters);
+      // Thêm trường hasError cho từng chương
+      const chaptersWithError = chapters.map(chapter => ({
+        ...chapter,
+        hasError: chapter.status === 'FAILED' || !!chapter.translationError
+      }));
+      res.json(chaptersWithError);
     } catch (error) {
       console.error("Error getting chapters:", error);
       res.status(500).json({ error: "Lỗi khi lấy danh sách chương" });

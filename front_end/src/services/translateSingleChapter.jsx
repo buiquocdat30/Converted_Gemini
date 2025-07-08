@@ -78,6 +78,38 @@ export const translateSingleChapter = async ({
       return null;
     }
 
+    // => Cần bổ sung kiểm tra:
+    if (chapterData.hasError || chapterData.status === 'FAILED' || chapterData.translationError) {
+      // Log chi tiết lỗi ra console
+      console.error("[ERROR][translateSingleChapter] Lỗi dịch chương:", chapterData);
+      // Hiển thị toast lỗi
+      toast.error(chapterData.translationError || "Dịch chương thất bại!");
+      // Gọi callback báo lỗi cho ChapterList
+      onTranslationResult?.(
+        index,
+        chapterData.translatedContent,
+        chapterData.translatedTitle,
+        chapterData.timeTranslation || 0,
+        chapterData // truyền luôn object lỗi
+      );
+      // Cập nhật state lỗi
+      setErrorMessages((prev) => ({
+        ...prev,
+        [index]: chapterData.translationError || "Dịch chương thất bại!",
+      }));
+      // Đánh dấu trạng thái FAILED
+      setResults((prev) => ({
+        ...prev,
+        [index]: {
+          ...chapterData,
+          status: "FAILED",
+        },
+      }));
+      setTotalProgress && setTotalProgress(100);
+      onComplete?.(chapterData.timeTranslation || 0, chapterData);
+      return null;
+    }
+
     // Sử dụng thời gian dịch từ backend response
     const duration = chapterData.timeTranslation || 0;
     console.log(

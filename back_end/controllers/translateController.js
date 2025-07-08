@@ -375,7 +375,10 @@ exports.translateText = async (req, res) => {
 
     // Đảm bảo response có đầy đủ thông tin
     const response = {
-      chapters: translatedChapters,
+      chapters: translatedChapters.map(ch => ({
+        ...ch,
+        hasError: ch.status === 'FAILED' || !!ch.translationError
+      })),
       stats: {
         total: validChapters.length,
         success: successfulChapters.length,
@@ -405,6 +408,7 @@ exports.translateText = async (req, res) => {
         originalContent: chapter.content ? chapter.content.substring(0, 50) + "..." : "Không có",
         translatedContent: chapter.translatedContent ? chapter.translatedContent.substring(0, 50) + "..." : "Không có",
         hasTranslatedContent: !!chapter.translatedContent,
+        hasError: chapter.hasError,
         status: chapter.status,
         timeTranslation: chapter.timeTranslation,
         translationError: chapter.translationError || null,
