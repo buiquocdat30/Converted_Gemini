@@ -694,9 +694,15 @@ const ChapterList = ({
 
           // Khi render trạng thái chương hoặc xử lý kết quả dịch:
           const isFailed = chapterStatus[idx] === 'FAILED' || results[idx]?.hasError || !!results[idx]?.translationError;
+          
           if (isFailed) {
             console.warn(`[LOG][FAILED] Chương ${calculatedChapterNumber} - idx=${idx}: status=${chapterStatus[idx]}, hasError=${results[idx]?.hasError}, translationError=${results[idx]?.translationError}`);
-            toast.error(results[idx]?.translationError || "Dịch thất bại!");
+            if (!results[idx]?.translationError) {
+              toast.error("Dịch thất bại!");
+            } else {
+              // Chỉ log ra console, không hiện toast
+              console.log("Lỗi dịch chương:", results[idx]?.translationError);
+            }
             // Hiển thị trạng thái FAILED trên UI
           }
 
