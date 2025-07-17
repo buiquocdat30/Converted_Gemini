@@ -18,6 +18,7 @@ const Users = () => {
     try {
       setLoading(true);
       const response = await usersAPI.getAll();
+      console.log("Đây là dữ liệu về user:",response.data.data)
       setUsers(response.data.data);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -85,7 +86,6 @@ const Users = () => {
             <tr>
               <th>User</th>
               <th>Email</th>
-              <th>Thống kê</th>
               <th>Ngày tạo</th>
               <th>Thao tác</th>
             </tr>
@@ -115,32 +115,6 @@ const Users = () => {
                   </div>
                 </td>
                 <td>{user.email}</td>
-                <td>
-                  <div className="user-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">Keys:</span>
-                      <span className="stat-value">{user.stats.totalKeys}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Truyện:</span>
-                      <span className="stat-value">
-                        {user.stats.totalStories}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Chương:</span>
-                      <span className="stat-value">
-                        {user.stats.totalChapters}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Usage:</span>
-                      <span className="stat-value">
-                        {user.stats.totalUsage}
-                      </span>
-                    </div>
-                  </div>
-                </td>
                 <td>{new Date(user.createdAt).toLocaleDateString("vi-VN")}</td>
                 <td>
                   <div className="flex gap-2">
