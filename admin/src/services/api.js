@@ -45,4 +45,9 @@ export const usersAPI = {
   getUsage: (id) => api.get(`/users/${id}/usage`),
 };
 
+// Queue API
+export const queueAPI = {
+  getStats: () => axios.get("http://localhost:8000/admin/queue/stats"),
+};
+
 export default api;

@@ -7,6 +7,7 @@ import DefaultKeys from "./pages/DefaultKeys";
 import Providers from "./pages/Providers";
 import Models from "./pages/Models";
 import Users from "./pages/Users";
+import Queue from "./pages/Queue";
 import "./App.css";
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/providers" element={<Providers />} />
             <Route path="/models" element={<Models />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/queue" element={<Queue />} />
           </Routes>
         </main>
         <Toaster
