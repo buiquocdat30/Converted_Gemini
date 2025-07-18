@@ -11,6 +11,7 @@ const userLibraryRoute = require("./routes/userLibraryRoute");
 const publicModelRoute = require("./routes/publicModelRoute");
 const glossaryRoute = require("./routes/glossaryRoute");
 const path = require("path");
+const queueRoute = require("./routes/queueRoute");
 
 // Admin routes mới
 const adminRoutes = require("./admin/adminRoutes/adminRoutes");
@@ -55,6 +56,8 @@ app.use("/user", userRoute);
 
 // Admin routes mới
 app.use("/admin", adminRoutes);
+
+//app.use("/admin/queue", queueRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

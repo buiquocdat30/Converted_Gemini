@@ -6,7 +6,8 @@ import {
   Building2, 
   Cpu, 
   Users,
-  Settings
+  Settings,
+  ListChecks // <--- Thêm icon này
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -36,6 +37,11 @@ const Sidebar = () => {
       path: '/users',
       icon: <Users size={20} />,
       label: 'Users'
+    },
+    {
+      path: '/queue',
+      icon: <ListChecks size={20} />, // <--- Icon cho Queue
+      label: 'Queue'
     }
   ];
 
