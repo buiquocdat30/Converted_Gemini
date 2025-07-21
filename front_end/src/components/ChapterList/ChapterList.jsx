@@ -841,63 +841,110 @@ const ChapterList = ({
       </ul>
       {/* trang chứa các chương khi vượt quá 10 chương */}
       <div className="pagination">
-        <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-          ⏮️ Trang đầu
-        </button>
+        {(() => {
+          const pageButtons = [];
+          const pagesToShowAtEnds = 5;
+          const pagesToShowInMiddle = 3;
 
-        {/* Hiển thị trang đầu tiên */}
-        {currentPage > 2 && (
-          <button onClick={() => setCurrentPage(1)}>1</button>
-        )}
+          // Previous button
+          pageButtons.push(
+            <button key="prev" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+              &laquo;
+            </button>
+          );
 
-        {/* Hiển thị dấu ... khi cần */}
-        {currentPage > 3 && <span>...</span>}
-
-        {/* Hiển thị các trang xung quanh trang hiện tại */}
-        {Array.from({ length: totalPages }, (_, i) => i + 1)
-          .filter((pageNum) => {
-            // Luôn hiển thị trang đầu và trang cuối
-            if (pageNum === 1 || pageNum === totalPages) return true;
-            // Hiển thị các trang xung quanh trang hiện tại (trước và sau 1 trang)
-            return Math.abs(pageNum - currentPage) <= 1;
-          })
-          .map((pageNum, index, array) => {
-            // Thêm dấu ... giữa các khoảng trống
-            const showEllipsisBefore =
-              index > 0 && array[index - 1] !== pageNum - 1;
-            const showEllipsisAfter =
-              index < array.length - 1 && array[index + 1] !== pageNum + 1;
-
-            return (
-              <React.Fragment key={pageNum}>
-                {showEllipsisBefore && <span>...</span>}
+          if (totalPages <= 6) {
+            // Case 1: 6 or fewer pages, show all
+            for (let i = 1; i <= totalPages; i++) {
+              pageButtons.push(
                 <button
-                  className={currentPage === pageNum ? "active" : ""}
-                  onClick={() => setCurrentPage(pageNum)}
+                  key={i}
+                  className={currentPage === i ? "active" : ""}
+                  onClick={() => setCurrentPage(i)}
                 >
-                  {pageNum}
+                  {String(i).padStart(2, "0")}
                 </button>
-                {showEllipsisAfter && <span>...</span>}
-              </React.Fragment>
-            );
-          })}
+              );
+            }
+          } else {
+            // Case 2: More than 6 pages
+            if (currentPage < pagesToShowAtEnds) {
+              // 2.1: At the start
+              for (let i = 1; i <= pagesToShowAtEnds; i++) {
+                pageButtons.push(
+                  <button
+                    key={i}
+                    className={currentPage === i ? "active" : ""}
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {String(i).padStart(2, "0")}
+                  </button>
+                );
+              }
+              pageButtons.push(<span key="end-ellipsis">...</span>);
+              pageButtons.push(
+                <button key="last" onClick={() => setCurrentPage(totalPages)}>
+                  Last
+                </button>
+              );
+            } else if (currentPage > totalPages - (pagesToShowAtEnds - 1)) {
+              // 2.3: At the end
+              pageButtons.push(
+                <button key="first" onClick={() => setCurrentPage(1)}>
+                  First
+                </button>
+              );
+              pageButtons.push(<span key="start-ellipsis">...</span>);
+              for (let i = totalPages - (pagesToShowAtEnds - 1); i <= totalPages; i++) {
+                pageButtons.push(
+                  <button
+                    key={i}
+                    className={currentPage === i ? "active" : ""}
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {String(i).padStart(2, "0")}
+                  </button>
+                );
+              }
+            } else {
+              // 2.2: In the middle
+              pageButtons.push(
+                <button key="first" onClick={() => setCurrentPage(1)}>
+                  First
+                </button>
+              );
+              pageButtons.push(<span key="start-ellipsis">...</span>);
+              const middleStart = currentPage - Math.floor((pagesToShowInMiddle - 1) / 2);
+              const middleEnd = currentPage + Math.floor(pagesToShowInMiddle / 2);
+              for (let i = middleStart; i <= middleEnd; i++) {
+                pageButtons.push(
+                  <button
+                    key={i}
+                    className={currentPage === i ? "active" : ""}
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {String(i).padStart(2, "0")}
+                  </button>
+                );
+              }
+              pageButtons.push(<span key="end-ellipsis">...</span>);
+              pageButtons.push(
+                <button key="last" onClick={() => setCurrentPage(totalPages)}>
+                  Last
+                </button>
+              );
+            }
+          }
 
-        {/* Hiển thị dấu ... khi cần */}
-        {currentPage < totalPages - 2 && <span>...</span>}
-
-        {/* Hiển thị trang cuối cùng */}
-        {currentPage < totalPages - 1 && (
-          <button onClick={() => setCurrentPage(totalPages)}>
-            {totalPages}
-          </button>
-        )}
-
-        <button
-          onClick={() => setCurrentPage(totalPages)}
-          disabled={currentPage === totalPages}
-        >
-          ⏭️ Trang cuối
-        </button>
+          // Next button
+          pageButtons.push(
+            <button key="next" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+              &raquo;
+            </button>
+          );
+          
+          return pageButtons;
+        })()}
       </div>
 
       {/* nhảy tới trang */}

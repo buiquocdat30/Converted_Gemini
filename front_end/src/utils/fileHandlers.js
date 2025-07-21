@@ -220,9 +220,9 @@ const handleTxtFile = (
       const { totalChapters, totalWords } = calculateChapterStats(result.chapters);
       const averageWords = totalChapters > 0 ? Math.round(totalWords / totalChapters) : 0;
 
-      if (setChapterCount) setChapterCount(totalChapters);
-      if (setTotalWords) setTotalWords(totalWords);
-      if (setAverageWords) setAverageWords(averageWords);
+        if (setChapterCount) setChapterCount(totalChapters);
+        if (setTotalWords) setTotalWords(totalWords);
+        if (setAverageWords) setAverageWords(averageWords);
 
       console.log(`✅ [handleTxtFile] Xử lý TXT thành công. Dữ liệu đầu ra cho file ${file.name}:`, result.chapters);
       if (setSuccess) setSuccess("✅ File TXT hợp lệ và đã được xử lý.");
