@@ -36,7 +36,114 @@ const countWords = (text) => {
   return chineseChars.length + nonChineseWords.length;
 };
 
-// xử lý file epub
+// Hàm chuyển đổi số Hán tự sang số Ả Rập (đồng bộ với backend)
+const convertChineseNumber = (chineseNum) => {
+  const chineseNumbers = {
+    零: 0, 〇: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 百: 100, 千: 1000,
+  };
+
+  let result = 0;
+  let currentNum = 0;
+  
+  if (chineseNum.length === 1 && chineseNumbers[chineseNum] !== undefined) {
+    return chineseNumbers[chineseNum];
+  }
+
+  for (let i = 0; i < chineseNum.length; i++) {
+    const char = chineseNum[i];
+    const value = chineseNumbers[char];
+
+    if (value >= 1 && value <= 9) {
+      currentNum = value;
+    } else if (value >= 10) {
+      if (currentNum === 0) {
+        currentNum = 1;
+      }
+      result += currentNum * value;
+      currentNum = 0;
+    }
+  }
+  result += currentNum;
+  if (result === 0 && chineseNum.includes("十") && chineseNum.length === 1) {
+    result = 10;
+  }
+  return result;
+};
+
+
+// Hàm trích số chương từ tiêu đề (đồng bộ với backend)
+const extractChapterNumber = (title) => {
+  // Trường hợp 1: Dạng "第 [Số Ả Rập] 章" (ví dụ: "第16章")
+  let match = title.match(/第(\d+)章/i);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+
+  // Trường hợp 2: Dạng "第 [Số Hán Tự] 章" (ví dụ: "第十五章")
+  match = title.match(/第([一二三四五六七八九十百千零〇]+)章/i);
+  if (match && match[1]) {
+    if (!/\d/.test(match[1])) {
+      return convertChineseNumber(match[1]);
+    }
+  }
+
+  // Trường hợp 3: Dạng "Chương N" hoặc "Chapter N"
+  match = title.match(/(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)/i);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+
+  return 0;
+};
+
+// Hàm xử lý chung để tách chương từ một đoạn văn bản
+const parseTextToChapters = (text) => {
+  console.log("🚀 [parseTextToChapters] Bắt đầu xử lý văn bản đầu vào. Kích thước:", text.length);
+  const chapterRegex = /^\s*(?:(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+|第[一二三四五六七八九十百千零〇\d]+章)/;
+  
+  const lines = text.split(/\r?\n/);
+  const chapters = [];
+  let currentChapter = null;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+
+    if (chapterRegex.test(trimmedLine)) {
+      if (currentChapter && currentChapter.content.trim()) {
+        chapters.push(currentChapter);
+      }
+      currentChapter = {
+        title: trimmedLine,
+        content: "",
+        chapterNumber: extractChapterNumber(trimmedLine),
+      };
+    } else if (currentChapter) {
+      currentChapter.content += trimmedLine + "\n";
+    }
+  }
+
+  if (currentChapter && currentChapter.content.trim()) {
+    chapters.push(currentChapter);
+  }
+
+  chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+
+  console.log(`✅ [parseTextToChapters] Xử lý xong. Tìm thấy ${chapters.length} chương.`);
+  if (chapters.length > 0) {
+    console.log("    => Chương đầu tiên:", chapters[0].title);
+    console.log("    => Chương cuối cùng:", chapters[chapters.length - 1].title);
+  }
+
+
+  return {
+    valid: chapters.length > 0 && chapters.every((ch) => ch.content.trim().length > 0),
+    chapters,
+    total: chapters.length,
+  };
+};
+
+// Xử lý file epub (được làm lại để đơn giản và nhất quán)
 const handleEpubFile = async (
   readerResult,
   setChapters,
@@ -44,105 +151,52 @@ const handleEpubFile = async (
   setSuccess,
   setChapterCount,
   setTotalWords,
-  setAverageWords,
-  setBooks,
-  setAuthor
+  setAverageWords
 ) => {
+  console.log("🚀 [handleEpubFile] Bắt đầu xử lý file EPUB.");
   try {
     const book = ePub(readerResult);
     await book.ready;
-    console.log("book", book);
-    const spineItems = book.spine.spineItems;
-    const allTexts = [];
 
-    // Regex để nhận diện các tiêu đề chương
-    const chapterRegex =
-      /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*|\d+\s+.*（第\d+页）)/im;
-
-    for (let i = 0; i < spineItems.length; i++) {
-      const item = spineItems[i];
-      const section = await item.load(book.load.bind(book));
-      const html = await item.render();
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-
-      const paragraphs = Array.from(doc.querySelectorAll("p"));
-      for (const p of paragraphs) {
-        const text = p.textContent?.trim();
-        if (text) allTexts.push(text);
+    let fullText = "";
+    for (const item of book.spine.spineItems) {
+      const section = await book.load(item.url);
+      const contents = section.querySelector("body");
+      if (contents) {
+        fullText += contents.innerText + "\n\n";
       }
-
       await item.unload();
     }
+    console.log("📄 [handleEpubFile] Đã trích xuất văn bản từ EPUB. Kích thước:", fullText.length);
 
-    // Tạo danh sách các chương
-    const chapters = [];
-    let currentChapter = null;
-    const seenTitles = new Set(); // Để lưu các tiêu đề đã gặp
+    const result = parseTextToChapters(fullText);
 
-    for (const line of allTexts) {
-      const match = line.match(chapterRegex); // Kiểm tra xem có phải tiêu đề không
-      if (match) {
-        // Kiểm tra xem tiêu đề đã gặp chưa
-        if (seenTitles.has(match[1] || match[0])) {
-          continue; // Nếu đã gặp, bỏ qua
-        }
+    if (result.valid) {
+      if (setChapters) setChapters(result.chapters);
 
-        // Lưu tiêu đề đã gặp
-        seenTitles.add(match[1] || match[0]);
-
-        // Nếu đã có chương trước đó, thêm vào danh sách
-        if (currentChapter) {
-          chapters.push(currentChapter);
-        }
-
-        // Tạo chương mới
-        currentChapter = {
-          title: match[1] || match[0],
-          content: "",
-        };
-      } else if (currentChapter) {
-        // Nếu đang thu thập nội dung cho chương hiện tại
-        currentChapter.content += line + "\n\n";
-      }
-    }
-
-    // Thêm chương cuối cùng vào danh sách
-    if (currentChapter) {
-      chapters.push(currentChapter);
-    }
-
-    // Gọi callback với chapters
-    setChapters(chapters);
-
-    // Tính toán và gọi các callback khác nếu cần
-    if (setChapterCount || setTotalWords || setAverageWords) {
-      const { totalChapters, totalWords } = calculateChapterStats(chapters);
-      const averageWords = Math.round(totalWords / totalChapters);
+      const { totalChapters, totalWords } = calculateChapterStats(result.chapters);
+      const averageWords = totalChapters > 0 ? Math.round(totalWords / totalChapters) : 0;
 
       if (setChapterCount) setChapterCount(totalChapters);
       if (setTotalWords) setTotalWords(totalWords);
       if (setAverageWords) setAverageWords(averageWords);
-    }
 
-    // Gọi callback thành công nếu có
-    if (setSuccess) {
-      setSuccess("✅ File EPUB đã được xử lý.");
+      console.log("✅ [handleEpubFile] Xử lý EPUB thành công. Dữ liệu đầu ra:", result.chapters);
+      if (setSuccess) setSuccess("✅ File EPUB đã được xử lý thành công.");
+      return result.chapters;
+    } else {
+      throw new Error("Không tìm thấy chương nào hợp lệ trong file EPUB.");
     }
-
-    return chapters;
   } catch (err) {
-    console.error("❌ EPUB xử lý lỗi:", err);
-    if (setError) setError("❌ Lỗi khi đọc file EPUB.");
+    console.error("❌ [handleEpubFile] Lỗi xử lý EPUB:", err);
+    if (setError) setError(`❌ Lỗi khi đọc file EPUB: ${err.message}`);
     if (setSuccess) setSuccess("");
     if (setChapters) setChapters([]);
     throw err;
   }
 };
 
-// xử lý file txt
-
+// Xử lý file txt (được làm lại để dùng logic chung)
 const handleTxtFile = (
   readerResult,
   setChapters,
@@ -153,48 +207,37 @@ const handleTxtFile = (
   file,
   setChapterCount,
   setTotalWords,
-  setAverageWords,
-  setBooks,
-  setAuthor
+  setAverageWords
 ) => {
+  console.log(`🚀 [handleTxtFile] Bắt đầu xử lý file TXT: ${file.name}`);
   try {
-    const result = checkFileFormatFromText(readerResult);
+    console.log("📄 [handleTxtFile] Dữ liệu văn bản đầu vào. Kích thước:", readerResult.length);
+    const result = parseTextToChapters(readerResult);
 
     if (result.valid) {
-      // Gọi callback với chapters
       if (setChapters) setChapters(result.chapters);
 
-      // Tính toán và gọi các callback khác nếu cần
-      if (setChapterCount || setTotalWords || setAverageWords) {
-        const { totalChapters, totalWords } = calculateChapterStats(
-          result.chapters
-        );
-        const averageWords = Math.round(totalWords / totalChapters);
+      const { totalChapters, totalWords } = calculateChapterStats(result.chapters);
+      const averageWords = totalChapters > 0 ? Math.round(totalWords / totalChapters) : 0;
 
-        if (setChapterCount) setChapterCount(totalChapters);
-        if (setTotalWords) setTotalWords(totalWords);
-        if (setAverageWords) setAverageWords(averageWords);
-      }
+      if (setChapterCount) setChapterCount(totalChapters);
+      if (setTotalWords) setTotalWords(totalWords);
+      if (setAverageWords) setAverageWords(averageWords);
 
-      // Gọi callback thành công nếu có
-      if (setSuccess) {
-        setSuccess("✅ File có thể sử dụng.");
-      }
-      console.log("✅ kết quả trả về của file handleTxtFile.", result.chapters);
+      console.log(`✅ [handleTxtFile] Xử lý TXT thành công. Dữ liệu đầu ra cho file ${file.name}:`, result.chapters);
+      if (setSuccess) setSuccess("✅ File TXT hợp lệ và đã được xử lý.");
       return result.chapters;
     } else {
-      // Xử lý lỗi
-      if (setError)
-        setError(`❌ File ${file.name} không đúng định dạng chương.`);
+      const errorMessage = `❌ File ${file.name} không chứa chương nào hợp lệ hoặc không đúng định dạng.`;
+      if (setError) setError(errorMessage);
       if (setSelectedFile) setSelectedFile(null);
       if (setChapters) setChapters([]);
       if (setSuccess) setSuccess("");
       if (fileInputRef?.current) fileInputRef.current.value = "";
-
-      throw new Error(`File ${file.name} không đúng định dạng chương.`);
+      throw new Error(errorMessage);
     }
   } catch (err) {
-    console.error("❌ TXT xử lý lỗi:", err);
+    console.error(`❌ [handleTxtFile] Lỗi xử lý TXT file ${file.name}:`, err);
     if (setError) setError(err.message);
     if (setSuccess) setSuccess("");
     if (setChapters) setChapters([]);
@@ -202,110 +245,10 @@ const handleTxtFile = (
   }
 };
 
-// Hàm chuyển đổi số Hán tự sang số Ả Rập
-const convertChineseNumber = (chineseNum) => {
-  const chineseNumbers = {
-    一: 1,
-    二: 2,
-    三: 3,
-    四: 4,
-    五: 5,
-    六: 6,
-    七: 7,
-    八: 8,
-    九: 9,
-    十: 10,
-    百: 100,
-    千: 1000,
-    零: 0,
-    〇: 0,
-  };
-
-  let result = 0;
-  let temp = 0;
-  let unit = 1;
-
-  for (let i = chineseNum.length - 1; i >= 0; i--) {
-    const char = chineseNum[i];
-    if (chineseNumbers[char] >= 10) {
-      if (temp === 0) temp = 1;
-      result += temp * chineseNumbers[char];
-      temp = 0;
-      unit = 1;
-    } else {
-      temp += chineseNumbers[char] * unit;
-      unit *= 10;
-    }
-  }
-  result += temp;
-  return result;
-};
-
-// Hàm trích số chương từ tiêu đề
-const extractChapterNumber = (title) => {
-  // Thử tìm số Ả Rập trước
-  const arabicMatch = title.match(/\d+/);
-  if (arabicMatch) {
-    return parseInt(arabicMatch[0]);
-  }
-
-  // Thử tìm số Hán tự
-  const chineseMatch = title.match(/[一二三四五六七八九十百千零〇]+/);
-  if (chineseMatch) {
-    return convertChineseNumber(chineseMatch[0]);
-  }
-
-  // Nếu không tìm thấy số nào, trả về 0
-  return 0;
-};
-
-// kiểm tra định dạng file txt
 const checkFileFormatFromText = (text) => {
-  const chapterRegex =
-    /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[零〇一二三四五六七八九十百千万亿]+章[^\n]*)/i;
+  console.log("🚀 [checkFileFormatFromText] Bắt đầu kiểm tra định dạng văn bản.");
+  return parseTextToChapters(text);
+}
 
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const chapters = [];
-  let currentChapter = null;
-
-  for (const line of lines) {
-    if (chapterRegex.test(line)) {
-      if (currentChapter) {
-        chapters.push(currentChapter);
-      }
-
-      currentChapter = {
-        title: line,
-        content: "",
-        chapterNumber: extractChapterNumber(line),
-      };
-    } else if (currentChapter) {
-      currentChapter.content += line + "\n\n";
-    }
-  }
-
-  if (currentChapter) {
-    chapters.push(currentChapter);
-  }
-
-  // Gán lại chapterNumber theo thứ tự dòng xuất hiện
-  chapters.forEach((ch, index) => {
-    ch.chapterNumber = index + 1;
-  });
-  chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
-  console.log("✅ kết quả trả về của file handleTxtFile.", chapters);
-  return {
-    valid:
-      chapters.length > 0 &&
-      chapters.every((ch) => ch.content.trim().length > 0),
-    chapters,
-    total: chapters.length,
-  };
- 
-};
 
 export { handleEpubFile, handleTxtFile, checkFileFormatFromText };

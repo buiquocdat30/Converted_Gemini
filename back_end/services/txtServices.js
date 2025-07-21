@@ -4,8 +4,7 @@ const fs = require("fs");
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // Regex đa ngôn ngữ tìm tiêu đề chương
-// Đã điều chỉnh để bắt số chương chính xác hơn
-// Lưu ý: Biểu thức này ưu tiên bắt số ngay sau từ khóa hoặc trong cấu trúc "第X章"
+// Đã điều chỉnh để bắt số chương chính xác hơn, nhận cả số Hán tự, số Ả Rập, hoặc kết hợp
 const chapterRegex =
   /^\s*(?:(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)[^\n]*|第([一二三四五六七八九十百千零〇\d]+)章[^\n]*)/gim;
 
@@ -77,31 +76,31 @@ const convertChineseNumber = (chineseNum) => {
   return result;
 };
 
-// Hàm trích số chương từ tiêu đề
+// Hàm trích số chương từ tiêu đề (được cấu trúc lại theo logic switch-case)
 const extractChapterNumber = (title) => {
-  // Ưu tiên xử lý định dạng Hán tự: 第X章
-  const chineseChapterMatch = title.match(
-    /第([一二三四五六七八九十百千零〇\d]+)章/i
-  );
-  if (chineseChapterMatch && chineseChapterMatch[1]) {
-    const chineseNumStr = chineseChapterMatch[1];
-    // Kiểm tra xem có phải là số Ả Rập thuần túy trong Hán tự không
-    if (!isNaN(parseInt(chineseNumStr))) {
-      return parseInt(chineseNumStr);
+  // Trường hợp 1: Thử khớp với định dạng "第 [Số Ả Rập] 章" (ví dụ: "第16章")
+  let match = title.match(/第(\d+)章/i);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+
+  // Trường hợp 2: Thử khớp với định dạng "第 [Số Hán Tự] 章" (ví dụ: "第十五章")
+  match = title.match(/第([一二三四五六七八九十百千零〇]+)章/i);
+  if (match && match[1]) {
+    // Đảm bảo không có số Ả Rập lẫn vào
+    if (!/\d/.test(match[1])) {
+      return convertChineseNumber(match[1]);
     }
-    return convertChineseNumber(chineseNumStr);
   }
 
-  // Tiếp theo xử lý định dạng tiếng Việt/Anh: Chương N, Chapter N
-  const arabicChapterMatch = title.match(
-    /(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)/i
-  );
-  if (arabicChapterMatch && arabicChapterMatch[1]) {
-    return parseInt(arabicChapterMatch[1]);
+  // Trường hợp 3: Thử khớp với định dạng "Chương N" hoặc "Chapter N"
+  match = title.match(/(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)/i);
+  if (match && match[1]) {
+    return parseInt(match[1]);
   }
 
-  // Nếu không tìm thấy số nào theo định dạng chương, trả về 0 hoặc một giá trị đặc biệt
-  return 0; // Hoặc bạn có thể trả về null/undefined để báo hiệu không tìm thấy
+  // Nếu không khớp với bất kỳ trường hợp nào, trả về 0
+  return 0;
 };
 
 const readTxt = (filePath) => {

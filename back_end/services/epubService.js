@@ -123,106 +123,60 @@ const readEpub = (filePath) => {
       );
 
       const fullText = chapterTexts.join("\n");
-      // Không cần .trimStart() ở đây nữa vì chapterRegex đã xử lý khoảng trắng đầu dòng
-      // và nội dung từ epub thường không có khoảng trắng đầu dòng không mong muốn
       const lines = fullText.split("\n");
 
-      // Tìm chỉ mục của chương đầu tiên để bắt đầu phân tích
-      // Dùng for...of để có thể dùng chapterRegex.exec() liên tục
-      let firstChapterIndex = -1;
+      const chapters = [];
+      let currentChapter = null;
+      let chapterCount = 0;
+
       for (let i = 0; i < lines.length; i++) {
-        chapterRegex.lastIndex = 0; // Reset regex cho mỗi dòng
-        if (chapterRegex.test(lines[i])) {
-          firstChapterIndex = i;
-          break;
+        const line = lines[i];
+        // Sử dụng regex với exec để lấy các nhóm bắt được
+        const match = chapterRegex.exec(line);
+        chapterRegex.lastIndex = 0;
+        if (match) {
+          if (currentChapter) {
+            if (!currentChapter.content.trim()) {
+              console.warn(`Chương "${currentChapter.title}" không có nội dung, sẽ bỏ qua.`);
+            } else {
+              chapters.push(currentChapter);
+            }
+          }
+          const title = match[0].trim();
+          const chapterNumber = extractChapterNumber(title);
+          if (chapterNumber === 0) {
+            chapterCount++;
+          } else {
+            chapterCount = chapterNumber;
+          }
+          currentChapter = {
+            title,
+            content: "",
+            chapterNumber: chapterNumber || chapterCount,
+          };
+        } else if (currentChapter && line.trim()) {
+          currentChapter.content += line + "\n";
         }
       }
 
-      if (firstChapterIndex === -1) {
+      if (currentChapter) {
+        if (!currentChapter.content.trim()) {
+          console.warn(`Chương "${currentChapter.title}" không có nội dung, sẽ bỏ qua.`);
+        } else {
+          chapters.push(currentChapter);
+        }
+      }
+
+      if (!chapters.length) {
         return reject("❌ Không tìm thấy chương nào trong file.");
       }
 
-      const contentFromFirstChapter = lines.slice(firstChapterIndex).join("\n");
-
-      // Sử dụng split với regex bắt các nhóm, cần đảm bảo regex bắt được cả tiêu đề và phần nội dung
-      // Dùng một regex chỉ để split, không dùng global flag ở đây
-      const splittingRegex = new RegExp(
-        /^\s*(?:(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)[^\n]*|第([一二三四五六七八九十百千零〇\d]+)章[^\n]*)/,
-        "im"
-      );
-
-      const parts = contentFromFirstChapter.split(splittingRegex);
-
-      // Parts sẽ có dạng: ["", "Tiêu đề Chương 1", "Nội dung Chương 1", "Tiêu đề Chương 2", "Nội dung Chương 2", ...]
-      // Hoặc nếu không có nhóm bắt được, sẽ là ["", "Tiêu đề Chương 1", "Nội dung Chương 1", "Tiêu đề Chương 2", "Nội dung Chương 2", ...]
-      // Cần điều chỉnh logic để xử lý parts sau khi split.
-
-      const chapters = [];
-      let currentChapterTitle = "";
-      let currentChapterContent = "";
-      let chapterCounter = 0; // Để đếm và gán số thứ tự nếu extractChapterNumber không hoạt động
-
-      // Logic để ghép lại tiêu đề và nội dung từ `parts`
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (part === undefined || part.trim() === "") {
-          continue; // Bỏ qua các phần rỗng hoặc undefined
-        }
-
-        // Kiểm tra xem phần hiện tại có phải là tiêu đề chương không
-        const isChapterTitle = chapterRegex.test(part);
-        chapterRegex.lastIndex = 0; // Reset lastIndex sau test
-
-        if (isChapterTitle) {
-          // Nếu đã có chương đang xây dựng, đẩy nó vào mảng
-          if (currentChapterTitle !== "") {
-            if (!currentChapterContent.trim()) {
-              return reject(
-                `Chương "${currentChapterTitle}" không có nội dung.`
-              );
-            }
-            const chapterNumber = extractChapterNumber(currentChapterTitle);
-            chapters.push({
-              title: currentChapterTitle,
-              content: currentChapterContent.trim(),
-              chapterNumber: chapterNumber || ++chapterCounter, // Đảm bảo có số thứ tự
-            });
-          }
-          // Bắt đầu chương mới
-          currentChapterTitle = part.trim();
-          currentChapterContent = ""; // Reset nội dung
-        } else {
-          // Nếu không phải tiêu đề, thêm vào nội dung chương hiện tại
-          currentChapterContent += part + "\n";
-        }
-      }
-
-      // Đẩy chương cuối cùng sau khi vòng lặp kết thúc
-      if (currentChapterTitle !== "") {
-        if (!currentChapterContent.trim()) {
-          return reject(`Chương "${currentChapterTitle}" không có nội dung.`);
-        }
-        const chapterNumber = extractChapterNumber(currentChapterTitle);
-        chapters.push({
-          title: currentChapterTitle,
-          content: currentChapterContent.trim(),
-          chapterNumber: chapterNumber || ++chapterCounter,
-        });
-      }
-
-      // Sắp xếp chapters theo chapterNumber
       chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
 
-      // Kiểm tra tính liên tục của số chương
       for (let i = 0; i < chapters.length; i++) {
-        // Có thể cần điều chỉnh logic này tùy thuộc vào cách đánh số chương của truyện
         if (chapters[i].chapterNumber !== i + 1) {
           console.warn(
-            `Cảnh báo: Chương "${
-              chapters[i].title
-            }" có số chương không liên tục (${
-              chapters[i].chapterNumber
-            } thay vì ${i + 1})`
+            `Cảnh báo: Chương "${chapters[i].title}" có số chương không liên tục (${chapters[i].chapterNumber} thay vì ${i + 1})`
           );
         }
       }
