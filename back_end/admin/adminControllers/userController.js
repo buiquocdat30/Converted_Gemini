@@ -4,41 +4,41 @@ const userService = require('../adminServices/userServices');
 const getAllUsers = async (req, res) => {
   try {
     const users = await userService.getAllUsers();
-    res.json({
-      success: true,
+      res.json({
+        success: true,
       data: users
-    });
-  } catch (error) {
-    console.error('Lỗi khi lấy users:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server khi lấy danh sách users'
-    });
-  }
-};
-
-// Lấy user theo ID
-const getUserById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await userService.getUserById(id);
-    if (!user) {
-      return res.status(404).json({
+      });
+    } catch (error) {
+      console.error('Lỗi khi lấy users:', error);
+      res.status(500).json({
         success: false,
-        message: 'User không tồn tại'
+        message: 'Lỗi server khi lấy danh sách users'
       });
     }
-    res.json({
-      success: true,
-      data: user
-    });
-  } catch (error) {
-    console.error('Lỗi khi lấy user:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server khi lấy thông tin user'
-    });
-  }
+};
+
+  // Lấy user theo ID
+const getUserById = async (req, res) => {
+    try {
+      const { id } = req.params;
+    const user = await userService.getUserById(id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User không tồn tại'
+        });
+      }
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      console.error('Lỗi khi lấy user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi lấy thông tin user'
+      });
+    }
 };
 
 // Tạo user mới
@@ -60,7 +60,7 @@ const createUser = async (req, res) => {
   } catch (error) {
     console.error('Lỗi khi tạo user:', error);
     res.status(500).json({
-      success: false,
+            success: false,
       message: 'Lỗi server khi tạo user'
     });
   }
@@ -72,42 +72,42 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const { email, username, password, avatar, birthdate } = req.body;
     const user = await userService.updateUser(id, {
-      email,
+            email,
       username,
       password,
-      avatar,
+          avatar,
       birthdate: birthdate ? new Date(birthdate) : null
-    });
-    res.json({
-      success: true,
-      message: 'Cập nhật user thành công',
+      });
+      res.json({
+        success: true,
+        message: 'Cập nhật user thành công',
       data: user
-    });
-  } catch (error) {
-    console.error('Lỗi khi cập nhật user:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server khi cập nhật user'
-    });
-  }
+      });
+    } catch (error) {
+      console.error('Lỗi khi cập nhật user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi cập nhật user'
+      });
+    }
 };
 
-// Xóa user
+  // Xóa user
 const deleteUser = async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
     await userService.deleteUser(id);
-    res.json({
-      success: true,
-      message: 'Xóa user thành công'
-    });
-  } catch (error) {
-    console.error('Lỗi khi xóa user:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server khi xóa user'
-    });
-  }
+      res.json({
+        success: true,
+        message: 'Xóa user thành công'
+      });
+    } catch (error) {
+      console.error('Lỗi khi xóa user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi xóa user'
+      });
+    }
 };
 
 module.exports = {
