@@ -65,21 +65,21 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
     };
 
     if (loading) {
-        return <div className="model-selector-loading">Đang tải dữ liệu...</div>;
+        return <div className="MS-model-selector-loading">Đang tải dữ liệu...</div>;
     }
 
     if (error) {
-        return <div className="model-selector-error">{error}</div>;
+        return <div className="MS-model-selector-error">{error}</div>;
     }
 
     return (
-        <div className={`model-selector ${isDarkMode ? 'dark' : ''}`}>
-            <div className="provider-selector">
-                <label className="provider-label">🤖 Chọn nhà cung cấp:</label>
+        <div className={`MS-model-selector ${isDarkMode ? 'MS-dark' : ''}`}>
+            <div className="MS-provider-selector">
+                <label className="MS-provider-label">🤖 Chọn nhà cung cấp:</label>
                 <select 
                     value={selectedProvider?.id || ''} 
                     onChange={(e) => handleProviderChange(e.target.value)}
-                    className="provider-select"
+                    className="MS-provider-select"
                 >
                     {providers.map(provider => (
                         <option key={provider.id} value={provider.id}>
@@ -89,26 +89,26 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
                 </select>
             </div>
 
-            <div className="model-list">
-                <label className="model-label">📋 Chọn mô hình:</label>
-                <div className="model-options">
+            <div className="MS-model-list">
+                <label className="MS-model-label">📋 Chọn mô hình:</label>
+                <div className="MS-model-options">
                     {models.map(model => (
                         <div 
                             key={model.id} 
-                            className={`model-option ${currentSelectedModel === model.value ? 'selected' : ''}`}
+                            className={`MS-model-option ${currentSelectedModel === model.value ? 'MS-selected' : ''}`}
                             onClick={() => handleModelChange(model.value)}
                         >
-                            <div className="model-info">
+                            <div className="MS-model-info">
                                 <h4>{model.label}</h4>
                                 <p>{model.description}</p>
                             </div>
-                            <div className="model-limits">
+                            <div className="MS-model-limits">
                                 <span>RPM: {model.rpm}</span>
                                 <span>TPM: {model.tpm}</span>
                                 <span>RPD: {model.rpd}</span>
                             </div>
                             {/* Thông báo chi tiết về giới hạn dịch */}
-                            <div className="model-limits model-limits-detail">
+                            <div className="MS-model-limits MS-model-limits-detail">
                                 <span>
                                     ⏳ Thời gian chờ tối thiểu giữa 2 lần dịch: <b>{model.rpm ? (60 / model.rpm).toFixed(2) : 'N/A'}</b> giây
                                 </span>

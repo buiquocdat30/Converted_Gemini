@@ -1,6 +1,6 @@
 @import '../../css/App.css';
 
-.model-modal-overlay {
+.UMM-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -13,7 +13,7 @@
   z-index: 1000;
 }
 
-.model-modal-content {
+.UMM-modal-content {
   background: white;
   border-radius: 8px;
   padding: 20px;
@@ -23,7 +23,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.model-modal-header {
+.UMM-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -32,7 +32,7 @@
   border-bottom: 1px solid #eee;
 }
 
-.model-modal-header h3 {
+.UMM-modal-header h3 {
   margin: 0;
   color: #333;
 }
@@ -55,7 +55,7 @@
   color: #333;
 }
 
-.model-modal-body {
+.UMM-modal-body {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -85,7 +85,7 @@
   gap: 15px;
 }
 
-.model-status-card {
+.UMM-model-status-card {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 15px;
@@ -94,11 +94,11 @@
   transition: box-shadow 0.2s;
 }
 
-.model-status-card:hover {
+.UMM-model-status-card:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.model-header {
+.UMM-model-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -107,7 +107,7 @@
   border-bottom: 1px solid #eee;
 }
 
-.model-header h5 {
+.UMM-model-header h5 {
   margin: 0;
   color: #333;
   font-size: 16px;
@@ -136,18 +136,18 @@
   color: #721c24;
 }
 
-.model-info p {
+.UMM-model-info p {
   margin: 8px 0;
   color: #555;
   font-size: 14px;
 }
 
-.model-info strong {
+.UMM-model-info strong {
   color: #333;
   font-weight: 600;
 }
 
-.model-limits, .model-usage {
+.UMM-model-limits, .UMM-model-usage {
   margin: 4px 0;
   padding: 10px;
   background: #f8f9fa;
@@ -155,14 +155,14 @@
   border-left: 3px solid #007bff;
 }
 
-.model-limits h6, .model-usage h6 {
+.UMM-model-limits h6, .UMM-model-usage h6 {
   margin: 0 0 8px 0;
   color: #333;
   font-size: 14px;
   font-weight: 600;
 }
 
-.model-limits p, .model-usage p {
+.UMM-model-limits p, .UMM-model-usage p {
   margin: 4px 0;
   font-size: 13px;
   color: #666;
@@ -190,7 +190,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .model-modal-content {
+  .UMM-modal-content {
     margin: 20px;
     max-width: calc(100vw - 40px);
   }
@@ -199,7 +199,7 @@
     grid-template-columns: 1fr;
   }
   
-  .model-header {
+  .UMM-model-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
@@ -207,12 +207,12 @@
 }
 
 /* Dark theme support */
-.dark .model-modal-content {
+.dark .UMM-modal-content {
   background: #2d2d2d;
   color: #fff;
 }
 
-.dark .model-modal-header h3 {
+.dark .UMM-modal-header h3 {
   color: #fff;
 }
 
@@ -224,16 +224,16 @@
   background: #3d3d3d;
 }
 
-.dark .model-status-card {
+.dark .UMM-model-status-card {
   background: #3d3d3d;
   border-color: #4d4d4d;
 }
 
-.dark .model-header h5 {
+.dark .UMM-model-header h5 {
   color: #fff;
 }
 
-.dark .model-info p {
+.dark .UMM-model-info p {
   color: #ccc;
 }
 
