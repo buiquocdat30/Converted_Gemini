@@ -54,6 +54,8 @@ export const translateAllChapters = async ({
         return { success: false };
       }
       console.log(`📖 [Song song] Đang dịch chương ${i + 1}/${totalChapters}`);
+      const modelToSend = (model && typeof model === 'object' && model.value) ? model.value : model;
+      console.log('[translateAllChapters] Gửi model lên backend:', modelToSend);
       const requestData = {
         chapters: [{
           title: chapter.chapterName || `Chương ${originalIndex + 1}`,
@@ -61,7 +63,7 @@ export const translateAllChapters = async ({
           chapterNumber: chapter.chapterNumber || originalIndex + 1
         }],
         userKeys: Array.isArray(apiKey) ? apiKey : [apiKey],
-        model: model,
+        model: modelToSend,
         storyId: storyId,
       };
       const token = localStorage.getItem("auth-token");

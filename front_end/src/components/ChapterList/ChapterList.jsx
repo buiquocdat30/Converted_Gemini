@@ -7,11 +7,12 @@ import { translateSingleChapter } from "../../services/translateSingleChapter";
 import { toast } from "react-hot-toast";
 import useTranslationProgress from "../../hook/useTranslationProgress";
 import "./ChapterList.css";
+import { useSession } from '../../context/SessionContext';
 
 const ChapterList = ({
   chapters,
   apiKey,
-  model,
+  model: modelProp,
   onTranslationResult,
   onSelectChapter,
   onSelectJumbChapter,
@@ -20,7 +21,13 @@ const ChapterList = ({
   deleteChapter,
   onChapterAdded,
   setChapters,
+  ...rest
 }) => {
+  const { selectedModel: modelFromContext } = useSession();
+  // Ưu tiên prop model nếu là object, nếu không thì lấy từ context
+  const modelObject = (modelProp && typeof modelProp === 'object' && modelProp.rpm) ? modelProp : modelFromContext;
+  console.log('[ChapterList] model from context:', modelFromContext);
+  console.log('[ChapterList] model from prop rpm:', modelObject);
   const [results, setResults] = useState({});
   const [errorMessages, setErrorMessages] = useState({});
   const [translatedCount, setTranslatedCount] = useState(0);
@@ -249,7 +256,7 @@ const ChapterList = ({
         chaptersToTranslate,
         chapters,
         apiKey,
-        model,
+        model: modelObject,
         storyId,
         setResults: (updater) => {
           // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
@@ -360,10 +367,15 @@ const ChapterList = ({
   const [singleTranslateCooldown, setSingleTranslateCooldown] = useState(0);
   const singleTranslateTimerRef = useRef(null);
 
-  // Hàm bắt đầu cooldown dịch lẻ
+  // Thay đổi hàm startSingleTranslateCooldown để luôn set cooldown = 30s để test
   const startSingleTranslateCooldown = () => {
-    if (!model || !model.rpm) return;
-    const cooldown = Math.ceil(60 / model.rpm);
+    console.log('[ChapterList] model from prop rpm:', modelObject.rpm);
+    console.log('[ChapterList test model.rpm] startSingleTranslateCooldown', modelObject, typeof modelObject, modelObject?.rpm);
+    if (!modelObject || typeof modelObject !== 'object' || !modelObject.rpm) {
+      console.warn('[ChapterList] Model không hợp lệ hoặc không có rpm:', modelObject);
+      return;
+    }
+    const cooldown = Math.ceil(60 / modelObject.rpm);
     setSingleTranslateCooldown(cooldown);
     if (singleTranslateTimerRef.current) clearInterval(singleTranslateTimerRef.current);
     singleTranslateTimerRef.current = setInterval(() => {
@@ -384,7 +396,7 @@ const ChapterList = ({
     };
   }, []);
 
-  // Sửa hàm translate (dịch lẻ)
+  // Sửa hàm translate để log ra khi bấm dịch 1 chương
   const translate = (index) => {
     cancelMapRef.current[index] = false; // Reset trạng thái hủy khi dịch lại
     // Nếu không được phép dịch thì return luôn, không chạy tiếp
@@ -398,8 +410,12 @@ const ChapterList = ({
     // Nếu đang cooldown dịch lẻ thì không cho dịch
     if (singleTranslateCooldown > 0) return;
 
+    // Log model object và rpm
+    console.log('[ChapterList] Bấm dịch chương', index, 'Model:', modelObject, 'RPM:', modelObject?.rpm);
+
     // Bắt đầu cooldown dịch lẻ
     startSingleTranslateCooldown();
+    console.log('[ChapterList] Bấm dịch chương', index, 'Cooldown:', 30, 'giây');
 
     // Đặt trạng thái PENDING
     setChapterStatus((prev) => {
@@ -430,7 +446,7 @@ const ChapterList = ({
         index,
         chapters,
         apiKey,
-        model,
+        model: modelObject,
         storyId,
         setProgress: (progress) => {
           setChapterProgresses((prev) => ({ ...prev, [index]: progress }));
