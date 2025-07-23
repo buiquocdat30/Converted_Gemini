@@ -356,7 +356,35 @@ const ChapterList = ({
     }
   };
 
-  // Hàm dịch từng chương
+  // Thêm state cho countdown dịch lẻ
+  const [singleTranslateCooldown, setSingleTranslateCooldown] = useState(0);
+  const singleTranslateTimerRef = useRef(null);
+
+  // Hàm bắt đầu cooldown dịch lẻ
+  const startSingleTranslateCooldown = () => {
+    if (!model || !model.rpm) return;
+    const cooldown = Math.ceil(60 / model.rpm);
+    setSingleTranslateCooldown(cooldown);
+    if (singleTranslateTimerRef.current) clearInterval(singleTranslateTimerRef.current);
+    singleTranslateTimerRef.current = setInterval(() => {
+      setSingleTranslateCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(singleTranslateTimerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Clear timer khi unmount
+  useEffect(() => {
+    return () => {
+      if (singleTranslateTimerRef.current) clearInterval(singleTranslateTimerRef.current);
+    };
+  }, []);
+
+  // Sửa hàm translate (dịch lẻ)
   const translate = (index) => {
     cancelMapRef.current[index] = false; // Reset trạng thái hủy khi dịch lại
     // Nếu không được phép dịch thì return luôn, không chạy tiếp
@@ -367,6 +395,11 @@ const ChapterList = ({
       chapterStatus[index] === "PENDING"
     )
       return;
+    // Nếu đang cooldown dịch lẻ thì không cho dịch
+    if (singleTranslateCooldown > 0) return;
+
+    // Bắt đầu cooldown dịch lẻ
+    startSingleTranslateCooldown();
 
     // Đặt trạng thái PENDING
     setChapterStatus((prev) => {
@@ -748,13 +781,14 @@ const ChapterList = ({
                           !canTranslate(idx) ||
                           isTranslatingAll ||
                           chapterStatus[idx] === "PROCESSING" ||
-                          chapterStatus[idx] === "PENDING"
+                          chapterStatus[idx] === "PENDING" ||
+                          singleTranslateCooldown > 0
                         }
                         className={`translate-sgn-button ${
                           isTranslated ? "hidden" : ""
                         }`}
                       >
-                        📝 Dịch
+                        {singleTranslateCooldown > 0 ? `📝 Dịch (${singleTranslateCooldown}s)` : "📝 Dịch"}
                       </button>
                     )}
                     {/* Nút hủy dịch chỉ hiện khi PROCESSING hoặc PENDING */}
