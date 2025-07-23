@@ -47,7 +47,10 @@ const TranslatorApp = ({
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
   const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
   const [selectedKeys, setSelectedKeys] = useState(sessionSelectedKeys || []); // Thêm state để lưu danh sách key đã chọn
-  const [tempModel, setTempModel] = useState(sessionSelectedModel || model); // State model tạm thời
+  // tempModel luôn là object model
+  const [tempModel, setTempModel] = useState(sessionSelectedModel || model);
+  // Thêm state lưu danh sách models
+  const [allModels, setAllModels] = useState([]);
   console.log("Đây là truyện hiện tại",currentStory)
 
   // Đồng bộ session state với local state
@@ -64,11 +67,45 @@ const TranslatorApp = ({
     }
   }, [sessionSelectedKeys, selectedKeys]);
 
+  // Khi nhận model mới từ ModelSelector, lưu object model
+  const handleModelChange = (modelObj) => {
+    setTempModel(modelObj);
+    updateSelectedModel(modelObj);
+  };
+
+  // Nhận models từ ModelSelector
+  const handleModelSelectorChange = (modelObj, modelsList) => {
+    console.log('[TranslatorApp] handleModelSelectorChange', modelObj, modelsList);
+    setTempModel(modelObj);
+    updateSelectedModel(modelObj);
+    if (Array.isArray(modelsList) && modelsList.length > 0) {
+      setAllModels(modelsList);
+    }
+  };
+
+  // Nếu tempModel là string, tra cứu lại object model từ allModels
   useEffect(() => {
-    if (sessionSelectedModel && sessionSelectedModel !== tempModel) {
+    if (typeof tempModel === 'string' && allModels.length > 0) {
+      const found = allModels.find(m => m.value === tempModel);
+      if (found) {
+        setTempModel(found);
+        console.log('[TranslatorApp] Đã convert model string sang object:', found);
+      }
+    }
+  }, [tempModel, allModels]);
+
+  // useEffect đồng bộ lại khi sessionSelectedModel hoặc model prop thay đổi
+  useEffect(() => {
+    if (sessionSelectedModel && sessionSelectedModel.value !== tempModel?.value) {
       setTempModel(sessionSelectedModel);
     }
   }, [sessionSelectedModel, tempModel]);
+
+  useEffect(() => {
+    if (model && model.value !== tempModel?.value && !sessionSelectedModel) {
+      setTempModel(model);
+    }
+  }, [model, tempModel, sessionSelectedModel]);
 
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
@@ -770,10 +807,7 @@ const TranslatorApp = ({
               />
               <ModelSelector
                 selectedModel={tempModel}
-                onModelChange={(newModel) => {
-                  setTempModel(newModel);
-                  updateSelectedModel(newModel);
-                }}
+                onModelChange={(modelObj, modelsList) => handleModelSelectorChange(modelObj, modelsList)}
                 isDarkMode={isDarkMode}
               />
             </div>
@@ -807,6 +841,7 @@ const TranslatorApp = ({
             chapters={mergedChapters}
             apiKey={selectedKeys.length > 0 ? selectedKeys : currentApiKey}
             model={tempModel}
+            models={allModels}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={handleChapterChange}
             onSelectJumbChapter={handleSelectJumbChapter}

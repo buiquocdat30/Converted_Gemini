@@ -35,6 +35,8 @@ export const translateSingleChapter = async ({
     console.log("model:", model);
 
     // Format dữ liệu gửi đi - hỗ trợ cả single key và multiple keys
+    const modelToSend = (model && typeof model === 'object' && model.value) ? model.value : model;
+    console.log('[translateSingleChapter] Gửi model lên backend:', modelToSend);
     const requestData = {
       chapters: [
         {
@@ -43,7 +45,7 @@ export const translateSingleChapter = async ({
           chapterNumber: chapter.chapterNumber || index + 1,
         },
       ],
-      model: model,
+      model: modelToSend,
       storyId: storyId,
     };
     // Chỉ thêm userKeys nếu apiKey hợp lệ

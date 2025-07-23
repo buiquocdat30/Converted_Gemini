@@ -24,7 +24,12 @@ export const SessionProvider = ({ children }) => {
 
   const [selectedModel, setSelectedModel] = useState(() => {
     const saved = sessionStorage.getItem('selectedModel');
-    return saved || '';
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      return null;
+    }
   });
 
   // Lưu selectedKeys vào sessionStorage khi thay đổi
@@ -39,7 +44,11 @@ export const SessionProvider = ({ children }) => {
 
   // Lưu selectedModel vào sessionStorage khi thay đổi
   useEffect(() => {
-    sessionStorage.setItem('selectedModel', selectedModel);
+    if (selectedModel) {
+      sessionStorage.setItem('selectedModel', JSON.stringify(selectedModel));
+    } else {
+      sessionStorage.removeItem('selectedModel');
+    }
   }, [selectedModel]);
 
   // Reset session khi đóng tab/window
@@ -66,12 +75,13 @@ export const SessionProvider = ({ children }) => {
 
   const updateSelectedModel = (model) => {
     setSelectedModel(model);
+    console.log('[SessionContext] updateSelectedModel', model);
   };
 
   const clearSession = () => {
     setSelectedKeys([]);
     setCurrentKey('');
-    setSelectedModel('');
+    setSelectedModel(null);
     sessionStorage.removeItem('selectedKeys');
     sessionStorage.removeItem('currentKey');
     sessionStorage.removeItem('selectedModel');

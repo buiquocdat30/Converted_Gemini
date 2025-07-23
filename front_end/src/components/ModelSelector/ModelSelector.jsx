@@ -11,6 +11,14 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Thêm state local cho model đang chọn
+    const [selectedModelValue, setSelectedModelValue] = useState(sessionSelectedModel || selectedModel);
+
+    // Đồng bộ lại khi context hoặc prop thay đổi
+    useEffect(() => {
+        setSelectedModelValue(sessionSelectedModel || selectedModel);
+    }, [sessionSelectedModel, selectedModel]);
+
     // Sử dụng model từ session nếu có, nếu không thì dùng prop
     const currentSelectedModel = sessionSelectedModel || selectedModel;
 
@@ -56,12 +64,12 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
         }
     };
 
-    const handleModelChange = (modelValue) => {
-        // Cập nhật cả session và callback
-        updateSelectedModel(modelValue);
-        if (onModelChange) {
-            onModelChange(modelValue);
-        }
+    const handleModelChange = (modelObj) => {
+        setSelectedModelValue(modelObj.value);
+        updateSelectedModel(modelObj); // truyền object model
+        if (onModelChange) onModelChange(modelObj, models);
+        console.log('[ModelSelector] Đã chọn model:', modelObj);
+        console.log('[ModelSelector] Gửi ra ngoài:', modelObj, models);
     };
 
     if (loading) {
@@ -95,8 +103,8 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
                     {models.map(model => (
                         <div 
                             key={model.id} 
-                            className={`MS-model-option ${currentSelectedModel === model.value ? 'MS-selected' : ''}`}
-                            onClick={() => handleModelChange(model.value)}
+                            className={`MS-model-option ${selectedModelValue === model.value ? 'MS-selected' : ''}`}
+                            onClick={() => handleModelChange(model)}
                         >
                             <div className="MS-model-info">
                                 <h4>{model.label}</h4>
