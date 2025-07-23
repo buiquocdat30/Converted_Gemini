@@ -76,15 +76,21 @@
 
 .model-limits {
     display: flex;
-    gap: 12px;
-    font-size: 12px;
+    gap: 2px;
+    font-size: 14px;
     color: #666;
+    justify-content: space-between;
 }
 
 .model-limits span {
     background: #f5f5f5;
     padding: 4px 8px;
     border-radius: 4px;
+}
+
+.model-limits-detail {
+    flex-direction: column;
+
 }
 
 .model-selector-loading {
@@ -147,4 +153,4 @@
 .dark .model-limits span {
     background: #4d4d4d;
     color: #fff;
-} 
+}

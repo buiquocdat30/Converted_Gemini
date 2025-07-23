@@ -107,6 +107,18 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
                                 <span>TPM: {model.tpm}</span>
                                 <span>RPD: {model.rpd}</span>
                             </div>
+                            {/* Thông báo chi tiết về giới hạn dịch */}
+                            <div className="model-limits model-limits-detail">
+                                <span>
+                                    ⏳ Thời gian chờ tối thiểu giữa 2 lần dịch: <b>{model.rpm ? (60 / model.rpm).toFixed(2) : 'N/A'}</b> giây
+                                </span>
+                                <span>
+                                    🚀 Số chương có thể dịch trong 1 phút: <b>{model.rpm || 'N/A'}</b> chương
+                                </span>
+                                <span>
+                                    📅 Số chương có thể dịch trong 1 ngày: <b>{model.rpd || 'N/A'}</b> chương
+                                </span>
+                            </div>
                         </div>
                     ))}
                 </div>
