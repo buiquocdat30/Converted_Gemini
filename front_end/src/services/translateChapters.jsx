@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // Số chương dịch song song tối đa mỗi batch
-const MAX_PARALLEL = 3;
+// const MAX_PARALLEL = 3; // Không dùng nữa, dịch tuần tự
 
 // Lưu batch đã bị huỷ
 let cancelledBatchIndexes = new Set();
@@ -133,37 +133,23 @@ export const translateAllChapters = async ({
     }
   };
 
-  // Xử lý queue theo batch song song
-  let batchIndex = 0;
+  // Dịch tuần tự từng chương, mỗi request cách nhau 60/rpm giây
+  const rpm = (model && typeof model === 'object' && model.rpm) ? model.rpm : 1;
+  const delayMs = Math.ceil(60000 / rpm);
+  let chapterIndex = 0;
   while (queue.length > 0 && !stopped) {
     if (isStopped) {
-      console.log('🛑 [Song song] Dừng dịch theo yêu cầu người dùng (trước batch)');
+      console.log('🛑 [Tuần tự] Dừng dịch theo yêu cầu người dùng');
       stopped = true;
-      // Đánh dấu batch hiện tại là CANCELLED
-      cancelledBatchIndexes.add(batchIndex);
-      if (typeof onBatchCancel === 'function') onBatchCancel(batchIndex);
       break;
     }
-    // Lấy batch chương tiếp theo
-    const batch = queue.splice(0, MAX_PARALLEL);
-    console.log(`🚀 [Song song] Bắt đầu batch ${batchIndex + 1}:`, batch.map(ch => ch.chapterName || ch.chapterNumber));
-    // Dịch song song batch này
-    const batchResults = await Promise.all(batch.map((chapter, idx) => translateOneChapter(chapter, batchIndex * MAX_PARALLEL + idx, batchIndex)));
-    const batchSuccess = batchResults.filter(r => r && r.success).length;
-    const batchFail = batch.length - batchSuccess;
-    console.log(`✅ [Batch ${batchIndex + 1}] Thành công: ${batchSuccess}, Thất bại: ${batchFail}`);
-    translatedCount += batch.length;
-    if (isStopped) {
-      console.log('🛑 [Song song] Dừng dịch theo yêu cầu người dùng (sau batch)');
-      stopped = true;
-      // Đánh dấu batch tiếp theo là CANCELLED
-      cancelledBatchIndexes.add(batchIndex + 1);
-      if (typeof onBatchCancel === 'function') onBatchCancel(batchIndex + 1);
-      break;
+    const chapter = queue.shift();
+    await translateOneChapter(chapter, chapterIndex, chapterIndex);
+    chapterIndex++;
+    if (queue.length > 0 && !stopped) {
+      console.log(`[DELAY] Chờ ${delayMs / 1000}s trước khi dịch chương tiếp theo (rpm=${rpm})`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
-    // Thêm delay nhỏ giữa các batch để tránh quá tải server
-    await new Promise(resolve => setTimeout(resolve, 500));
-    batchIndex++;
   }
 
   // Đảm bảo progress tổng lên 100% khi xong
