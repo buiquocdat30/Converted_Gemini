@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import useTranslationProgress from "../../hook/useTranslationProgress";
 import "./ChapterList.css";
 import { useSession } from '../../context/SessionContext';
+import useTranslationSocket from '../../hook/useTranslationSocket';
 
 const ChapterList = ({
   chapters,
@@ -724,6 +725,32 @@ const ChapterList = ({
       window.setChapterStatusGlobal = undefined;
     };
   }, []);
+
+  // Lắng nghe kết quả dịch chương từ socket.io
+  useTranslationSocket(storyId, (data) => {
+    // data: { chapterNumber, translatedContent, translatedTitle, duration, error }
+    const idx = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
+    if (idx === -1) return;
+    console.log('[SOCKET][chapterTranslated] Nhận kết quả:', data);
+    setResults(prev => ({
+      ...prev,
+      [idx]: {
+        translated: data.translatedContent,
+        translatedTitle: data.translatedTitle,
+        duration: data.duration,
+        error: data.error,
+      }
+    }));
+    if (data.error) {
+      setErrorMessages(prev => ({ ...prev, [idx]: data.error }));
+      console.error(`[SOCKET][chapterTranslated] Dịch chương ${data.chapterNumber} thất bại: ${data.error}`);
+      toast.error(`Dịch chương ${data.chapterNumber} thất bại: ${data.error}`);
+    } else {
+      setTranslatedCount(prev => prev + 1);
+      console.log(`[SOCKET][chapterTranslated] Đã dịch xong chương ${data.chapterNumber}`);
+      toast.success(`Đã dịch xong chương ${data.chapterNumber}`);
+    }
+  });
 
   return (
     <div className="chapter-list">
