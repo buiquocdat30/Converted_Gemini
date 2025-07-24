@@ -11,13 +11,11 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Thêm state local cho model đang chọn
-    const [selectedModelValue, setSelectedModelValue] = useState(sessionSelectedModel || selectedModel);
+    // Bỏ selectedModelValue local, chỉ dùng sessionSelectedModel
 
-    // Đồng bộ lại khi context hoặc prop thay đổi
     useEffect(() => {
-        setSelectedModelValue(sessionSelectedModel || selectedModel);
-    }, [sessionSelectedModel, selectedModel]);
+        setSelectedProvider(null); // reset khi context thay đổi
+    }, [sessionSelectedModel]);
 
     // Sử dụng model từ session nếu có, nếu không thì dùng prop
     const currentSelectedModel = sessionSelectedModel || selectedModel;
@@ -65,7 +63,6 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
     };
 
     const handleModelChange = (modelObj) => {
-        setSelectedModelValue(modelObj.value);
         updateSelectedModel(modelObj); // truyền object model
         if (onModelChange) onModelChange(modelObj, models);
         console.log('[ModelSelector] Đã chọn model:', modelObj);
@@ -103,7 +100,7 @@ const ModelSelector = ({ onModelChange, selectedModel, isDarkMode }) => {
                     {models.map(model => (
                         <div 
                             key={model.id} 
-                            className={`MS-model-option ${selectedModelValue === model.value ? 'MS-selected' : ''}`}
+                            className={`MS-model-option ${sessionSelectedModel?.value === model.value ? 'MS-selected' : ''}`}
                             onClick={() => handleModelChange(model)}
                         >
                             <div className="MS-model-info">

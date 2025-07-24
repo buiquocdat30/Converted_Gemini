@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { modelService } from '../services/modelService';
 
 const SessionContext = createContext();
 
@@ -22,15 +23,33 @@ export const SessionProvider = ({ children }) => {
     return saved || '';
   });
 
+  // Khởi tạo selectedModel: nếu có trong sessionStorage thì lấy, nếu không thì null (sẽ lấy từ BE sau)
   const [selectedModel, setSelectedModel] = useState(() => {
     const saved = sessionStorage.getItem('selectedModel');
     if (!saved) return null;
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && parsed.value) return parsed;
+      return null;
     } catch (e) {
       return null;
     }
   });
+
+  // Khi selectedModel là null, gọi BE lấy model mặc định
+  useEffect(() => {
+    if (!selectedModel) {
+      modelService.getProviders().then(providers => {
+        if (Array.isArray(providers) && providers.length > 0 && Array.isArray(providers[0].models) && providers[0].models.length > 0) {
+          const defaultModel = providers[0].models[0];
+          setSelectedModel(defaultModel);
+          sessionStorage.setItem('selectedModel', JSON.stringify(defaultModel));
+        }
+      }).catch(err => {
+        console.error('[SessionContext] Không lấy được model mặc định từ BE:', err);
+      });
+    }
+  }, [selectedModel]);
 
   // Lưu selectedKeys vào sessionStorage khi thay đổi
   useEffect(() => {
@@ -102,6 +121,4 @@ export const SessionProvider = ({ children }) => {
       {children}
     </SessionContext.Provider>
   );
-};
-
-export default SessionContext; 
+}; 
