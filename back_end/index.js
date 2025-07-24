@@ -1,6 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
+
+// Import routes
 const uploadRoute = require("./routes/uploadRoute");
 const translateRoute = require("./routes/translateRoute");
 const converteRoute = require("./routes/converteRoute");
@@ -10,55 +15,57 @@ const userApiKeyRoute = require("./routes/userApiKeyRoute");
 const userLibraryRoute = require("./routes/userLibraryRoute");
 const publicModelRoute = require("./routes/publicModelRoute");
 const glossaryRoute = require("./routes/glossaryRoute");
-const path = require("path");
-const queueRoute = require("./routes/queueRoute");
-
-// Admin routes mới
 const adminRoutes = require("./admin/adminRoutes/adminRoutes");
 
 require("dotenv").config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
+io.on('connection', (socket) => {
+  console.log('[SOCKET] User connected:', socket.id);
+  socket.on('join', (roomId) => {
+    socket.join(roomId);
+    console.log(`[SOCKET] Socket ${socket.id} joined room ${roomId}`);
+  });
+  socket.on('disconnect', () => {
+    console.log('[SOCKET] User disconnected:', socket.id);
+  });
+});
+
+// Export io để worker dùng
+module.exports.io = io;
+
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-
-// Phục vụ các file tĩnh từ thư mục data/upload
 app.use("/data/upload", express.static(path.join(__dirname, "data/upload")));
-
-// Tăng giới hạn kích thước của payload cho phép
 app.use(bodyParser.json({ limit: "100mb" }));
-// Giới hạn 50MB cho JSON body
 app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 
+// Route
 // Route upload file
 app.use("/upload", uploadRoute);
-
-//translate
+// Route translate
 app.use("/translate", translateRoute);
-
-//user authentication
+// Route auth
 app.use("/auth", authRoute);
-
-//coverte file
+// Route converte
 app.use("/converte", converteRoute);
-
-// Public API routes
+// Route models
 app.use("/models", publicModelRoute);
-
-// Quản lý tài nguyên của user
-app.use("/user/keys", userApiKeyRoute); // API keys của user
-app.use("/user/library", userLibraryRoute); // Thư viện truyện của user
-app.use("/user/glossary", glossaryRoute); // Thư viện từ của user
-
-//quản lý user
+// Route user keys
+app.use("/user/keys", userApiKeyRoute);
+// Route user library 
+app.use("/user/library", userLibraryRoute);
+// Route user glossary
+app.use("/user/glossary", glossaryRoute);
+// Route user
 app.use("/user", userRoute);
-
-// Admin routes mới
+// Route admin
 app.use("/admin", adminRoutes);
 
-//app.use("/admin/queue", queueRoute);
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`[SERVER] Server is running on http://localhost:${PORT}`);
 });
