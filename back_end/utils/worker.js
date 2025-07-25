@@ -19,6 +19,8 @@ async function callTranslateAPI(chapter, model, apiKey, storyId) {
   };
 }
 
+console.log(`[WORKER] Worker process started at ${new Date().toLocaleString()} | PID: ${process.pid}`);
+
 const worker = new Worker('my-queue', async job => {
   console.log(`[WORKER] Nhận job dịch chương:`, job.data.chapter?.chapterNumber);
   try {

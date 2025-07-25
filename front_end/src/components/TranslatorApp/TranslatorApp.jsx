@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import ChapterList from "../ChapterList/ChapterList";
 import TranslateViewer from "../TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../ConverteKeyInput/ConverteKeyInput";
@@ -123,22 +123,6 @@ const TranslatorApp = ({
     }
   }, [model, tempModel, sessionSelectedModel]);
 
-  //Chọn chương để Nhảy
-  const handleSelectJumbChapter = (index) => {
-    setSelectedChapterIndex(index);
-  };
-
-  // Hàm xử lý khi chuyển chương
-  const handleChapterChange = (newIndex) => {
-    console.log("TranslatorApp - Index mới:", newIndex);
-    setCurrentIndex(newIndex);
-    // Tính toán trang mới dựa trên index
-    const chaptersPerPage = 10;
-    const newPage = Math.floor(newIndex / chaptersPerPage) + 1;
-    // Gọi callback để cập nhật trang trong ChapterList
-    onSelectChapter?.(newIndex, newPage);
-  };
-
   // Hàm xử lý khi người dùng chọn keys
   const handleKeysSelected = (keys) => {
     console.log("🔑 Keys đã được chọn:", keys);
@@ -150,57 +134,6 @@ const TranslatorApp = ({
   const handleCurrentKey = (key) => {
     setCurrentApiKey(key);
     updateCurrentKey(key);
-  };
-
-  // Khi nhận kết quả dịch từ ChapterList
-  const handleTranslationResult = async (
-    index,
-    translated,
-    translatedTitle,
-    timeTranslation = 0
-  ) => {
-    try {
-      const chapter = chapters[index];
-      console.log("📝 Lưu kết quả dịch:", {
-        index,
-        chapterNumber: chapter?.chapterNumber,
-        hasTranslatedTitle: !!translatedTitle,
-        hasTranslatedContent: !!translated,
-        timeTranslation: timeTranslation,
-      });
-
-      // Cập nhật state local
-      setTranslatedChapters((prev) => {
-        const updated = [...prev];
-        updated[index] = {
-          ...chapter,
-          translatedContent: translated,
-          translatedTitle: translatedTitle,
-          status: "TRANSLATED",
-        };
-        return updated;
-      });
-
-      // Lưu vào database
-      if (storyId && chapter.chapterNumber) {
-        await onUpdateChapter(
-          storyId,
-          chapter.chapterNumber,
-          translatedTitle || chapter.chapterName,
-          translated || chapter.content,
-          timeTranslation // 👉 Thêm thời gian dịch
-        );
-      }
-
-      // Chuyển sang chương vừa dịch
-      setCurrentIndex(index);
-
-      // Thông báo thành công
-      toast.success(`Đã dịch xong chương ${chapter.chapterNumber}`);
-    } catch (error) {
-      console.error("❌ Lỗi khi lưu kết quả dịch:", error);
-      toast.error("Lỗi khi lưu kết quả dịch: " + error.message);
-    }
   };
 
   // Khi người dùng sửa lại nội dung trong TranslateViewer
@@ -245,11 +178,6 @@ const TranslatorApp = ({
       setTotalProgress: () => {},
     });
   };
-
-  const mergedChapters = chapters.map((ch, i) => ({
-    ...ch,
-    ...translatedChapters[i],
-  }));
 
   //hàm check key
   const handleCheckKey = async () => {
@@ -747,6 +675,99 @@ const TranslatorApp = ({
     [chapters, addChapter, storyId, getAuthToken, onChapterAdded, updateCurrentKey]
   );
 
+  // Tối ưu mergedChapters bằng useMemo
+  const mergedChapters = useMemo(() => {
+    return chapters.map((ch, i) => ({
+      ...ch,
+      ...translatedChapters[i],
+    }));
+  }, [chapters, translatedChapters]);
+
+  // Tối ưu các callback bằng useCallback
+  const handleTranslationResult = useCallback(async (
+    index,
+    translated,
+    translatedTitle,
+    timeTranslation = 0
+  ) => {
+    try {
+      const chapter = chapters[index];
+      console.log("📝 Lưu kết quả dịch:", {
+        index,
+        chapterNumber: chapter?.chapterNumber,
+        hasTranslatedTitle: !!translatedTitle,
+        hasTranslatedContent: !!translated,
+        timeTranslation: timeTranslation,
+      });
+
+      // Cập nhật state local
+      setTranslatedChapters((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...chapter,
+          translatedContent: translated,
+          translatedTitle: translatedTitle,
+          status: "TRANSLATED",
+        };
+        return updated;
+      });
+
+      // Lưu vào database
+      if (storyId && chapter.chapterNumber) {
+        await onUpdateChapter(
+          storyId,
+          chapter.chapterNumber,
+          translatedTitle || chapter.chapterName,
+          translated || chapter.content,
+          timeTranslation
+        );
+      }
+
+      // Chuyển sang chương vừa dịch
+      setCurrentIndex(index);
+
+      // Thông báo thành công
+      toast.success(`Đã dịch xong chương ${chapter.chapterNumber}`);
+    } catch (error) {
+      console.error("❌ Lỗi khi lưu kết quả dịch:", error);
+      toast.error("Lỗi khi lưu kết quả dịch: " + error.message);
+    }
+  }, [chapters, storyId, onUpdateChapter]);
+
+  const handleChapterChange = useCallback((newIndex) => {
+    console.log("TranslatorApp - Index mới:", newIndex);
+    setCurrentIndex(newIndex);
+    // Tính toán trang mới dựa trên index
+    const chaptersPerPage = 10;
+    const newPage = Math.floor(newIndex / chaptersPerPage) + 1;
+    // Gọi callback để cập nhật trang trong ChapterList
+    onSelectChapter?.(newIndex, newPage);
+  }, [onSelectChapter]);
+
+  const handleSelectJumbChapter = useCallback((index) => {
+    setSelectedChapterIndex(index);
+  }, []);
+
+  // Thêm log kiểm tra re-render và props truyền vào ChapterList
+  useEffect(() => {
+    console.log('[TranslatorApp] RENDER ChapterList', {
+      mergedChapters,
+      apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey,
+      model: tempModel,
+      //models: allModels,
+      currentIndex,
+      storyId,
+    });
+  });
+
+  // Memo hóa các props truyền vào ChapterList
+  const memoizedModel = useMemo(() => tempModel, [tempModel?.value]);
+  const memoizedApiKey = useMemo(
+    () => (selectedKeys.length > 0 ? selectedKeys : currentApiKey),
+    [JSON.stringify(selectedKeys), currentApiKey]
+  );
+  const memoizedChapters = useMemo(() => mergedChapters, [mergedChapters]);
+
   return (
     <div className="translator-app-wrapper">
       <h2
@@ -837,11 +858,12 @@ const TranslatorApp = ({
       {/* Main layout */}
       <div className="content">
         <div className="chapter-list-container">
+          {console.log('%c[DEBUG] TranslatorApp render ChapterList', 'color: orange')}
           <ChapterList
-            chapters={mergedChapters}
-            apiKey={selectedKeys.length > 0 ? selectedKeys : currentApiKey}
-            model={tempModel}
-            models={allModels}
+            chapters={memoizedChapters}
+            apiKey={memoizedApiKey}
+            model={memoizedModel}
+            // models={allModels}
             onTranslationResult={handleTranslationResult}
             onSelectChapter={handleChapterChange}
             onSelectJumbChapter={handleSelectJumbChapter}

@@ -18,7 +18,7 @@ const publicModelService = {
             
             // Lấy tất cả providers
             const providers = await prisma.provider.findMany();
-            console.log("📦 Danh sách providers:", providers);
+            
 
             if (providers.length === 0) {
                 console.log("⚠️ Không tìm thấy providers nào");

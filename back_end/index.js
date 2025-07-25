@@ -27,7 +27,23 @@ io.on('connection', (socket) => {
   console.log('[SOCKET] User connected:', socket.id);
   socket.on('join', (roomId) => {
     socket.join(roomId);
-    console.log(`[SOCKET] Socket ${socket.id} joined room ${roomId}`);
+    let extra = '';
+    try {
+      // Nếu FE truyền roomId là object JSON, parse và log chi tiết
+      let info = roomId;
+      if (typeof roomId === 'string' && (roomId.startsWith('{') || roomId.startsWith('['))) {
+        info = JSON.parse(roomId);
+      }
+      if (typeof info === 'object') {
+        extra = ` | userId: ${info.userId || ''} | storyId: ${info.storyId || ''} | chapterId: ${info.chapterId || ''}`;
+        if (info.chapters) {
+          extra += ` | chapters: ${Array.isArray(info.chapters) ? info.chapters.length : JSON.stringify(info.chapters)}`;
+        }
+      }
+    } catch (e) {
+      extra = ' | roomId parse error';
+    }
+    console.log(`[SOCKET] Socket ${socket.id} joined room ${roomId}${extra}`);
   });
   socket.on('disconnect', () => {
     console.log('[SOCKET] User disconnected:', socket.id);

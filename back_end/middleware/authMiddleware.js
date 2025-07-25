@@ -4,7 +4,7 @@ const {prisma} = require("../config/prismaConfig");
 const authMiddleware = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
-        console.log("🔑 Token từ request:", token);
+        
 
         if (!token) {
             console.log("⚠️ Không tìm thấy token");
@@ -12,7 +12,7 @@ const authMiddleware = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("🔓 Token đã giải mã:", decoded);
+        
 
         if (!decoded.userId) {
             console.log("⚠️ Token không chứa ID user");
@@ -40,7 +40,7 @@ const authMiddleware = async (req, res, next) => {
             username: user.username
         };
 
-        console.log("✅ Xác thực thành công, user ID:", decoded.userId);
+        
         next();
     } catch (error) {
         console.error("❌ Lỗi xác thực:", error);

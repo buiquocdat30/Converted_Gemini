@@ -4,20 +4,31 @@ import { SOCKET_URL } from '../config/config';
 
 export default function useTranslationSocket(roomId, onChapterTranslated) {
   const socketRef = useRef(null);
+  const callbackRef = useRef(onChapterTranslated);
 
+  // Luôn giữ callback mới nhất
+  useEffect(() => {
+    callbackRef.current = onChapterTranslated;
+  }, [onChapterTranslated]);
+
+  // Chỉ tạo socket một lần duy nhất
   useEffect(() => {
     socketRef.current = io(SOCKET_URL);
 
-    // Join room (userId hoặc storyId)
-    socketRef.current.emit('join', roomId);
-
     // Lắng nghe kết quả dịch
     socketRef.current.on('chapterTranslated', (data) => {
-      onChapterTranslated(data);
+      callbackRef.current(data);
     });
 
     return () => {
       socketRef.current.disconnect();
     };
-  }, [roomId, onChapterTranslated]);
+  }, []);
+
+  // Khi roomId đổi thì emit join
+  useEffect(() => {
+    if (roomId && socketRef.current) {
+      socketRef.current.emit('join', roomId);
+    }
+  }, [roomId]);
 }
