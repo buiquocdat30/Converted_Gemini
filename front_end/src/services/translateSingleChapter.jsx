@@ -1,6 +1,7 @@
 // hàm dịch theo từng chương
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { SOCKET_URL } from '../config/config';
 
 export const translateSingleChapter = async ({
   index,
@@ -61,7 +62,7 @@ export const translateSingleChapter = async ({
 
     const token = localStorage.getItem("auth-token");
     const res = await axios.post(
-      "http://localhost:8000/translate",
+      SOCKET_URL + "/translate",
       requestData,
       {
         headers: {
@@ -73,108 +74,9 @@ export const translateSingleChapter = async ({
     // Log toàn bộ response để debug
     console.log("Response data translateSingleChapter:", res.data);
 
-    // Lấy dữ liệu từ chapter đầu tiên trong mảng chapters
-    const chapterData = res?.data?.chapters?.[0];
-    if (!chapterData) {
-      console.error("❌ Không tìm thấy dữ liệu chương trong response");
-      return null;
-    }
-
-    // => Cần bổ sung kiểm tra:
-    if (chapterData.hasError || chapterData.status === 'FAILED' || chapterData.translationError) {
-      // Log chi tiết lỗi ra console
-      console.error("[ERROR][translateSingleChapter] Lỗi dịch chương:", chapterData);
-      // Hiển thị toast lỗi
-      toast.error(chapterData.translationError || "Dịch chương thất bại!");
-      // Gọi callback báo lỗi cho ChapterList
-      onTranslationResult?.(
-        index,
-        chapterData.translatedContent,
-        chapterData.translatedTitle,
-        chapterData.timeTranslation || 0,
-        chapterData // truyền luôn object lỗi
-      );
-      // Cập nhật state lỗi
-      setErrorMessages((prev) => ({
-        ...prev,
-        [index]: chapterData.translationError || "Dịch chương thất bại!",
-      }));
-      // Đánh dấu trạng thái FAILED
-      setResults((prev) => ({
-        ...prev,
-        [index]: {
-          ...chapterData,
-          status: "FAILED",
-        },
-      }));
-      setTotalProgress && setTotalProgress(100);
-      onComplete?.(chapterData.timeTranslation || 0, chapterData);
-      return null;
-    }
-
-    // Sử dụng thời gian dịch từ backend response
-    const duration = chapterData.timeTranslation || 0;
-    console.log(
-      `⏱️ Thời gian dịch chương ${index + 1}: ${duration.toFixed(2)}s`
-    );
-
-    // Log chi tiết dữ liệu chương
-    console.log("📖 Dữ liệu chương:", {
-      chapterNumber: chapterData.chapterNumber,
-      title: chapterData.title,
-      translatedTitle: chapterData.translatedTitle,
-      content: chapterData.content?.substring(0, 100) + "...",
-      translatedContent:
-        chapterData.translatedContent?.substring(0, 100) + "...",
-      status: chapterData.status,
-      duration: duration.toFixed(2) + "s",
-    });
-
-    // Cập nhật state với dữ liệu đã dịch
-    setResults((prev) => ({
-      ...prev,
-      [index]: {
-        translatedContent: chapterData.translatedContent || "",
-        translatedTitle: chapterData.translatedTitle || "",
-        chapterName: chapterData.translatedTitle || chapter.chapterName,
-        duration: duration, // Thêm thời gian dịch vào kết quả
-      },
-    }));
-
-    // Gọi callback để thông báo kết quả dịch
-    onTranslationResult?.(
-      index,
-      chapterData.translatedContent,
-      chapterData.translatedTitle,
-      duration
-    );
-
-    // Cập nhật tiến độ
-    setProgress((prev) => ({ ...prev, [index]: 100 }));
-    setTranslatedCount((prev) => prev + 1);
-    setErrorMessages((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[index];
-      return newErrors;
-    });
-
-    // Cập nhật tiến độ tổng thể
-    const percent = Math.floor(((index + 1) / chapters.length) * 100);
-    setTotalProgress(percent);
-
-    // Gọi callback khi hoàn thành
-    onComplete?.(duration);
-
-    // Trả về dữ liệu đã dịch
-    return {
-      chapterNumber: chapterData.chapterNumber,
-      title: chapterData.title,
-      translatedTitle: chapterData.translatedTitle || "",
-      content: chapterData.content || "",
-      translatedContent: chapterData.translatedContent || "",
-      status: chapterData.status,
-      duration: duration,
-    };
+    // Không kiểm tra kết quả dịch trong response nữa, chỉ log và return
+    // FE sẽ nhận kết quả dịch qua socket (chapterTranslated)
+    return res.data;
   } catch (error) {
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;

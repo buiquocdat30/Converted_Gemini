@@ -15,15 +15,15 @@ exports.translateText = async (req, res) => {
   }
 
   // Lấy key khả dụng
-  const keyManager = new ApiKeyManager();
-  let keysToUse = [];
-  if (userKeys && Array.isArray(userKeys) && userKeys.length > 0) {
-    keysToUse = userKeys;
-  } else if (userKey) {
-    keysToUse = [userKey];
-  }
-  const keyToUse = await keyManager.getKeyToUse(userId, keysToUse, model);
-  if (!keyToUse) {
+    const keyManager = new ApiKeyManager();
+    let keysToUse = [];
+    if (userKeys && Array.isArray(userKeys) && userKeys.length > 0) {
+      keysToUse = userKeys;
+    } else if (userKey) {
+      keysToUse = [userKey];
+    }
+    const keyToUse = await keyManager.getKeyToUse(userId, keysToUse, model);
+    if (!keyToUse) {
     return res.status(400).json({ error: "Không có key khả dụng." });
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -27,8 +27,7 @@ const ChapterList = ({
   const { selectedModel: modelFromContext } = useSession();
   // Ưu tiên prop model nếu là object, nếu không thì lấy từ context
   const modelObject = (modelProp && typeof modelProp === 'object' && modelProp.rpm) ? modelProp : modelFromContext;
-  console.log('[ChapterList] model from context:', modelFromContext);
-  console.log('[ChapterList] model from prop rpm:', modelObject);
+  
   const [results, setResults] = useState({});
   const [errorMessages, setErrorMessages] = useState({});
   const [translatedCount, setTranslatedCount] = useState(0);
@@ -726,8 +725,8 @@ const ChapterList = ({
     };
   }, []);
 
-  // Lắng nghe kết quả dịch chương từ socket.io
-  useTranslationSocket(storyId, (data) => {
+  // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
+  const handleSocketChapterTranslated = useCallback((data) => {
     // data: { chapterNumber, translatedContent, translatedTitle, duration, error }
     const idx = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
     if (idx === -1) return;
@@ -750,6 +749,224 @@ const ChapterList = ({
       console.log(`[SOCKET][chapterTranslated] Đã dịch xong chương ${data.chapterNumber}`);
       toast.success(`Đã dịch xong chương ${data.chapterNumber}`);
     }
+  }, [chapters]);
+
+  useTranslationSocket(storyId, handleSocketChapterTranslated);
+
+  // Log props thay đổi mỗi lần render
+  const prevPropsRef = useRef({});
+  useEffect(() => {
+    const changed = [];
+    if (prevPropsRef.current.chapters !== chapters) changed.push('chapters');
+    if (prevPropsRef.current.apiKey !== apiKey) changed.push('apiKey');
+    if (prevPropsRef.current.model !== modelProp) changed.push('model');
+    if (prevPropsRef.current.currentIndex !== currentIndex) changed.push('currentIndex');
+    if (prevPropsRef.current.storyId !== storyId) changed.push('storyId');
+    if (changed.length > 0) {
+      console.log('%c[DEBUG] ChapterList re-render vì props:', 'color: orange', changed);
+      const currentProps = { chapters, apiKey, model: modelProp, currentIndex, storyId };
+      changed.forEach(key => {
+        console.log(`[DEBUG] Giá trị mới của ${key}:`, currentProps[key]);
+      });
+    }
+    prevPropsRef.current = { chapters, apiKey, model: modelProp, currentIndex, storyId };
+  });
+
+  // Log các state chính mỗi lần render
+  useEffect(() => {
+    console.log('%c[DEBUG] ChapterList state:', 'color: green', {
+      results,
+      chapterStatus,
+      translatedCount,
+      isTranslatingAll,
+      isTranslateAllDisabled,
+      manualTotalProgress,
+      chapterProgresses,
+      chapterTranslatingStates,
+    });
+  });
+
+  // Log từng state riêng biệt khi thay đổi
+  useEffect(() => {
+    console.log('[DEBUG][STATE] results thay đổi:', results);
+  }, [results]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] chapterStatus thay đổi:', chapterStatus);
+  }, [chapterStatus]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] translatedCount thay đổi:', translatedCount);
+  }, [translatedCount]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] isTranslatingAll thay đổi:', isTranslatingAll);
+  }, [isTranslatingAll]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] isTranslateAllDisabled thay đổi:', isTranslateAllDisabled);
+  }, [isTranslateAllDisabled]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] manualTotalProgress thay đổi:', manualTotalProgress);
+  }, [manualTotalProgress]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] chapterProgresses thay đổi:', chapterProgresses);
+  }, [chapterProgresses]);
+  useEffect(() => {
+    console.log('[DEBUG][STATE] chapterTranslatingStates thay đổi:', chapterTranslatingStates);
+  }, [chapterTranslatingStates]);
+
+  // Log từng prop riêng biệt khi thay đổi
+  useEffect(() => {
+    console.log('[DEBUG][PROP] chapters thay đổi:', chapters);
+  }, [chapters]);
+  useEffect(() => {
+    console.log('[DEBUG][PROP] apiKey thay đổi:', apiKey);
+  }, [apiKey]);
+  useEffect(() => {
+    console.log('[DEBUG][PROP] modelProp thay đổi:', modelProp);
+  }, [modelProp]);
+  useEffect(() => {
+    console.log('[DEBUG][PROP] currentIndex thay đổi:', currentIndex);
+  }, [currentIndex]);
+  useEffect(() => {
+    console.log('[DEBUG][PROP] storyId thay đổi:', storyId);
+  }, [storyId]);
+ 
+  // Progress bar component tối ưu hóa bằng React.memo
+  const ChapterProgressBar = React.memo(({ progress }) => (
+    <div className="chapter-progress-bar-container">
+      <div className="chapter-progress-bar" style={{ width: `${progress}%` }}></div>
+      <div className="progress-info">
+        <small className="progress-text">
+          Đang dịch... {progress.toFixed(0)}%
+        </small>
+      </div>
+    </div>
+  ));
+
+  // Component con cho từng chương, tối ưu hóa bằng React.memo
+  const ChapterItem = React.memo(({
+    ch,
+    idx,
+    calculatedChapterNumber,
+    currentIndex,
+    chapterStatus,
+    chapterProgress,
+    chapterTranslatingState,
+    isTranslated,
+    duration,
+    errorMessage,
+    canTranslate,
+    isTranslatingAll,
+    singleTranslateCooldown,
+    translate,
+    cancelTranslate,
+    handleDeleteChapter,
+    handleSelectChapter,
+    chaptersPerPage,
+    onSelectChapter
+  }) => {
+    // Khi render trạng thái chương hoặc xử lý kết quả dịch:
+    const isFailed = chapterStatus === 'FAILED' || ch?.hasError || !!ch?.translationError;
+    return (
+      <li key={ch.chapterNumber}>
+        <div
+          className={`chapter-item ${idx === currentIndex ? "selected" : ""}`}
+          onClick={() =>
+            handleSelectChapter(
+              idx,
+              Math.ceil(ch.chapterNumber / chaptersPerPage)
+            )
+          }
+        >
+          <div className="chapter-header">
+            <p>Chương {calculatedChapterNumber}:</p>
+            <strong>
+              {ch.translatedTitle ||
+                ch.title ||
+                ch.chapterName ||
+                `Chương ${calculatedChapterNumber}`}
+            </strong>
+            <div className="chapter-actions">
+              {/* Nút Dịch chỉ hiện khi không PROCESSING/PENDING */}
+              {!(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    translate(idx);
+                  }}
+                  disabled={
+                    !canTranslate(idx) ||
+                    isTranslatingAll ||
+                    chapterStatus === "PROCESSING" ||
+                    chapterStatus === "PENDING" ||
+                    singleTranslateCooldown > 0
+                  }
+                  className={`translate-sgn-button ${isTranslated ? "hidden" : ""}`}
+                >
+                  {singleTranslateCooldown > 0 ? `📝 Dịch (${singleTranslateCooldown}s)` : "📝 Dịch"}
+                </button>
+              )}
+              {/* Nút hủy dịch chỉ hiện khi PROCESSING hoặc PENDING */}
+              {(chapterStatus === "PENDING" || chapterStatus === "PROCESSING") && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelTranslate(idx);
+                  }}
+                  className="cancel-translate-button"
+                  style={{ height: "42px" }}
+                >
+                  🛑 Hủy Dịch
+                </button>
+              )}
+              {/* Nút Xóa chỉ hiện khi không PROCESSING/PENDING */}
+              {!(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteChapter(ch.chapterNumber);
+                  }}
+                  className={`delete-chapter-button${chapterStatus === "COMPLETE" ? " complete" : ""}`}
+                >
+                  ❌ Xoá
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Hiển thị trạng thái chương */}
+          {chapterStatus && (
+            <div className="chapter-status">
+              <span>
+                Trạng thái: <b>{chapterStatus}</b>
+              </span>
+              {/* Hiển thị thanh tiến độ nếu đang PROCESSING hoặc PENDING */}
+              {(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
+                <ChapterProgressBar progress={chapterProgress} />
+              )}
+              {/* Hiển thị label Đang dịch hoặc Đã dịch */}
+              {(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
+                <span className="translated-label" >
+                  🔄 Đang dịch, vui lòng chờ...
+                </span>
+              )}
+              {chapterStatus === "COMPLETE" && (
+                <span className="translated-label">
+                  ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
+                </span>
+              )}
+              {chapterStatus === "FAILED" && (
+                <span className="translated-label" style={{ color: "red" }}>
+                  ❌ Đã dịch thất bại
+                </span>
+              )}
+            </div>
+          )}
+          {errorMessage && (
+            <div className="error-message">
+              <p>{errorMessage}</p>
+            </div>
+          )}
+        </div>
+      </li>
+    );
   });
 
   return (
@@ -763,156 +980,32 @@ const ChapterList = ({
           );
           const isTranslated = !!results[idx];
           const duration = translationDurations[idx];
-
-          // Lấy progress từ state
           const chapterProgress = chapterProgresses[idx] || 0;
-          const isChapterTranslating = chapterTranslatingStates[idx] || false;
-
-          // Khi render trạng thái chương hoặc xử lý kết quả dịch:
-          const isFailed = chapterStatus[idx] === 'FAILED' || results[idx]?.hasError || !!results[idx]?.translationError;
-          
-          if (isFailed) {
-            console.warn(`[LOG][FAILED] Chương ${calculatedChapterNumber} - idx=${idx}: status=${chapterStatus[idx]}, hasError=${results[idx]?.hasError}, translationError=${results[idx]?.translationError}`);
-            if (!results[idx]?.translationError) {
-              toast.error("Dịch thất bại!");
-            } else {
-              // Chỉ log ra console, không hiện toast
-              console.log("Lỗi dịch chương:", results[idx]?.translationError);
-            }
-            // Hiển thị trạng thái FAILED trên UI
-          }
-
+          const chapterTranslatingState = chapterTranslatingStates[idx] || false;
+          const errorMessage = errorMessages[idx];
           return (
-            <li key={ch.chapterNumber}>
-              <div
-                className={`chapter-item ${
-                  idx === currentIndex ? "selected" : ""
-                }`}
-                onClick={() =>
-                  handleSelectChapter(
-                    idx,
-                    Math.ceil(ch.chapterNumber / chaptersPerPage)
-                  )
-                }
-              >
-                <div className="chapter-header">
-                  <p>Chương {calculatedChapterNumber}:</p>
-                  <strong>
-                    {ch.translatedTitle ||
-                      ch.title ||
-                      ch.chapterName ||
-                      `Chương ${calculatedChapterNumber}`}
-                  </strong>
-                  {/* ĐÃ DỊCH: Đưa xuống dưới trạng thái */}
-                  {/* {isTranslated && (
-                    <span className="translated-label">
-                      ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
-                    </span>
-                  )} */}
-                  <div className="chapter-actions">
-                    {/* Nút Dịch chỉ hiện khi không PROCESSING/PENDING */}
-                    {!(
-                      chapterStatus[idx] === "PROCESSING" ||
-                      chapterStatus[idx] === "PENDING"
-                    ) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          translate(idx);
-                        }}
-                        disabled={
-                          !canTranslate(idx) ||
-                          isTranslatingAll ||
-                          chapterStatus[idx] === "PROCESSING" ||
-                          chapterStatus[idx] === "PENDING" ||
-                          singleTranslateCooldown > 0
-                        }
-                        className={`translate-sgn-button ${
-                          isTranslated ? "hidden" : ""
-                        }`}
-                      >
-                        {singleTranslateCooldown > 0 ? `📝 Dịch (${singleTranslateCooldown}s)` : "📝 Dịch"}
-                      </button>
-                    )}
-                    {/* Nút hủy dịch chỉ hiện khi PROCESSING hoặc PENDING */}
-                    {(chapterStatus[idx] === "PENDING" ||
-                      chapterStatus[idx] === "PROCESSING") && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          cancelTranslate(idx);
-                        }}
-                        className="cancel-translate-button"
-                        style={{ height: "42px" }}
-                      >
-                        🛑 Hủy Dịch
-                      </button>
-                    )}
-                    {/* Nút Xóa chỉ hiện khi không PROCESSING/PENDING */}
-                    {!(
-                      chapterStatus[idx] === "PROCESSING" ||
-                      chapterStatus[idx] === "PENDING"
-                    ) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteChapter(ch.chapterNumber);
-                        }}
-                        className={`delete-chapter-button${
-                          chapterStatus[idx] === "COMPLETE" ? " complete" : ""
-                        }`}
-                      >
-                        ❌ Xoá
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {/* Hiển thị trạng thái chương */}
-                {chapterStatus[idx] && (
-                  <div className="chapter-status">
-                    <span>
-                      Trạng thái: <b>{chapterStatus[idx]}</b>
-                    </span>
-                    {/* Hiển thị thanh tiến độ nếu đang PROCESSING hoặc PENDING */}
-                    {(chapterStatus[idx] === "PROCESSING" ||
-                      chapterStatus[idx] === "PENDING") && (
-                      <div className="chapter-progress-bar-container">
-                        <div
-                          className="chapter-progress-bar"
-                          style={{ width: `${chapterProgress}%` }}
-                        ></div>
-                        <div className="progress-info">
-                          <small className="progress-text">
-                            Đang dịch... {chapterProgress.toFixed(0)}%
-                          </small>
-                        </div>
-                      </div>
-                    )}
-                    {/* Hiển thị label Đang dịch hoặc Đã dịch */}
-                    {(chapterStatus[idx] === "PROCESSING" || chapterStatus[idx] === "PENDING") && (
-                      <span className="translated-label" >
-                        🔄 Đang dịch, vui lòng chờ...
-                      </span>
-                    )}
-                    {chapterStatus[idx] === "COMPLETE" && (
-                      <span className="translated-label">
-                        ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
-                      </span>
-                    )}
-                    {chapterStatus[idx] === "FAILED" && (
-                      <span className="translated-label" style={{ color: "red" }}>
-                        ❌ Đã dịch thất bại
-                      </span>
-                    )}
-                  </div>
-                )}
-                {errorMessages[idx] && (
-                  <div className="error-message">
-                    <p>{errorMessages[idx]}</p>
-                  </div>
-                )}
-              </div>
-            </li>
+            <ChapterItem
+              key={ch.chapterNumber}
+              ch={ch}
+              idx={idx}
+              calculatedChapterNumber={calculatedChapterNumber}
+              currentIndex={currentIndex}
+              chapterStatus={chapterStatus[idx]}
+              chapterProgress={chapterProgress}
+              chapterTranslatingState={chapterTranslatingState}
+              isTranslated={isTranslated}
+              duration={duration}
+              errorMessage={errorMessage}
+              canTranslate={canTranslate}
+              isTranslatingAll={isTranslatingAll}
+              singleTranslateCooldown={singleTranslateCooldown}
+              translate={translate}
+              cancelTranslate={cancelTranslate}
+              handleDeleteChapter={handleDeleteChapter}
+              handleSelectChapter={handleSelectChapter}
+              chaptersPerPage={chaptersPerPage}
+              onSelectChapter={onSelectChapter}
+            />
           );
         })}
       </ul>
@@ -1115,11 +1208,18 @@ const ChapterList = ({
       )}
       {/* Thời gian dự kiến dịch trang */}
       <div style={{ margin: "8px 0", color: "#888", fontSize: "15px" }}>
-        ⏳ Thời gian dự kiến dịch trang này: <b>{estimatedTimeStr}</b> (Tổng{" "}
-        {totalWordsInPage} từ, trung bình {averageTimePerWord} giây/từ)
+        ⏳ Thời gian dự kiến dịch trang này: <b>{estimatedTimeStr}</b> (Tổng {totalWordsInPage} từ, trung bình {averageTimePerWord} giây/từ)
       </div>
     </div>
   );
 };
 
-export default ChapterList;
+export default React.memo(ChapterList, (prevProps, nextProps) => {
+  return (
+    prevProps.chapters === nextProps.chapters &&
+    prevProps.apiKey === nextProps.apiKey &&
+    prevProps.model?.value === nextProps.model?.value &&
+    prevProps.currentIndex === nextProps.currentIndex &&
+    prevProps.storyId === nextProps.storyId
+  );
+});
