@@ -865,107 +865,107 @@ const ChapterList = ({
   }) => {
     // Khi render trạng thái chương hoặc xử lý kết quả dịch:
     const isFailed = chapterStatus === 'FAILED' || ch?.hasError || !!ch?.translationError;
-    return (
-      <li key={ch.chapterNumber}>
-        <div
+          return (
+            <li key={ch.chapterNumber}>
+              <div
           className={`chapter-item ${idx === currentIndex ? "selected" : ""}`}
-          onClick={() =>
-            handleSelectChapter(
-              idx,
-              Math.ceil(ch.chapterNumber / chaptersPerPage)
-            )
-          }
-        >
-          <div className="chapter-header">
-            <p>Chương {calculatedChapterNumber}:</p>
-            <strong>
-              {ch.translatedTitle ||
-                ch.title ||
-                ch.chapterName ||
-                `Chương ${calculatedChapterNumber}`}
-            </strong>
-            <div className="chapter-actions">
-              {/* Nút Dịch chỉ hiện khi không PROCESSING/PENDING */}
+                onClick={() =>
+                  handleSelectChapter(
+                    idx,
+                    Math.ceil(ch.chapterNumber / chaptersPerPage)
+                  )
+                }
+              >
+                <div className="chapter-header">
+                  <p>Chương {calculatedChapterNumber}:</p>
+                  <strong>
+                    {ch.translatedTitle ||
+                      ch.title ||
+                      ch.chapterName ||
+                      `Chương ${calculatedChapterNumber}`}
+                  </strong>
+                  <div className="chapter-actions">
+                    {/* Nút Dịch chỉ hiện khi không PROCESSING/PENDING */}
               {!(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    translate(idx);
-                  }}
-                  disabled={
-                    !canTranslate(idx) ||
-                    isTranslatingAll ||
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          translate(idx);
+                        }}
+                        disabled={
+                          !canTranslate(idx) ||
+                          isTranslatingAll ||
                     chapterStatus === "PROCESSING" ||
                     chapterStatus === "PENDING" ||
-                    singleTranslateCooldown > 0
-                  }
+                          singleTranslateCooldown > 0
+                        }
                   className={`translate-sgn-button ${isTranslated ? "hidden" : ""}`}
-                >
-                  {singleTranslateCooldown > 0 ? `📝 Dịch (${singleTranslateCooldown}s)` : "📝 Dịch"}
-                </button>
-              )}
-              {/* Nút hủy dịch chỉ hiện khi PROCESSING hoặc PENDING */}
+                      >
+                        {singleTranslateCooldown > 0 ? `📝 Dịch (${singleTranslateCooldown}s)` : "📝 Dịch"}
+                      </button>
+                    )}
+                    {/* Nút hủy dịch chỉ hiện khi PROCESSING hoặc PENDING */}
               {(chapterStatus === "PENDING" || chapterStatus === "PROCESSING") && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    cancelTranslate(idx);
-                  }}
-                  className="cancel-translate-button"
-                  style={{ height: "42px" }}
-                >
-                  🛑 Hủy Dịch
-                </button>
-              )}
-              {/* Nút Xóa chỉ hiện khi không PROCESSING/PENDING */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cancelTranslate(idx);
+                        }}
+                        className="cancel-translate-button"
+                        style={{ height: "42px" }}
+                      >
+                        🛑 Hủy Dịch
+                      </button>
+                    )}
+                    {/* Nút Xóa chỉ hiện khi không PROCESSING/PENDING */}
               {!(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteChapter(ch.chapterNumber);
-                  }}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteChapter(ch.chapterNumber);
+                        }}
                   className={`delete-chapter-button${chapterStatus === "COMPLETE" ? " complete" : ""}`}
-                >
-                  ❌ Xoá
-                </button>
-              )}
-            </div>
-          </div>
-          {/* Hiển thị trạng thái chương */}
+                      >
+                        ❌ Xoá
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Hiển thị trạng thái chương */}
           {chapterStatus && (
-            <div className="chapter-status">
-              <span>
+                  <div className="chapter-status">
+                    <span>
                 Trạng thái: <b>{chapterStatus}</b>
-              </span>
-              {/* Hiển thị thanh tiến độ nếu đang PROCESSING hoặc PENDING */}
+                    </span>
+                    {/* Hiển thị thanh tiến độ nếu đang PROCESSING hoặc PENDING */}
               {(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
                 <ChapterProgressBar progress={chapterProgress} />
-              )}
-              {/* Hiển thị label Đang dịch hoặc Đã dịch */}
+                    )}
+                    {/* Hiển thị label Đang dịch hoặc Đã dịch */}
               {(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
-                <span className="translated-label" >
-                  🔄 Đang dịch, vui lòng chờ...
-                </span>
-              )}
+                      <span className="translated-label" >
+                        🔄 Đang dịch, vui lòng chờ...
+                      </span>
+                    )}
               {chapterStatus === "COMPLETE" && (
-                <span className="translated-label">
-                  ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
-                </span>
-              )}
+                      <span className="translated-label">
+                        ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
+                      </span>
+                    )}
               {chapterStatus === "FAILED" && (
-                <span className="translated-label" style={{ color: "red" }}>
-                  ❌ Đã dịch thất bại
-                </span>
-              )}
-            </div>
-          )}
+                      <span className="translated-label" style={{ color: "red" }}>
+                        ❌ Đã dịch thất bại
+                      </span>
+                    )}
+                  </div>
+                )}
           {errorMessage && (
-            <div className="error-message">
+                  <div className="error-message">
               <p>{errorMessage}</p>
-            </div>
-          )}
-        </div>
-      </li>
+                  </div>
+                )}
+              </div>
+            </li>
     );
   });
 
