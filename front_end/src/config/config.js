@@ -1,8 +1,8 @@
 // API Configuration
 export const API_URL = "http://localhost:8000";
 
-// Socket URL (dùng chung với API_URL, có thể tách riêng nếu cần)
-export const SOCKET_URL = API_URL;
+// Socket URL (Socket.io server riêng biệt)
+export const SOCKET_URL = "http://localhost:8001";
 
 // Other configurations can be added here
 export const APP_CONFIG = {

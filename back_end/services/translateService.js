@@ -15,44 +15,59 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const errorHandler = new ErrorHandlerService();
 
 const translateText = async (text, keyInfo, modelAI, type = "content", storyId = null) => {
-  console.log("✍️ Text đầu vào:", text?.slice(0, 50), "...");
+  console.log("🔤 [TRANSLATE] ===== BẮT ĐẦU DỊCH =====");
+  console.log("✍️ [TRANSLATE] Text đầu vào:", text?.slice(0, 50), "...");
+  console.log("[TRANSLATE] 📋 Thông tin:", {
+    type: type,
+    model: modelAI?.name || modelAI,
+    storyId: storyId,
+    textLength: text?.length || 0
+  });
 
   const { key, usageId, isUserKey } = keyInfo;
 
   // Kiểm tra nếu không có modelAI thì báo lỗi
   if (!modelAI) {
+    console.log("[TRANSLATE] ❌ Lỗi: Thiếu thông tin modelAI");
     throw new Error("Thiếu thông tin modelAI.");
   }
 
   const currentModelAI = modelAI || DEFAULT_MODEL;
 
-  if (!text) throw new Error("Thiếu nội dung cần dịch.");
+  if (!text) {
+    console.log("[TRANSLATE] ❌ Lỗi: Thiếu nội dung cần dịch");
+    throw new Error("Thiếu nội dung cần dịch.");
+  }
 
   // Kiểm tra key
   if (!key) {
+    console.log("[TRANSLATE] ❌ Lỗi: Không tìm thấy key khả dụng");
     throw new Error("Không tìm thấy key khả dụng.");
   }
 
   try {
-    console.log("🔑 Dùng key:", key.substring(0, 8) + "...");
+    const keyDisplay = typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown';
+    console.log(`[TRANSLATE] 🔑 Dùng key: ${keyDisplay}`);
     const genAI = new GoogleGenerativeAI(key);
     const model = genAI.getGenerativeModel({ model: currentModelAI });
 
     let prompt;
     if (type === "title") {
+      console.log("[TRANSLATE] 📝 Tạo prompt cho tiêu đề");
       prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.
       Lưu ý quan trọng: Khi dịch số chương, hãy sử dụng số Ả Rập (1, 2, 3...) thay vì số từ (một, hai, ba...). Ví dụ: "chương 1", "chương 2", "chương 3" thay vì "chương một", "chương hai", "chương ba".
       Tiêu đề: ${text}`;
     } else {
+      console.log("[TRANSLATE] 📝 Tạo prompt cho nội dung");
       // Lấy glossary nếu có storyId
       let glossaryText = "";
       if (storyId) {
         try {
           const glossaryItems = await getGlossaryByStoryId(storyId);
           glossaryText = formatGlossaryForAI(glossaryItems);
-          console.log(`📚 Đã tải ${glossaryItems.length} items từ glossary cho truyện ${storyId}`);
+          console.log(`[TRANSLATE] 📚 Đã tải ${glossaryItems.length} items từ glossary cho truyện ${storyId}`);
         } catch (error) {
-          console.error("⚠️ Lỗi khi tải glossary:", error);
+          console.error("[TRANSLATE] ⚠️ Lỗi khi tải glossary:", error);
         }
       }
 
@@ -157,30 +172,34 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       prompt = promptContent;
     }
 
-    console.log("📝 Prompt gửi đi:", prompt.substring(0, 100) + "...");
+    console.log("📝 [TRANSLATE] Prompt gửi đi:", prompt.substring(0, 100) + "...");
 
+    console.log("[TRANSLATE] 🔄 Gọi API Gemini...");
     const startTime = Date.now();
     const result = await model.generateContent(prompt);
     const response = result.response;
     const translated = response.text();
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    console.log("📤 Response từ API:", translated.substring(0, 100) + "...");
-    console.log("📏 Độ dài text gốc:", text.length);
-    console.log("📏 Độ dài text dịch:", translated.length);
+    console.log("📤 [TRANSLATE] Response từ API:", translated.substring(0, 100) + "...");
+    console.log("📏 [TRANSLATE] Độ dài text gốc:", text.length);
+    console.log("📏 [TRANSLATE] Độ dài text dịch:", translated.length);
+    console.log("⏱️ [TRANSLATE] Thời gian dịch:", duration + "s");
 
     const isUnchanged = translated.trim() === text.trim();
 
     if (isUnchanged) {
+      const keyDisplay = typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown';
       console.warn(
-        `⚠️ Bản dịch không thay đổi cho key ${key.substring(0, 8)}...`
+        `⚠️ [TRANSLATE] Bản dịch không thay đổi cho key ${keyDisplay}`
       );
-      console.warn("🔍 Text gốc:", text.substring(0, 100));
-      console.warn("🔍 Text dịch:", translated.substring(0, 100));
+      console.warn("🔍 [TRANSLATE] Text gốc:", text.substring(0, 100));
+      console.warn("🔍 [TRANSLATE] Text dịch:", translated.substring(0, 100));
     }
 
     // Cập nhật thống kê sử dụng key nếu có usageId
     if (response.usageMetadata && usageId) {
+      console.log("[TRANSLATE] 📊 Cập nhật thống kê sử dụng key...");
       const apiKeyManager = new ApiKeyManager();
       await apiKeyManager.updateUsageStats(
         usageId,
@@ -192,6 +211,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     // Lưu glossary nếu có storyId và không phải dịch title
     if (storyId && type !== "title") {
       try {
+        console.log("[TRANSLATE] 📚 Xử lý glossary...");
         // Tìm và trích xuất glossary từ response
         const glossaryMatch = translated.match(/📚 THƯ VIỆN TỪ MỚI:\n([\s\S]*?)(?=\n---|$)/);
         if (glossaryMatch) {
@@ -200,23 +220,23 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
           // Kiểm tra xem có từ mới thực sự không (không phải "Không có từ mới")
           if (glossaryText && glossaryText !== "Không có từ mới" && !glossaryText.includes("Không có từ mới")) {
             await extractAndSaveGlossary(storyId, glossaryText);
-            console.log(`📚 Đã lưu ${glossaryText.split('\n').filter(line => line.trim() && line.includes('=')).length} từ mới vào glossary`);
+            console.log(`[TRANSLATE] 📚 Đã lưu ${glossaryText.split('\n').filter(line => line.trim() && line.includes('=')).length} từ mới vào glossary`);
           } else {
-            console.log("📚 Không có từ mới để lưu vào glossary");
+            console.log("[TRANSLATE] 📚 Không có từ mới để lưu vào glossary");
           }
           
           // Loại bỏ phần glossary khỏi text dịch cuối cùng
           translated = translated.replace(/📚 THƯ VIỆN TỪ MỚI:\n[\s\S]*?(?=\n---|$)/, '').trim();
         } else {
-          console.warn("⚠️ Không tìm thấy phần '📚 THƯ VIỆN TỪ MỚI:' trong response");
+          console.warn("[TRANSLATE] ⚠️ Không tìm thấy phần '📚 THƯ VIỆN TỪ MỚI:' trong response");
         }
       } catch (error) {
-        console.error("⚠️ Lỗi khi lưu glossary:", error);
+        console.error("[TRANSLATE] ⚠️ Lỗi khi lưu glossary:", error);
       }
     }
 
     console.log(
-      `✅ Dịch thành công sau ${duration}s với key ${key.substring(0, 8)}...`
+      `✅ [TRANSLATE] Dịch thành công sau ${duration}s với key ${typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown'}`
     );
 
     // Đảm bảo luôn trả về đúng format
@@ -226,28 +246,30 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       isUnchanged: isUnchanged,
     };
 
-    console.log("📋 Kết quả trả về:", {
+    console.log("📋 [TRANSLATE] Kết quả trả về:", {
       hasTranslated: !!resultObj.translated,
       translatedLength: resultObj.translated?.length || 0,
       isUnchanged: resultObj.isUnchanged,
       translatedPreview: resultObj.translated?.substring(0, 50) + "...",
     });
 
+    console.log("🔤 [TRANSLATE] ===== HOÀN THÀNH DỊCH =====");
     return resultObj;
   } catch (error) {
+    console.log("❌ [TRANSLATE] ===== LỖI DỊCH =====");
     // Sử dụng ErrorHandlerService để phân tích lỗi
     const errorInfo = errorHandler.logError(error, {
       model: currentModelAI,
-      key: key.substring(0, 8) + "...",
+      key: typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown',
       type: type,
       storyId: storyId,
       textLength: text?.length || 0
     });
 
-    console.error("⚠️ Lỗi dịch chi tiết:", errorHandler.createDeveloperMessage(errorInfo));
+    console.error("⚠️ [TRANSLATE] Lỗi dịch chi tiết:", errorHandler.createDeveloperMessage(errorInfo));
 
     // Trả về thông tin lỗi rõ ràng thay vì giả vờ thành công
-    console.log("🔄 Trả về thông tin lỗi do dịch thất bại");
+    console.log("🔄 [TRANSLATE] Trả về thông tin lỗi do dịch thất bại");
     return {
       translated: null, // Không có bản dịch
       usage: null,

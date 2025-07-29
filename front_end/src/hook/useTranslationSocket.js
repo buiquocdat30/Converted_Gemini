@@ -13,25 +13,29 @@ export default function useTranslationSocket(roomId, onChapterTranslated) {
 
   // Chỉ tạo socket một lần duy nhất
   useEffect(() => {
-    console.log('[SOCKET] Khởi tạo socket connection đến:', SOCKET_URL);
+    console.log('🔌 [FE-SOCKET] ===== KHỞI TẠO SOCKET ====');
+    console.log('[FE-SOCKET] 🌐 Kết nối đến:', SOCKET_URL);
     socketRef.current = io(SOCKET_URL);
 
     // Lắng nghe kết nối
     socketRef.current.on('connect', () => {
-      console.log('[SOCKET] Đã kết nối thành công:', socketRef.current.id);
+      console.log('[FE-SOCKET] ✅ Đã kết nối thành công:', socketRef.current.id);
     });
 
     // Lắng nghe ngắt kết nối
     socketRef.current.on('disconnect', () => {
-      console.log('[SOCKET] Đã ngắt kết nối');
+      console.log('[FE-SOCKET] ❌ Đã ngắt kết nối');
     });
 
     // Lắng nghe kết quả dịch
     socketRef.current.on('chapterTranslated', (data) => {
-      console.log('[SOCKET] Nhận kết quả dịch:', {
+      console.log('📥 [FE-SOCKET] ===== NHẬN KẾT QUẢ DỊCH ====');
+      console.log('[FE-SOCKET] 📋 Dữ liệu nhận được:', {
         chapterNumber: data.chapterNumber,
         hasTranslatedTitle: !!data.translatedTitle,
         hasTranslatedContent: !!data.translatedContent,
+        titleLength: data.translatedTitle?.length || 0,
+        contentLength: data.translatedContent?.length || 0,
         duration: data.duration,
         hasError: data.hasError,
         error: data.error
@@ -39,19 +43,22 @@ export default function useTranslationSocket(roomId, onChapterTranslated) {
 
       // Gọi callback với dữ liệu nhận được
       if (callbackRef.current) {
+        console.log('[FE-SOCKET] 🔄 Gọi callback xử lý kết quả...');
         callbackRef.current(data);
+        console.log('[FE-SOCKET] ✅ Đã xử lý kết quả thành công');
       } else {
-        console.warn('[SOCKET] Không có callback để xử lý kết quả dịch');
+        console.warn('[FE-SOCKET] ⚠️ Không có callback để xử lý kết quả dịch');
       }
+      console.log('📥 [FE-SOCKET] ===== HOÀN THÀNH XỬ LÝ ====');
     });
 
     // Lắng nghe lỗi socket
     socketRef.current.on('connect_error', (error) => {
-      console.error('[SOCKET] Lỗi kết nối:', error);
+      console.error('[FE-SOCKET] ❌ Lỗi kết nối:', error);
     });
 
     return () => {
-      console.log('[SOCKET] Đóng socket connection');
+      console.log('[FE-SOCKET] 🔌 Đóng socket connection');
       socketRef.current.disconnect();
     };
   }, []);
@@ -59,8 +66,10 @@ export default function useTranslationSocket(roomId, onChapterTranslated) {
   // Khi roomId đổi thì emit join
   useEffect(() => {
     if (roomId && socketRef.current) {
-      console.log('[SOCKET] Join room:', roomId);
+      console.log('🏠 [FE-SOCKET] ===== JOIN ROOM ====');
+      console.log('[FE-SOCKET] 📍 Join room:', roomId);
       socketRef.current.emit('join', roomId);
+      console.log('🏠 [FE-SOCKET] ===== JOIN ROOM HOÀN THÀNH ====');
     }
   }, [roomId]);
 
