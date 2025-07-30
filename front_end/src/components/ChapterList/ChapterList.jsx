@@ -727,7 +727,7 @@ const ChapterList = ({
 
   // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
   const handleSocketChapterTranslated = useCallback((data) => {
-    // data: { chapterNumber, translatedContent, translatedTitle, duration, error }
+    // data: { chapterNumber, translatedContent, translatedTitle, duration, error, jobIndex, totalJobs }
     const idx = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
     if (idx === -1) return;
     console.log('[SOCKET][chapterTranslated] Nhận kết quả:', data);
@@ -751,7 +751,59 @@ const ChapterList = ({
     }
   }, [chapters]);
 
-  useTranslationSocket(storyId, handleSocketChapterTranslated);
+  // Lắng nghe progress từ socket.io
+  const handleSocketChapterProgress = useCallback((data) => {
+    // data: { chapterNumber, status, progress, jobIndex, totalJobs }
+    const idx = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
+    if (idx === -1) return;
+    
+    console.log('[SOCKET][chapterProgress] Nhận progress:', data);
+    
+    // Cập nhật trạng thái chương
+    setChapterStatus(prev => ({
+      ...prev,
+      [idx]: data.status
+    }));
+    
+    // Cập nhật progress bar
+    if (data.status === 'PROCESSING') {
+      setChapterProgresses(prev => ({
+        ...prev,
+        [idx]: data.progress
+      }));
+      setChapterTranslatingStates(prev => ({
+        ...prev,
+        [idx]: true
+      }));
+    } else if (data.status === 'COMPLETE') {
+      setChapterProgresses(prev => ({
+        ...prev,
+        [idx]: 100
+      }));
+      setChapterTranslatingStates(prev => ({
+        ...prev,
+        [idx]: false
+      }));
+    } else if (data.status === 'FAILED') {
+      setChapterProgresses(prev => ({
+        ...prev,
+        [idx]: 0
+      }));
+      setChapterTranslatingStates(prev => ({
+        ...prev,
+        [idx]: false
+      }));
+    }
+    
+    // Cập nhật progress tổng nếu có jobIndex và totalJobs
+    if (data.jobIndex !== undefined && data.totalJobs) {
+      const totalProgress = Math.floor(((data.jobIndex + 1) / data.totalJobs) * 100);
+      setManualTotalProgress(totalProgress);
+      console.log(`[SOCKET][chapterProgress] Progress tổng: ${totalProgress}% (${data.jobIndex + 1}/${data.totalJobs})`);
+    }
+  }, [chapters]);
+
+  useTranslationSocket(storyId, handleSocketChapterTranslated, handleSocketChapterProgress);
 
   // Log props thay đổi mỗi lần render
   const prevPropsRef = useRef({});

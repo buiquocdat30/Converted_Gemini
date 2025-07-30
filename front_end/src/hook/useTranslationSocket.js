@@ -2,14 +2,19 @@ import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '../config/config';
 
-export default function useTranslationSocket(roomId, onChapterTranslated) {
+export default function useTranslationSocket(roomId, onChapterTranslated, onChapterProgress) {
   const socketRef = useRef(null);
   const callbackRef = useRef(onChapterTranslated);
+  const progressCallbackRef = useRef(onChapterProgress);
 
   // Luôn giữ callback mới nhất
   useEffect(() => {
     callbackRef.current = onChapterTranslated;
   }, [onChapterTranslated]);
+
+  useEffect(() => {
+    progressCallbackRef.current = onChapterProgress;
+  }, [onChapterProgress]);
 
   // Chỉ tạo socket một lần duy nhất
   useEffect(() => {
@@ -38,7 +43,9 @@ export default function useTranslationSocket(roomId, onChapterTranslated) {
         contentLength: data.translatedContent?.length || 0,
         duration: data.duration,
         hasError: data.hasError,
-        error: data.error
+        error: data.error,
+        jobIndex: data.jobIndex,
+        totalJobs: data.totalJobs
       });
 
       // Gọi callback với dữ liệu nhận được
@@ -50,6 +57,28 @@ export default function useTranslationSocket(roomId, onChapterTranslated) {
         console.warn('[FE-SOCKET] ⚠️ Không có callback để xử lý kết quả dịch');
       }
       console.log('📥 [FE-SOCKET] ===== HOÀN THÀNH XỬ LÝ ====');
+    });
+
+    // Lắng nghe progress
+    socketRef.current.on('chapterProgress', (data) => {
+      console.log('📊 [FE-SOCKET] ===== NHẬN PROGRESS ====');
+      console.log('[FE-SOCKET] 📋 Progress data:', {
+        chapterNumber: data.chapterNumber,
+        status: data.status,
+        progress: data.progress,
+        jobIndex: data.jobIndex,
+        totalJobs: data.totalJobs
+      });
+
+      // Gọi callback progress
+      if (progressCallbackRef.current) {
+        console.log('[FE-SOCKET] 🔄 Gọi callback xử lý progress...');
+        progressCallbackRef.current(data);
+        console.log('[FE-SOCKET] ✅ Đã xử lý progress thành công');
+      } else {
+        console.warn('[FE-SOCKET] ⚠️ Không có callback để xử lý progress');
+      }
+      console.log('📊 [FE-SOCKET] ===== HOÀN THÀNH XỬ LÝ PROGRESS ====');
     });
 
     // Lắng nghe lỗi socket
