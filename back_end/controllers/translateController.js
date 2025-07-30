@@ -29,27 +29,44 @@ exports.translateText = async (req, res) => {
 
   console.log("[API] ✅ Validation thành công");
 
-  // Lấy key khả dụng
+  // Lấy key khả dụng với timeout
   console.log("[API] 🔑 Đang tìm key khả dụng...");
-  const keyManager = new ApiKeyManager();
-  let keysToUse = [];
-  if (userKeys && Array.isArray(userKeys) && userKeys.length > 0) {
-    keysToUse = userKeys;
-    console.log(`[API] 📋 Sử dụng ${userKeys.length} user keys`);
-  } else if (userKey) {
-    keysToUse = [userKey];
-    console.log("[API] 📋 Sử dụng 1 user key");
-  }
+  let keyToUse = null;
+  
+  try {
+    const keyManager = new ApiKeyManager();
+    let keysToUse = [];
+    if (userKeys && Array.isArray(userKeys) && userKeys.length > 0) {
+      keysToUse = userKeys;
+      console.log(`[API] 📋 Sử dụng ${userKeys.length} user keys`);
+    } else if (userKey) {
+      keysToUse = [userKey];
+      console.log("[API] 📋 Sử dụng 1 user key");
+    }
 
-  const keyToUse = await keyManager.getKeyToUse(userId, keysToUse, model);
+    // Thêm timeout cho việc tìm key
+    const keyPromise = keyManager.getKeyToUse(userId, keysToUse, model);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout khi tìm key khả dụng')), 10000)
+    );
+    
+    const keyResult = await Promise.race([keyPromise, timeoutPromise]);
+    keyToUse = keyResult.key;
+    
+    console.log(`[API] ✅ Đã tìm được key: ${keyToUse.substring(0, 8)}...`);
+  } catch (error) {
+    console.error("[API] ❌ Lỗi khi tìm key khả dụng:", error.message);
+    return res.status(500).json({ 
+      error: `Lỗi khi tìm key khả dụng: ${error.message}` 
+    });
+  }
+  
   if (!keyToUse) {
     console.log("[API] ❌ Lỗi: Không có key khả dụng");
     return res.status(400).json({ error: "Không có key khả dụng." });
   }
-  
-  console.log(`[API] ✅ Đã tìm được key: ${keyToUse.substring(0, 8)}...`);
 
-  // Dịch trực tiếp từng chương
+  // Dịch trực tiếp từng chương với timeout
   console.log("[API] 🔄 Bắt đầu dịch trực tiếp...");
   const results = [];
   
@@ -70,14 +87,24 @@ exports.translateText = async (req, res) => {
         isUserKey: true
       };
 
-      // Dịch tiêu đề và nội dung
-      const titleResult = ch.title
-        ? await translateText(ch.title, keyInfo, model, 'title', storyId)
-        : { translated: ch.title };
+      // Dịch tiêu đề và nội dung với timeout
+      const titlePromise = ch.title
+        ? translateText(ch.title, keyInfo, model, 'title', storyId)
+        : Promise.resolve({ translated: ch.title });
       
-      const contentResult = ch.content
-        ? await translateText(ch.content, keyInfo, model, 'content', storyId)
-        : { translated: ch.content };
+      const contentPromise = ch.content
+        ? translateText(ch.content, keyInfo, model, 'content', storyId)
+        : Promise.resolve({ translated: ch.content });
+
+      // Timeout cho mỗi chương: 60 giây
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout dịch chương')), 60000)
+      );
+
+      const [titleResult, contentResult] = await Promise.race([
+        Promise.all([titlePromise, contentPromise]),
+        timeoutPromise
+      ]);
 
       const duration = (titleResult.duration || 0) + (contentResult.duration || 0);
       
@@ -86,7 +113,9 @@ exports.translateText = async (req, res) => {
         hasTranslatedContent: !!contentResult.translated,
         titleLength: titleResult.translated?.length || 0,
         contentLength: contentResult.translated?.length || 0,
-        duration: duration
+        duration: duration,
+        titleDuration: titleResult.duration || 0,
+        contentDuration: contentResult.duration || 0
       });
 
       results.push({
@@ -99,7 +128,7 @@ exports.translateText = async (req, res) => {
       });
 
     } catch (error) {
-      console.error(`[API] ❌ Lỗi dịch chương ${ch.chapterNumber || i + 1}:`, error);
+      console.error(`[API] ❌ Lỗi dịch chương ${ch.chapterNumber || i + 1}:`, error.message);
       results.push({
         chapterNumber: ch.chapterNumber || i + 1,
         translatedTitle: ch.title,
