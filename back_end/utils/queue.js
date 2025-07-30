@@ -7,11 +7,11 @@ const connection = new IORedis({
   maxRetriesPerRequest: null, // BẮT BUỘC cho BullMQ!
 });
 
-console.log('[QUEUE] Initializing BullMQ queue with rate limiter 15 jobs/minute');
+console.log('[QUEUE] Initializing BullMQ queue with dynamic rate limiter');
 const myQueue = new Queue('my-queue', {
   connection,
   limiter: {
-    max: 15, // số job tối đa mỗi duration
+    max: 60, // Tăng lên để phù hợp với các model có RPM cao
     duration: 60000, // 1 phút
   }
 });

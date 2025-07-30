@@ -45,34 +45,42 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     throw new Error("Không tìm thấy key khả dụng.");
   }
 
-  try {
-    const keyDisplay = typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown';
-    console.log(`[TRANSLATE] 🔑 Dùng key: ${keyDisplay}`);
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: currentModelAI });
+  // Retry logic cho lỗi 503
+  const maxRetries = 3;
+  let lastError = null;
+  let currentModel = currentModelAI;
 
-    let prompt;
-    if (type === "title") {
-      console.log("[TRANSLATE] 📝 Tạo prompt cho tiêu đề");
-      prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const keyDisplay = typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown';
+      console.log(`[TRANSLATE] 🔑 Dùng key: ${keyDisplay} (lần thử ${attempt}/${maxRetries})`);
+      console.log(`[TRANSLATE] 🤖 Dùng model: ${currentModel}`);
+      
+      const genAI = new GoogleGenerativeAI(key);
+      const model = genAI.getGenerativeModel({ model: currentModel });
+
+      let prompt;
+      if (type === "title") {
+        console.log("[TRANSLATE] 📝 Tạo prompt cho tiêu đề");
+        prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.
       Lưu ý quan trọng: Khi dịch số chương, hãy sử dụng số Ả Rập (1, 2, 3...) thay vì số từ (một, hai, ba...). Ví dụ: "chương 1", "chương 2", "chương 3" thay vì "chương một", "chương hai", "chương ba".
       Tiêu đề: ${text}`;
-    } else {
-      console.log("[TRANSLATE] 📝 Tạo prompt cho nội dung");
-      // Lấy glossary nếu có storyId
-      let glossaryText = "";
-      if (storyId) {
-        try {
-          const glossaryItems = await getGlossaryByStoryId(storyId);
-          glossaryText = formatGlossaryForAI(glossaryItems);
-          console.log(`[TRANSLATE] 📚 Đã tải ${glossaryItems.length} items từ glossary cho truyện ${storyId}`);
-        } catch (error) {
-          console.error("[TRANSLATE] ⚠️ Lỗi khi tải glossary:", error);
+      } else {
+        console.log("[TRANSLATE] 📝 Tạo prompt cho nội dung");
+        // Lấy glossary nếu có storyId
+        let glossaryText = "";
+        if (storyId) {
+          try {
+            const glossaryItems = await getGlossaryByStoryId(storyId);
+            glossaryText = formatGlossaryForAI(glossaryItems);
+            console.log(`[TRANSLATE] 📚 Đã tải ${glossaryItems.length} items từ glossary cho truyện ${storyId}`);
+          } catch (error) {
+            console.error("[TRANSLATE] ⚠️ Lỗi khi tải glossary:", error);
+          }
         }
-      }
 
-      // Cải thiện prompt để dịch hiệu quả hơn với glossary
-      const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
+        // Cải thiện prompt để dịch hiệu quả hơn với glossary
+        const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
       ---
 
       🎯 MỤC TIÊU
@@ -260,7 +268,9 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     console.log("🔤 [TRANSLATE] ===== HOÀN THÀNH DỊCH =====");
     return resultObj;
   } catch (error) {
-    console.log("❌ [TRANSLATE] ===== LỖI DỊCH =====");
+    lastError = error;
+    console.log(`❌ [TRANSLATE] ===== LỖI DỊCH (LẦN ${attempt}/${maxRetries}) =====`);
+    
     // Sử dụng ErrorHandlerService để phân tích lỗi
     const errorInfo = errorHandler.logError(error, {
       model: currentModelAI,
@@ -272,7 +282,25 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
 
     console.error("⚠️ [TRANSLATE] Lỗi dịch chi tiết:", errorHandler.createDeveloperMessage(errorInfo));
 
-    // Trả về thông tin lỗi rõ ràng thay vì giả vờ thành công
+    // Nếu là lỗi 503 và còn retry, thử lại
+    if (errorInfo.code === '503' && attempt < maxRetries) {
+      const delay = attempt * 2000; // Tăng delay theo số lần retry
+      console.log(`⏳ [TRANSLATE] Chờ ${delay}ms trước khi thử lại lần ${attempt + 1}...`);
+      
+      // Thử fallback model nếu đang dùng gemini-2.0-flash-lite
+      if (currentModel === 'gemini-2.0-flash-lite' && attempt === 2) {
+        currentModel = 'gemini-1.5-flash';
+        console.log(`🔄 [TRANSLATE] Chuyển sang fallback model: ${currentModel}`);
+      } else if (currentModel === 'gemini-1.5-flash' && attempt === 3) {
+        currentModel = 'gemini-1.5-pro';
+        console.log(`🔄 [TRANSLATE] Chuyển sang fallback model cuối: ${currentModel}`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      continue;
+    }
+
+    // Nếu hết retry hoặc không phải lỗi 503, trả về lỗi
     console.log("🔄 [TRANSLATE] Trả về thông tin lỗi do dịch thất bại");
     return {
       translated: null, // Không có bản dịch
@@ -286,6 +314,29 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       solution: errorInfo.solution // Giải pháp cho user
     };
   }
+  }
+
+  // Nếu hết tất cả retry, trả về lỗi cuối cùng
+  console.log("🔄 [TRANSLATE] Hết tất cả retry, trả về lỗi cuối cùng");
+  const finalErrorInfo = errorHandler.logError(lastError, {
+    model: currentModelAI,
+    key: typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown',
+    type: type,
+    storyId: storyId,
+    textLength: text?.length || 0
+  });
+
+  return {
+    translated: null,
+    usage: null,
+    isUnchanged: false,
+    error: finalErrorInfo.userMessage,
+    errorDetails: errorHandler.createDeveloperMessage(finalErrorInfo),
+    hasError: true,
+    retryable: false, // Hết retry rồi
+    errorType: finalErrorInfo.type,
+    solution: finalErrorInfo.solution
+  };
 };
 
 module.exports = {

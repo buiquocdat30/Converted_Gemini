@@ -362,7 +362,7 @@ class ErrorHandlerService {
     if (retryCount >= maxRetries) return false;
 
     // Delay tăng dần theo số lần retry
-    const delays = [1000, 2000, 5000]; // 1s, 2s, 5s
+    const delays = [5000, 10000, 15000]; // 5s, 10s, 15s
     return {
       shouldRetry: true,
       delay: delays[retryCount] || delays[delays.length - 1]

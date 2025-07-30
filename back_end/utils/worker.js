@@ -115,9 +115,15 @@ const worker = new Worker('my-queue', async job => {
   console.log(`[WORKER] 📥 Nhận job dịch chương: ${job.data.chapter?.chapterNumber}`);
   console.log("[WORKER] 📋 Job data:", {
     chapterNumber: job.data.chapter?.chapterNumber,
-    model: job.data.model?.name || job.data.model,
+    model: job.data.model?.label || job.data.model?.name || job.data.model,
+    modelValue: job.data.model?.value,
+    modelRpm: job.data.model?.rpm,
+    modelTpm: job.data.model?.tpm,
+    modelRpd: job.data.model?.rpd,
     storyId: job.data.storyId,
     userId: job.data.userId,
+    jobIndex: job.data.jobIndex,
+    totalJobs: job.data.totalJobs,
     titleLength: job.data.chapter?.title?.length || 0,
     contentLength: job.data.chapter?.content?.length || 0
   });
@@ -131,6 +137,19 @@ const worker = new Worker('my-queue', async job => {
       } catch (error) {
         console.error('[WORKER] ❌ Không thể kết nối Socket.io, bỏ qua emit kết quả');
       }
+    }
+
+    // Emit progress bắt đầu
+    if (socket && socket.connected) {
+      const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      socket.emit('chapterProgress', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        status: 'PROCESSING',
+        progress: 0,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
+        room: room
+      });
     }
 
     console.log("[WORKER] 🔄 Bắt đầu dịch chương...");
@@ -159,6 +178,18 @@ const worker = new Worker('my-queue', async job => {
         duration: result.duration,
         hasError: result.hasError,
         error: result.error,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
+        room: room
+      });
+
+      // Emit progress hoàn thành
+      socket.emit('chapterProgress', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        status: 'COMPLETE',
+        progress: 100,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
         room: room
       });
     } else {
@@ -179,6 +210,18 @@ const worker = new Worker('my-queue', async job => {
         chapterNumber: job.data.chapter.chapterNumber,
         error: err.message,
         hasError: true,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
+        room: room
+      });
+
+      // Emit progress lỗi
+      socket.emit('chapterProgress', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        status: 'FAILED',
+        progress: 0,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
         room: room
       });
     }

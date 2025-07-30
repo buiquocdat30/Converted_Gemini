@@ -80,6 +80,8 @@ async function startSocketServer() {
           contentLength: data.translatedContent?.length || 0,
           duration: data.duration,
           hasError: data.hasError,
+          jobIndex: data.jobIndex,
+          totalJobs: data.totalJobs,
           room: data.room
         });
         
@@ -93,6 +95,30 @@ async function startSocketServer() {
           console.warn('[SOCKET] ⚠️ Không có room để emit chapterTranslated');
         }
         console.log('📤 [SOCKET] ===== EMIT HOÀN THÀNH ====');
+      });
+
+      // Lắng nghe event progress từ worker
+      socket.on('chapterProgress', (data) => {
+        console.log('📊 [SOCKET] ===== NHẬN PROGRESS TỪ WORKER ====');
+        console.log('[SOCKET] 📥 Nhận event chapterProgress:', {
+          chapterNumber: data.chapterNumber,
+          status: data.status,
+          progress: data.progress,
+          jobIndex: data.jobIndex,
+          totalJobs: data.totalJobs,
+          room: data.room
+        });
+        
+        // Emit progress về đúng room cho FE
+        const room = data.room || (data.userId ? `user:${data.userId}` : `story:${data.storyId}`);
+        if (room) {
+          console.log(`[SOCKET] 📤 Emit chapterProgress về room: ${room}`);
+          io.to(room).emit('chapterProgress', data);
+          console.log('[SOCKET] ✅ Đã emit progress thành công');
+        } else {
+          console.warn('[SOCKET] ⚠️ Không có room để emit chapterProgress');
+        }
+        console.log('📊 [SOCKET] ===== EMIT PROGRESS HOÀN THÀNH ====');
       });
     });
 

@@ -10,6 +10,9 @@ router.post('/', authMiddleware, translateText);
 // Route test không cần auth (chỉ để debug)
 router.post('/test', translateText);
 
+// Route mới: Thêm jobs vào queue
+router.post('/queue', authMiddleware, translateController.translateTextQueue);
+
 // Thêm job vào hàng đợi BullMQ
 router.post('/add-job', translateController.addJobToQueue);
 

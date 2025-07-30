@@ -2,6 +2,7 @@ const { myQueue } = require('../utils/queue');
 const ApiKeyManager = require("../services/apiKeyManagers");
 const { translateText } = require("../services/translateService");
 
+// Endpoint dịch trực tiếp (giữ nguyên)
 exports.translateText = async (req, res) => {
   const { chapters, userKey, userKeys, model, storyId } = req.body;
   const userId = req.user?.id || "anonymous";
@@ -152,7 +153,110 @@ exports.translateText = async (req, res) => {
   });
 };
 
-// Thêm job vào hàng đợi BullMQ (ví dụ demo)
+// Endpoint mới: Thêm jobs vào queue
+exports.translateTextQueue = async (req, res) => {
+  console.log("🚀 [QUEUE-API] ===== BẮT ĐẦU THÊM JOBS VÀO QUEUE =====");
+  
+  const { chapters, userKeys, model, storyId, userId, isBatchTranslation } = req.body;
+  
+  console.log("[QUEUE-API] 📋 Thông tin request:", {
+    chaptersCount: chapters?.length || 0,
+    hasUserKeys: !!userKeys,
+    userKeysCount: userKeys?.length || 0,
+    model: model?.label || model?.name || model,
+    modelValue: model?.value,
+    modelRpm: model?.rpm,
+    modelTpm: model?.tpm,
+    modelRpd: model?.rpd,
+    storyId: storyId,
+    userId: userId,
+    isBatchTranslation: isBatchTranslation
+  });
+
+  if (!chapters || chapters.length === 0) {
+    return res.status(400).json({ error: "Không có chương nào để dịch." });
+  }
+
+  try {
+    // Lấy key khả dụng
+    const keyManager = new ApiKeyManager();
+    const keysToUse = userKeys || [];
+    const userIdFromToken = req.user?.id || userId || 'anonymous';
+    
+    console.log("[QUEUE-API] 🔑 Tìm key khả dụng...");
+    const keyResult = await keyManager.getKeyToUse(userIdFromToken, keysToUse, model);
+    const keyToUse = keyResult.key;
+    
+    console.log(`[QUEUE-API] ✅ Đã tìm thấy key: ${typeof keyToUse === 'string' ? keyToUse.substring(0, 8) + '...' : 'unknown'}`);
+
+    // Thêm từng chương vào queue
+    const jobs = [];
+    for (let i = 0; i < chapters.length; i++) {
+      const chapter = chapters[i];
+      
+      const jobData = {
+        chapter: {
+          title: chapter.title,
+          content: chapter.content,
+          chapterNumber: chapter.chapterNumber
+        },
+        model: model,
+        apiKey: keyToUse,
+        storyId: storyId,
+        userId: userIdFromToken,
+        jobIndex: i, // Index để track thứ tự
+        totalJobs: chapters.length // Tổng số jobs
+      };
+
+      console.log(`[QUEUE-API] 📝 Thêm job ${i + 1}/${chapters.length}:`, {
+        chapterNumber: chapter.chapterNumber,
+        titleLength: chapter.title?.length || 0,
+        contentLength: chapter.content?.length || 0
+      });
+
+      // Tính delay dựa trên RPM của model
+      let delayPerJob = 6000; // Default 5s
+      if (model && model.rpm) {
+        delayPerJob = Math.max((60 / model.rpm) * 1000, 2000); // Tối thiểu 1s
+        console.log(`[QUEUE-API] ⏱️ Model ${model.label || model.name} có RPM ${model.rpm}, delay: ${delayPerJob}ms`);
+      } else {
+        console.log(`[QUEUE-API] ⏱️ Không có thông tin RPM, dùng delay mặc định: ${delayPerJob}ms`);
+      }
+
+      const job = await myQueue.add('translate-chapter', jobData, {
+        delay: i * delayPerJob, // Delay dựa trên RPM
+        attempts: 3, // Retry 3 lần nếu fail
+        backoff: {
+          type: 'exponential',
+          delay: 2000
+        }
+      });
+
+      jobs.push(job);
+      console.log(`[QUEUE-API] ✅ Đã thêm job ${job.id} vào queue`);
+    }
+
+    console.log(`[QUEUE-API] ✅ Đã thêm ${jobs.length} jobs vào queue thành công`);
+    console.log("🚀 [QUEUE-API] ===== HOÀN THÀNH THÊM JOBS =====");
+
+    res.json({
+      success: true,
+      message: `Đã thêm ${jobs.length} chương vào hàng đợi dịch`,
+      jobCount: jobs.length,
+      jobIds: jobs.map(job => job.id)
+    });
+
+  } catch (error) {
+    console.error("[QUEUE-API] ❌ Lỗi khi thêm jobs vào queue:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi thêm jobs vào queue",
+      error: error.message
+    });
+  }
+};
+
+// Thêm job vào hàng đợi BullMQ (giữ nguyên cho compatibility)
 exports.addJobToQueue = async (req, res) => {
   try {
     const { storyId, chapterNumber, content } = req.body;
