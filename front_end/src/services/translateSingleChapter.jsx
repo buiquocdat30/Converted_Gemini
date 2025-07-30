@@ -136,9 +136,13 @@ export const translateSingleChapter = async ({
       // Gọi callback với kết quả
       onTranslationResult?.(index, translated, translatedTitle, duration);
       
+      // Gọi onComplete callback để dừng progress
+      onComplete?.(duration);
+      
       console.log("[FE] ✅ Đã cập nhật kết quả dịch thành công");
     } else {
       console.warn("[FE] ⚠️ Không có kết quả dịch trong response");
+      onComplete?.(0, new Error("Không có kết quả dịch"));
     }
 
     console.log("📖 [FE] ===== HOÀN THÀNH GỬI REQUEST =====");

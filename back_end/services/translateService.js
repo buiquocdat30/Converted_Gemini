@@ -244,12 +244,16 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       translated: translated || text, // Fallback về text gốc nếu translated rỗng
       usage: response.usageMetadata || null,
       isUnchanged: isUnchanged,
+      duration: duration, // Thêm duration vào result
+      hasError: false,
+      error: null
     };
 
     console.log("📋 [TRANSLATE] Kết quả trả về:", {
       hasTranslated: !!resultObj.translated,
       translatedLength: resultObj.translated?.length || 0,
       isUnchanged: resultObj.isUnchanged,
+      duration: resultObj.duration,
       translatedPreview: resultObj.translated?.substring(0, 50) + "...",
     });
 
