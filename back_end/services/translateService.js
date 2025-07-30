@@ -179,7 +179,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     const result = await model.generateContent(prompt);
     const response = result.response;
     const translated = response.text();
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    const duration = parseFloat(((Date.now() - startTime) / 1000).toFixed(2)); // Chuyển thành number
 
     console.log("📤 [TRANSLATE] Response từ API:", translated.substring(0, 100) + "...");
     console.log("📏 [TRANSLATE] Độ dài text gốc:", text.length);

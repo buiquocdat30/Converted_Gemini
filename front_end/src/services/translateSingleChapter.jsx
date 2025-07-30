@@ -112,14 +112,15 @@ export const translateSingleChapter = async ({
       const chapterData = res.data.chapters[0];
       const translated = chapterData.translatedContent || "";
       const translatedTitle = chapterData.translatedTitle || "";
-      const duration = chapterData.timeTranslation || 0;
+      const duration = parseFloat(chapterData.timeTranslation || 0); // Đảm bảo là number
       
       console.log("[FE] ✅ Nhận được kết quả dịch:", {
         hasTranslatedTitle: !!translatedTitle,
         hasTranslatedContent: !!translated,
         titleLength: translatedTitle?.length || 0,
         contentLength: translated?.length || 0,
-        duration: duration
+        duration: duration,
+        durationType: typeof duration
       });
 
       // Cập nhật kết quả dịch
