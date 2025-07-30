@@ -1,7 +1,7 @@
 // hàm dịch theo từng chương
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { SOCKET_URL } from '../config/config';
+import { API_URL } from '../config/config';
 
 export const translateSingleChapter = async ({
   index,
@@ -90,7 +90,7 @@ export const translateSingleChapter = async ({
     console.log("[FE] 🌐 Gửi request đến backend...");
     const token = localStorage.getItem("auth-token");
     const res = await axios.post(
-      SOCKET_URL + "/translate",
+      API_URL + "/translate",
       requestData,
       {
         headers: {
@@ -107,9 +107,41 @@ export const translateSingleChapter = async ({
       chaptersCount: res.data.chapters?.length || 0
     });
 
+    // Xử lý kết quả dịch từ response
+    if (res.data.success && res.data.chapters && res.data.chapters.length > 0) {
+      const chapterData = res.data.chapters[0];
+      const translated = chapterData.translatedContent || "";
+      const translatedTitle = chapterData.translatedTitle || "";
+      const duration = chapterData.timeTranslation || 0;
+      
+      console.log("[FE] ✅ Nhận được kết quả dịch:", {
+        hasTranslatedTitle: !!translatedTitle,
+        hasTranslatedContent: !!translated,
+        titleLength: translatedTitle?.length || 0,
+        contentLength: translated?.length || 0,
+        duration: duration
+      });
+
+      // Cập nhật kết quả dịch
+      setResults((prev) => ({
+        ...prev,
+        [index]: {
+          translated,
+          translatedTitle,
+          chapterName: translatedTitle || chapter.chapterName,
+          duration: duration
+        },
+      }));
+
+      // Gọi callback với kết quả
+      onTranslationResult?.(index, translated, translatedTitle, duration);
+      
+      console.log("[FE] ✅ Đã cập nhật kết quả dịch thành công");
+    } else {
+      console.warn("[FE] ⚠️ Không có kết quả dịch trong response");
+    }
+
     console.log("📖 [FE] ===== HOÀN THÀNH GỬI REQUEST =====");
-    // Không kiểm tra kết quả dịch trong response nữa, chỉ log và return
-    // FE sẽ nhận kết quả dịch qua socket (chapterTranslated)
     return res.data;
   } catch (error) {
     const endTime = Date.now();

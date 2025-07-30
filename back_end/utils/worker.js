@@ -3,24 +3,43 @@ const { io } = require('socket.io-client');
 const { translateText } = require("../services/translateService");
 
 const SOCKET_PORT = 8001; // Socket.io server port
-const socket = io(`ws://localhost:${SOCKET_PORT}`, {
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000
-});
 
-socket.on('connect', () => {
-  console.log('[WORKER] Đã kết nối socket server');
-});
+// Hàm tạo socket connection với retry
+function createSocketConnection() {
+  return new Promise((resolve, reject) => {
+    console.log(`[WORKER] 🔌 Đang kết nối đến Socket.io server ws://localhost:${SOCKET_PORT}...`);
+    
+    const socket = io(`ws://localhost:${SOCKET_PORT}`, {
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      timeout: 10000
+    });
 
-socket.on('disconnect', () => {
-  console.log('[WORKER] Đã ngắt kết nối socket server');
-});
+    const timeout = setTimeout(() => {
+      console.error('[WORKER] ❌ Timeout kết nối Socket.io server');
+      socket.disconnect();
+      reject(new Error('Socket.io connection timeout'));
+    }, 15000);
 
-socket.on('connect_error', (error) => {
-  console.error('[WORKER] Lỗi kết nối socket:', error);
-});
+    socket.on('connect', () => {
+      console.log('[WORKER] ✅ Đã kết nối Socket.io server thành công');
+      clearTimeout(timeout);
+      resolve(socket);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('[WORKER] ❌ Lỗi kết nối Socket.io:', error.message);
+      clearTimeout(timeout);
+      reject(error);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[WORKER] 🔌 Đã ngắt kết nối Socket.io server');
+    });
+  });
+}
 
 // Hàm dịch chương (tùy chỉnh lại theo luồng của bạn)
 async function callTranslateAPI(chapter, model, apiKey, storyId) {
@@ -61,6 +80,36 @@ async function callTranslateAPI(chapter, model, apiKey, storyId) {
 
 console.log(`[WORKER] Worker process started at ${new Date().toLocaleString()} | PID: ${process.pid}`);
 
+// Khởi tạo socket connection
+let socket = null;
+
+// Hàm khởi tạo socket với retry
+async function initializeSocket() {
+  let retries = 0;
+  const maxRetries = 5;
+  
+  while (retries < maxRetries) {
+    try {
+      console.log(`[WORKER] 🔄 Thử kết nối Socket.io lần ${retries + 1}/${maxRetries}...`);
+      socket = await createSocketConnection();
+      console.log('[WORKER] ✅ Socket.io connection thành công');
+      return socket;
+    } catch (error) {
+      retries++;
+      console.error(`[WORKER] ❌ Lần ${retries} thất bại:`, error.message);
+      
+      if (retries < maxRetries) {
+        const delay = retries * 2000; // Tăng delay theo số lần retry
+        console.log(`[WORKER] ⏳ Chờ ${delay}ms trước khi thử lại...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error('[WORKER] ❌ Không thể kết nối Socket.io sau nhiều lần thử');
+        throw error;
+      }
+    }
+  }
+}
+
 const worker = new Worker('my-queue', async job => {
   console.log("🔄 [WORKER] ===== BẮT ĐẦU XỬ LÝ JOB =====");
   console.log(`[WORKER] 📥 Nhận job dịch chương: ${job.data.chapter?.chapterNumber}`);
@@ -74,6 +123,16 @@ const worker = new Worker('my-queue', async job => {
   });
   
   try {
+    // Đảm bảo socket đã kết nối
+    if (!socket || !socket.connected) {
+      console.log('[WORKER] 🔌 Socket chưa kết nối, thử kết nối lại...');
+      try {
+        socket = await initializeSocket();
+      } catch (error) {
+        console.error('[WORKER] ❌ Không thể kết nối Socket.io, bỏ qua emit kết quả');
+      }
+    }
+
     console.log("[WORKER] 🔄 Bắt đầu dịch chương...");
     const result = await callTranslateAPI(job.data.chapter, job.data.model, job.data.apiKey, job.data.storyId);
     
@@ -89,18 +148,22 @@ const worker = new Worker('my-queue', async job => {
     });
 
     // Emit kết quả về FE qua socket với format room rõ ràng
-    const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
-    console.log(`[WORKER] 📤 Emit kết quả về room: ${room}`);
-    
-    socket.emit('chapterTranslated', {
-      chapterNumber: job.data.chapter.chapterNumber,
-      translatedContent: result.translatedContent,
-      translatedTitle: result.translatedTitle,
-      duration: result.duration,
-      hasError: result.hasError,
-      error: result.error,
-      room: room
-    });
+    if (socket && socket.connected) {
+      const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      console.log(`[WORKER] 📤 Emit kết quả về room: ${room}`);
+      
+      socket.emit('chapterTranslated', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        translatedContent: result.translatedContent,
+        translatedTitle: result.translatedTitle,
+        duration: result.duration,
+        hasError: result.hasError,
+        error: result.error,
+        room: room
+      });
+    } else {
+      console.warn('[WORKER] ⚠️ Socket không kết nối, không thể emit kết quả');
+    }
     
     console.log("🔄 [WORKER] ===== HOÀN THÀNH JOB =====");
     return result;
@@ -108,15 +171,17 @@ const worker = new Worker('my-queue', async job => {
     console.error(`[WORKER] ❌ Lỗi dịch chương ${job.data.chapter?.chapterNumber}:`, err);
     
     // Emit lỗi về FE qua socket với format room rõ ràng
-    const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
-    console.log(`[WORKER] 📤 Emit lỗi về room: ${room}`);
-    
-    socket.emit('chapterTranslated', {
-      chapterNumber: job.data.chapter.chapterNumber,
-      error: err.message,
-      hasError: true,
-      room: room
-    });
+    if (socket && socket.connected) {
+      const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      console.log(`[WORKER] 📤 Emit lỗi về room: ${room}`);
+      
+      socket.emit('chapterTranslated', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        error: err.message,
+        hasError: true,
+        room: room
+      });
+    }
     
     console.log("🔄 [WORKER] ===== JOB THẤT BẠI =====");
     throw err;
@@ -131,12 +196,21 @@ worker.on('failed', (job, err) => {
   console.error(`[WORKER] Job ${job.id} thất bại:`, err);
 });
 
+// Khởi tạo socket khi worker start
+initializeSocket().then(() => {
+  console.log('[WORKER] ✅ Worker đã sẵn sàng với Socket.io connection');
+}).catch(error => {
+  console.error('[WORKER] ❌ Không thể khởi tạo Socket.io connection:', error);
+});
+
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('[WORKER] Đang đóng worker...');
   try {
     await worker.close();
-    socket.disconnect();
+    if (socket) {
+      socket.disconnect();
+    }
     console.log('[WORKER] Đã đóng worker và socket');
   } catch (error) {
     console.error('[WORKER] Lỗi khi đóng worker:', error);
