@@ -32,42 +32,6 @@ button:disabled {
     border-radius: 4px;
 }
 
-/* Loading container */
-.loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    padding: 40px;
-}
-
-.loading-container .spinner {
-    font-size: 2rem;
-    color: #32744f;
-    animation: spin 1s linear infinite;
-    margin-bottom: 15px;
-}
-
-.loading-container p {
-    color: #666;
-    font-size: 1.1rem;
-    margin: 0;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.dark .loading-container .spinner {
-    color: #A8C4B5;
-}
-
-.dark .loading-container p {
-    color: #A8C4B5;
-}
-
 .translate-page {
     padding: 0px;
     margin: 10px auto;

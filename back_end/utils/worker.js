@@ -155,6 +155,9 @@ const worker = new Worker('my-queue', async job => {
 
     console.log("[WORKER] 🔄 Bắt đầu dịch chương...");
     
+    // Lưu thời gian bắt đầu dịch
+    const translationStartTime = Date.now();
+    
     // Thêm delay để đảm bảo không vượt quá RPM của model
     if (job.data.model && job.data.model.rpm) {
       const delayMs = Math.max((60 / job.data.model.rpm) * 1000, 1000); // Tối thiểu 1s
@@ -162,9 +165,25 @@ const worker = new Worker('my-queue', async job => {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
     
+    // Emit progress 25% khi bắt đầu dịch thực sự
+    if (socket && socket.connected) {
+      const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      socket.emit('chapterProgress', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        status: 'PROCESSING',
+        progress: 25,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
+        room: room
+      });
+    }
+    
     const result = await callTranslateAPI(job.data.chapter, job.data.model, job.data.apiKey, job.data.storyId);
     
-    console.log(`[WORKER] ✅ Dịch xong chương ${job.data.chapter?.chapterNumber}`);
+    // Tính thời gian thực tế đã dịch
+    const actualDuration = (Date.now() - translationStartTime) / 1000;
+    
+    console.log(`[WORKER] ✅ Dịch xong chương ${job.data.chapter?.chapterNumber} trong ${actualDuration.toFixed(1)}s`);
     console.log("[WORKER] 📊 Kết quả dịch:", {
       chapterNumber: job.data.chapter.chapterNumber,
       hasTranslatedTitle: !!result.translatedTitle,
@@ -172,6 +191,7 @@ const worker = new Worker('my-queue', async job => {
       titleLength: result.translatedTitle?.length || 0,
       contentLength: result.translatedContent?.length || 0,
       duration: result.duration,
+      actualDuration: actualDuration,
       hasError: result.hasError
     });
 

@@ -73,32 +73,10 @@ const ChapterList = ({
           setChapterTranslatingStates((prev) => ({ ...prev, [index]: true }));
           setChapterProgresses((prev) => ({ ...prev, [index]: 0 }));
 
-          // Tính thời gian dự kiến dựa trên số từ và thời gian trung bình
-          const chapter = chapters[index];
-          const titleWords = (chapter?.title || chapter?.chapterName || "").split(/\s+/).filter(Boolean).length;
-          const contentWords = (chapter?.content || chapter?.rawText || "").split(/\s+/).filter(Boolean).length;
-          const totalWords = titleWords + contentWords;
+          console.log(`[PROGRESS] Khởi tạo progress cho chương ${index} - chờ thông tin từ socket`);
           
-          // Sử dụng averageTimePerWord hoặc default 0.1s/từ
-          const avgTimePerWord = parseFloat(averageTimePerWord) || 0.1;
-          const estimatedDuration = totalWords * avgTimePerWord;
-          
-          console.log(`[PROGRESS] Chương ${index}: ${totalWords} từ, dự kiến ${estimatedDuration.toFixed(1)}s (avgTimePerWord: ${avgTimePerWord}s/từ)`);
-          
-          // Tính interval dựa trên thời gian dự kiến (tăng 1% mỗi interval)
-          const progressInterval = Math.max(estimatedDuration * 10, 100); // Tối thiểu 100ms
-
-          // Tạo interval để cập nhật tiến độ
-          const interval = setInterval(() => {
-            setChapterProgresses((prev) => {
-              const currentProgress = prev[index] || 0;
-              const newProgress = Math.min(currentProgress + 1, 98); // Tăng 1% mỗi lần, dừng ở 98%
-              return { ...prev, [index]: newProgress };
-            });
-          }, progressInterval);
-
-          // Lưu interval để có thể clear sau
-          chapterProgressHooks.current[index].interval = interval;
+          // Không tự động tính progress nữa, chờ thông tin từ socket
+          // Progress sẽ được cập nhật qua handleSocketChapterProgress
         },
         stopProgress: () => {
           setChapterTranslatingStates((prev) => ({ ...prev, [index]: false }));
@@ -826,20 +804,20 @@ const ChapterList = ({
       [idx]: data.status
     }));
     
-    // Cập nhật progress bar
+    // Cập nhật progress bar dựa trên thông tin từ socket
     if (data.status === 'PROCESSING') {
-      // Khởi động thanh tiến độ khi thực sự bắt đầu dịch
-      const chapterHook = getChapterProgressHook(idx);
-      chapterHook.startProgress();
-      
+      // Sử dụng progress từ socket thay vì tính toán local
       setChapterProgresses(prev => ({
         ...prev,
-        [idx]: data.progress
+        [idx]: data.progress || 0
       }));
+      
       setChapterTranslatingStates(prev => ({
         ...prev,
         [idx]: true
       }));
+      
+      console.log(`[SOCKET][chapterProgress] Cập nhật progress chương ${data.chapterNumber}: ${data.progress}%`);
     } else if (data.status === 'COMPLETE') {
       setChapterProgresses(prev => ({
         ...prev,

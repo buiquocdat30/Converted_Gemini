@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 // Lưu trữ lịch sử thời gian dịch và số từ trong localStorage
 const STORAGE_KEY = 'translation_history_v2';
 const MAX_HISTORY = 6;
-const DEFAULT_TIME_PER_WORD = 0.00806451612; // giây/1 từ (có thể cho admin chỉnh)
+const DEFAULT_TIME_PER_WORD = 0.05; // 50ms/từ (thực tế hơn)
 
 const useTranslationProgress = (defaultTime = 15) => {
   const [progress, setProgress] = useState(0);
@@ -105,9 +105,13 @@ const useTranslationProgress = (defaultTime = 15) => {
           0
         );
         const avg = totalDuration / totalWords;
-        setAverageTimePerWord(avg);
         console.log('📊 Lịch sử dịch:', validHistory);
         console.log('⏱️ Trung bình thời gian dịch 1 từ:', avg.toFixed(3), 'giây');
+        
+        // Đảm bảo avg không quá nhỏ hoặc quá lớn
+        const clampedAvg = Math.max(Math.min(avg, 1.0), 0.01); // Giới hạn từ 10ms đến 1s/từ
+        setAverageTimePerWord(clampedAvg);
+        console.log('🔧 Giá trị cuối cùng:', clampedAvg.toFixed(3), 'giây/từ');
       } else {
         setAverageTimePerWord(DEFAULT_TIME_PER_WORD);
       }
