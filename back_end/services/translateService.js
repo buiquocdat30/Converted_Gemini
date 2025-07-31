@@ -32,7 +32,7 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     throw new Error("Thiếu thông tin modelAI.");
   }
 
-  const currentModelAI = modelAI || DEFAULT_MODEL;
+  const currentModelAI = modelAI?.value || modelAI || DEFAULT_MODEL;
 
   if (!text) {
     console.log("[TRANSLATE] ❌ Lỗi: Thiếu nội dung cần dịch");

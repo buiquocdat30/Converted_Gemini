@@ -11,7 +11,11 @@ exports.translateText = async (req, res) => {
   console.log("[API] 📥 Dữ liệu nhận từ FE:", {
     storyId,
     userId,
-    model: model?.name || model,
+    model: model?.label || model?.name || model,
+    modelValue: model?.value,
+    modelRpm: model?.rpm,
+    modelTpm: model?.tpm,
+    modelRpd: model?.rpd,
     chaptersCount: chapters?.length || 0,
     hasUserKey: !!userKey,
     hasUserKeys: !!userKeys,
@@ -46,7 +50,8 @@ exports.translateText = async (req, res) => {
     }
 
     // Thêm timeout cho việc tìm key
-    const keyPromise = keyManager.getKeyToUse(userId, keysToUse, model);
+    const modelValueForKey = model?.value || model;
+    const keyPromise = keyManager.getKeyToUse(userId, keysToUse, modelValueForKey);
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Timeout khi tìm key khả dụng')), 10000)
     );
@@ -184,10 +189,37 @@ exports.translateTextQueue = async (req, res) => {
     const userIdFromToken = req.user?.id || userId || 'anonymous';
     
     console.log("[QUEUE-API] 🔑 Tìm key khả dụng...");
-    const keyResult = await keyManager.getKeyToUse(userIdFromToken, keysToUse, model);
+    // Truyền model.value thay vì toàn bộ model object
+    const modelValueForKey = model?.value || model;
+    const keyResult = await keyManager.getKeyToUse(userIdFromToken, keysToUse, modelValueForKey);
     const keyToUse = keyResult.key;
     
     console.log(`[QUEUE-API] ✅ Đã tìm thấy key: ${typeof keyToUse === 'string' ? keyToUse.substring(0, 8) + '...' : 'unknown'}`);
+
+    // Lấy thông tin model đầy đủ từ database nếu cần
+    let fullModelInfo = model;
+    if (model && model.value && (!model.rpm || !model.tpm || !model.rpd)) {
+      console.log("[QUEUE-API] 🔍 Tìm thông tin model đầy đủ từ database...");
+      try {
+        const { prisma } = require("../config/prismaConfig");
+        const dbModel = await prisma.model.findFirst({
+          where: { value: model.value },
+          select: { value: true, label: true, rpm: true, tpm: true, rpd: true }
+        });
+        if (dbModel) {
+          fullModelInfo = { ...model, ...dbModel };
+          console.log(`[QUEUE-API] ✅ Đã lấy thông tin model từ DB:`, {
+            value: fullModelInfo.value,
+            label: fullModelInfo.label,
+            rpm: fullModelInfo.rpm,
+            tpm: fullModelInfo.tpm,
+            rpd: fullModelInfo.rpd
+          });
+        }
+      } catch (error) {
+        console.error("[QUEUE-API] ⚠️ Không thể lấy thông tin model từ DB:", error.message);
+      }
+    }
 
     // Thêm từng chương vào queue
     const jobs = [];
@@ -200,7 +232,7 @@ exports.translateTextQueue = async (req, res) => {
           content: chapter.content,
           chapterNumber: chapter.chapterNumber
         },
-        model: model,
+        model: fullModelInfo, // Sử dụng fullModelInfo ở đây
         apiKey: keyToUse,
         storyId: storyId,
         userId: userIdFromToken,
@@ -216,9 +248,9 @@ exports.translateTextQueue = async (req, res) => {
 
       // Tính delay dựa trên RPM của model
       let delayPerJob = 6000; // Default 5s
-      if (model && model.rpm) {
-        delayPerJob = Math.max((60 / model.rpm) * 1000, 2000); // Tối thiểu 1s
-        console.log(`[QUEUE-API] ⏱️ Model ${model.label || model.name} có RPM ${model.rpm}, delay: ${delayPerJob}ms`);
+      if (fullModelInfo && fullModelInfo.rpm) {
+        delayPerJob = Math.max((60 / fullModelInfo.rpm) * 1000, 2000); // Tối thiểu 1s
+        console.log(`[QUEUE-API] ⏱️ Model ${fullModelInfo.label || fullModelInfo.name} có RPM ${fullModelInfo.rpm}, delay: ${delayPerJob}ms`);
       } else {
         console.log(`[QUEUE-API] ⏱️ Không có thông tin RPM, dùng delay mặc định: ${delayPerJob}ms`);
       }
