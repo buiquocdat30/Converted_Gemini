@@ -155,10 +155,10 @@ const worker = new Worker('my-queue', async job => {
 
     console.log("[WORKER] 🔄 Bắt đầu dịch chương...");
     
-    // Thêm delay để đồng bộ với BE (60/rpm * 1000ms)
+    // Thêm delay để đảm bảo không vượt quá RPM của model
     if (job.data.model && job.data.model.rpm) {
       const delayMs = Math.max((60 / job.data.model.rpm) * 1000, 1000); // Tối thiểu 1s
-      console.log(`[WORKER] ⏱️ Delay ${delayMs}ms trước khi dịch (RPM: ${job.data.model.rpm})`);
+      console.log(`[WORKER] ⏱️ Delay ${delayMs}ms để đảm bảo không vượt quá RPM ${job.data.model.rpm}`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
     
