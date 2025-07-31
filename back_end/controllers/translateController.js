@@ -79,7 +79,7 @@ exports.translateText = async (req, res) => {
   for (let i = 0; i < chapters.length; i++) {
     const ch = chapters[i];
     console.log(`[API] 📝 Đang dịch chương ${ch.chapterNumber || i + 1}:`, {
-      chapterNumber: ch.chapterNumber,
+          chapterNumber: ch.chapterNumber,
       titleLength: ch.title?.length || 0,
       contentLength: ch.content?.length || 0,
       model: model?.name || model
@@ -94,11 +94,11 @@ exports.translateText = async (req, res) => {
       };
 
       // Dịch tiêu đề và nội dung với timeout
-      const titlePromise = ch.title
+        const titlePromise = ch.title
         ? translateText(ch.title, keyInfo, model, 'title', storyId)
         : Promise.resolve({ translated: ch.title });
-      
-      const contentPromise = ch.content
+
+        const contentPromise = ch.content
         ? translateText(ch.content, keyInfo, model, 'content', storyId)
         : Promise.resolve({ translated: ch.content });
 
@@ -246,17 +246,18 @@ exports.translateTextQueue = async (req, res) => {
         contentLength: chapter.content?.length || 0
       });
 
-      // Tính delay dựa trên RPM của model
-      let delayPerJob = 6000; // Default 5s
+      // Tính delay dựa trên RPM của model - đảm bảo không vượt quá RPM
+      let delayPerJob = 2000; // Default 2s giữa các job
       if (fullModelInfo && fullModelInfo.rpm) {
-        delayPerJob = Math.max((60 / fullModelInfo.rpm) * 1000, 2000); // Tối thiểu 1s
-        console.log(`[QUEUE-API] ⏱️ Model ${fullModelInfo.label || fullModelInfo.name} có RPM ${fullModelInfo.rpm}, delay: ${delayPerJob}ms`);
+        // Đảm bảo delay >= 60/rpm để không vượt quá RPM
+        delayPerJob = Math.max((60 / fullModelInfo.rpm) * 1000, 1000); // Tối thiểu 1s
+        console.log(`[QUEUE-API] ⏱️ Model ${fullModelInfo.label || fullModelInfo.name} có RPM ${fullModelInfo.rpm}, delay tối thiểu: ${delayPerJob}ms (60/${fullModelInfo.rpm}s)`);
       } else {
         console.log(`[QUEUE-API] ⏱️ Không có thông tin RPM, dùng delay mặc định: ${delayPerJob}ms`);
       }
 
       const job = await myQueue.add('translate-chapter', jobData, {
-        delay: i * delayPerJob, // Delay dựa trên RPM
+        delay: i * delayPerJob, // Delay giữa các job theo RPM, job đầu tiên chạy ngay
         attempts: 3, // Retry 3 lần nếu fail
         backoff: {
           type: 'exponential',

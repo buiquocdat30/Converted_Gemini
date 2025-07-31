@@ -51,36 +51,36 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
   let currentModel = currentModelAI;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
+  try {
       const keyDisplay = typeof key === 'string' ? key.substring(0, 8) + '...' : 'unknown';
       console.log(`[TRANSLATE] 🔑 Dùng key: ${keyDisplay} (lần thử ${attempt}/${maxRetries})`);
       console.log(`[TRANSLATE] 🤖 Dùng model: ${currentModel}`);
       
-      const genAI = new GoogleGenerativeAI(key);
+    const genAI = new GoogleGenerativeAI(key);
       const model = genAI.getGenerativeModel({ model: currentModel });
 
-      let prompt;
-      if (type === "title") {
+    let prompt;
+    if (type === "title") {
         console.log("[TRANSLATE] 📝 Tạo prompt cho tiêu đề");
-        prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.
+      prompt = `Dịch chính xác tiêu đề truyện sau sang tiếng Việt, chỉ trả về bản dịch, không thêm bất kỳ chú thích, giải thích, hoặc ký tự nào khác.
       Lưu ý quan trọng: Khi dịch số chương, hãy sử dụng số Ả Rập (1, 2, 3...) thay vì số từ (một, hai, ba...). Ví dụ: "chương 1", "chương 2", "chương 3" thay vì "chương một", "chương hai", "chương ba".
       Tiêu đề: ${text}`;
-      } else {
+    } else {
         console.log("[TRANSLATE] 📝 Tạo prompt cho nội dung");
-        // Lấy glossary nếu có storyId
-        let glossaryText = "";
-        if (storyId) {
-          try {
-            const glossaryItems = await getGlossaryByStoryId(storyId);
-            glossaryText = formatGlossaryForAI(glossaryItems);
+      // Lấy glossary nếu có storyId
+      let glossaryText = "";
+      if (storyId) {
+        try {
+          const glossaryItems = await getGlossaryByStoryId(storyId);
+          glossaryText = formatGlossaryForAI(glossaryItems);
             console.log(`[TRANSLATE] 📚 Đã tải ${glossaryItems.length} items từ glossary cho truyện ${storyId}`);
-          } catch (error) {
+        } catch (error) {
             console.error("[TRANSLATE] ⚠️ Lỗi khi tải glossary:", error);
-          }
         }
+      }
 
-        // Cải thiện prompt để dịch hiệu quả hơn với glossary
-        const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
+      // Cải thiện prompt để dịch hiệu quả hơn với glossary
+      const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
       ---
 
       🎯 MỤC TIÊU

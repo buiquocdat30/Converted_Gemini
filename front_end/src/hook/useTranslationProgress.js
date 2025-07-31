@@ -162,7 +162,7 @@ const useTranslationProgress = (defaultTime = 15) => {
     isTranslating,
     startProgress, // truyền vào số từ khi bắt đầu dịch: startProgress(wordCount)
     stopProgress,
-    averageTimePerWord: averageTimePerWord.toFixed(3),
+    averageTimePerWord, // Trả về number thay vì string
   };
 };
 

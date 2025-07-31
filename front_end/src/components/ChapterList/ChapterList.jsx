@@ -83,11 +83,11 @@ const ChapterList = ({
           const avgTimePerWord = parseFloat(averageTimePerWord) || 0.1;
           const estimatedDuration = totalWords * avgTimePerWord;
           
-          console.log(`[PROGRESS] Chương ${index}: ${totalWords} từ, dự kiến ${estimatedDuration.toFixed(1)}s`);
+          console.log(`[PROGRESS] Chương ${index}: ${totalWords} từ, dự kiến ${estimatedDuration.toFixed(1)}s (avgTimePerWord: ${avgTimePerWord}s/từ)`);
           
           // Tính interval dựa trên thời gian dự kiến (tăng 1% mỗi interval)
           const progressInterval = Math.max(estimatedDuration * 10, 100); // Tối thiểu 100ms
-          
+
           // Tạo interval để cập nhật tiến độ
           const interval = setInterval(() => {
             setChapterProgresses((prev) => {
@@ -696,8 +696,21 @@ const ChapterList = ({
 
   // Lấy averageTimePerWord từ hook
   const estimatedTime = Math.round(
-    totalWordsInPage * parseFloat(averageTimePerWord)
+    totalWordsInPage * (parseFloat(averageTimePerWord) || 0.1)
   ); // giây
+  
+  // Debug log để kiểm tra tính toán
+  console.log('[PROGRESS-DEBUG] Tính thời gian ước tính:', {
+    totalWordsInPage,
+    averageTimePerWord,
+    parsedAvgTime: parseFloat(averageTimePerWord),
+    fallbackAvgTime: parseFloat(averageTimePerWord) || 0.1,
+    estimatedTime,
+    estimatedTimeStr: estimatedTime < 60
+      ? `${estimatedTime} giây`
+      : `${Math.floor(estimatedTime / 60)} phút ${estimatedTime % 60} giây`
+  });
+  
   const estimatedTimeStr =
     estimatedTime < 60
       ? `${estimatedTime} giây`
@@ -777,7 +790,7 @@ const ChapterList = ({
       setErrorMessages(prev => ({ ...prev, [idx]: data.error }));
       console.error(`[SOCKET][chapterTranslated] Dịch chương ${data.chapterNumber} thất bại: ${data.error}`);
       toast.error(`Dịch chương ${data.chapterNumber} thất bại: ${data.error}`);
-    } else {
+            } else {
       setTranslatedCount(prev => prev + 1);
       console.log(`[SOCKET][chapterTranslated] Đã dịch xong chương ${data.chapterNumber}`);
       toast.success(`Đã dịch xong chương ${data.chapterNumber}`);
@@ -1052,8 +1065,8 @@ const ChapterList = ({
                     <span>
                 Trạng thái: <b>{chapterStatus}</b>
                     </span>
-                    {/* Hiển thị thanh tiến độ nếu đang PROCESSING */}
-              {chapterStatus === "PROCESSING" && (
+                    {/* Hiển thị thanh tiến độ nếu đang PENDING hoặc PROCESSING */}
+              {(chapterStatus === "PENDING" || chapterStatus === "PROCESSING") && (
                 <ChapterProgressBar progress={chapterProgress} />
                     )}
                     {/* Hiển thị label cho từng trạng thái */}
