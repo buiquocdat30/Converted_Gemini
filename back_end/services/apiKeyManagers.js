@@ -173,11 +173,25 @@ class ApiKeyManager {
    */
   async getKeyToUse(userId, userKeys = null, modelValue = null) {
     try {
-      // Lấy modelId từ modelValue
+      // Lấy modelId từ modelValue - hỗ trợ cả object và string
       let model = null;
       if (!modelValue) throw new Error("Thiếu thông tin model");
-      model = await prisma.model.findFirst({ where: { value: modelValue } });
-      if (!model) throw new Error("Không tìm thấy model");
+      
+      // Debug: Log giá trị modelValue thực tế
+      console.log(`[API-KEY-DEBUG] modelValue type:`, typeof modelValue);
+      console.log(`[API-KEY-DEBUG] modelValue value:`, modelValue);
+      
+      // Xử lý modelValue có thể là object hoặc string
+      const actualModelValue = typeof modelValue === 'object' && modelValue.value 
+        ? modelValue.value 
+        : modelValue;
+      
+      console.log(`[API-KEY] Tìm model với value: ${actualModelValue}`);
+      console.log(`[API-KEY-DEBUG] actualModelValue type:`, typeof actualModelValue);
+      console.log(`[API-KEY-DEBUG] actualModelValue value:`, actualModelValue);
+      
+      model = await prisma.model.findFirst({ where: { value: actualModelValue } });
+      if (!model) throw new Error(`Không tìm thấy model với value: ${actualModelValue}`);
 
       // Ưu tiên key của user
       if (userId) {
@@ -202,7 +216,7 @@ class ApiKeyManager {
               ]
             });
             if (usage) {
-              console.log(`✅ Tìm thấy user key khả dụng: ${userKey.key.substring(0, 10)}... cho model ${modelValue}`);
+              console.log(`✅ Tìm thấy user key khả dụng: ${userKey.key.substring(0, 10)}... cho model ${actualModelValue}`);
               return { key: userKey.key, usageId: usage.id, isUserKey: true };
             }
           }
@@ -229,7 +243,7 @@ class ApiKeyManager {
 
         // Nếu không có usage record, tạo mới
         if (!usage) {
-          console.log(`📝 Tạo usage record mới cho default key ${defaultKey.key.substring(0, 10)}... và model ${modelValue}`);
+          console.log(`📝 Tạo usage record mới cho default key ${defaultKey.key.substring(0, 10)}... và model ${actualModelValue}`);
           try {
             usage = await prisma.defaultKeyUsage.create({
               data: {
@@ -251,12 +265,12 @@ class ApiKeyManager {
         }
 
         if (usage) {
-          console.log(`✅ Tìm thấy default key khả dụng: ${defaultKey.key.substring(0, 10)}... cho model ${modelValue}`);
+          console.log(`✅ Tìm thấy default key khả dụng: ${defaultKey.key.substring(0, 10)}... cho model ${actualModelValue}`);
           return { key: defaultKey.key, usageId: usage.id, isUserKey: false };
         }
       }
 
-      console.log(`❌ Không tìm thấy key khả dụng cho model ${modelValue}`);
+      console.log(`❌ Không tìm thấy key khả dụng cho model ${actualModelValue}`);
       throw new Error("Không tìm thấy key khả dụng cho model này");
     } catch (err) {
       console.error("❌ Lỗi khi lấy key khả dụng:", err);

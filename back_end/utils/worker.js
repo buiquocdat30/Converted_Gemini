@@ -142,6 +142,7 @@ const worker = new Worker('my-queue', async job => {
     // Emit progress bắt đầu
     if (socket && socket.connected) {
       const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      console.log(`[WORKER] 📤 Emit progress bắt đầu về room: ${room}`);
       socket.emit('chapterProgress', {
         chapterNumber: job.data.chapter.chapterNumber,
         status: 'PROCESSING',
@@ -153,6 +154,14 @@ const worker = new Worker('my-queue', async job => {
     }
 
     console.log("[WORKER] 🔄 Bắt đầu dịch chương...");
+    
+    // Thêm delay để đồng bộ với BE (60/rpm * 1000ms)
+    if (job.data.model && job.data.model.rpm) {
+      const delayMs = Math.max((60 / job.data.model.rpm) * 1000, 1000); // Tối thiểu 1s
+      console.log(`[WORKER] ⏱️ Delay ${delayMs}ms trước khi dịch (RPM: ${job.data.model.rpm})`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    
     const result = await callTranslateAPI(job.data.chapter, job.data.model, job.data.apiKey, job.data.storyId);
     
     console.log(`[WORKER] ✅ Dịch xong chương ${job.data.chapter?.chapterNumber}`);
@@ -170,6 +179,18 @@ const worker = new Worker('my-queue', async job => {
     if (socket && socket.connected) {
       const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
       console.log(`[WORKER] 📤 Emit kết quả về room: ${room}`);
+      console.log(`[WORKER] 📋 Dữ liệu emit:`, {
+        chapterNumber: job.data.chapter.chapterNumber,
+        hasTranslatedTitle: !!result.translatedTitle,
+        hasTranslatedContent: !!result.translatedContent,
+        titleLength: result.translatedTitle?.length || 0,
+        contentLength: result.translatedContent?.length || 0,
+        duration: result.duration,
+        hasError: result.hasError,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
+        room: room
+      });
       
       socket.emit('chapterTranslated', {
         chapterNumber: job.data.chapter.chapterNumber,

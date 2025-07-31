@@ -25,6 +25,7 @@ export const translateAllChapters = async ({
   onUpdateTotalProgress,
   getChapterStatus,
   onBatchCancel,
+  userData, // Thêm userData parameter
 }) => {
   const totalChapters = chaptersToTranslate.length;
   let translatedCount = 0;
@@ -33,8 +34,8 @@ export const translateAllChapters = async ({
 
   try {
     // Gửi request để thêm jobs vào queue
-    const modelToSend = (model && typeof model === 'object' && model.value) ? model.value : model;
-    console.log('[ALL-QUEUE] Gửi model lên backend:', modelToSend);
+    const modelToSend = model; // Gửi toàn bộ model object
+    console.log('[ALL-QUEUE] Gửi model object lên backend:', modelToSend);
     
     const requestData = {
       chapters: chaptersToTranslate.map(ch => ({
@@ -43,9 +44,9 @@ export const translateAllChapters = async ({
         chapterNumber: ch.chapterNumber || ch.originalIndex + 1
       })),
       userKeys: Array.isArray(apiKey) ? apiKey : [apiKey],
-      model: modelToSend,
+      model: modelToSend, // Gửi toàn bộ model object
       storyId: storyId,
-      userId: localStorage.getItem('userId') || 'anonymous', // Thêm userId cho room
+      userId: userData.id, // Thêm userId cho room
       isBatchTranslation: true // Flag để biết đây là dịch batch
     };
 

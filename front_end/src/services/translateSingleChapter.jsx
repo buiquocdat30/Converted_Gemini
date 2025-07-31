@@ -51,9 +51,9 @@ export const translateSingleChapter = async ({
     console.log("[FE] 🔑 API Key:", apiKey ? "Có" : "Không");
     console.log("[FE] 🤖 Model:", model?.name || model);
 
-    // Format dữ liệu gửi đi - hỗ trợ cả single key và multiple keys
-    const modelToSend = (model && typeof model === 'object' && model.value) ? model.value : model;
-    console.log('[FE] 📤 Gửi model lên backend:', modelToSend);
+    // Format dữ liệu gửi đi - gửi toàn bộ model object
+    const modelToSend = model; // Gửi toàn bộ model object
+    console.log('[FE] 📤 Gửi model object lên backend:', modelToSend);
     
     const requestData = {
       chapters: [
@@ -63,7 +63,7 @@ export const translateSingleChapter = async ({
           chapterNumber: chapter.chapterNumber || index + 1,
         },
       ],
-      model: modelToSend,
+      model: modelToSend, // Gửi toàn bộ model object
       storyId: storyId,
     };
     

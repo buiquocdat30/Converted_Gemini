@@ -691,6 +691,13 @@ const TranslatorApp = ({
     timeTranslation = 0
   ) => {
     try {
+      console.log("📝 [TranslatorApp] handleTranslationResult được gọi:", {
+        index,
+        hasTranslatedContent: !!translated,
+        hasTranslatedTitle: !!translatedTitle,
+        timeTranslation
+      });
+      
       const chapter = chapters[index];
       console.log("📝 Lưu kết quả dịch:", {
         index,
@@ -714,6 +721,13 @@ const TranslatorApp = ({
 
       // Lưu vào database
       if (storyId && chapter.chapterNumber) {
+        console.log("💾 [TranslatorApp] Bắt đầu lưu vào database:", {
+          storyId,
+          chapterNumber: chapter.chapterNumber,
+          translatedTitle: translatedTitle || chapter.chapterName,
+          hasTranslatedContent: !!translated
+        });
+        
         await onUpdateChapter(
           storyId,
           chapter.chapterNumber,
@@ -721,6 +735,13 @@ const TranslatorApp = ({
           translated || chapter.content,
           timeTranslation
         );
+        
+        console.log("✅ [TranslatorApp] Đã lưu vào database thành công");
+      } else {
+        console.warn("⚠️ [TranslatorApp] Không thể lưu database:", {
+          storyId,
+          chapterNumber: chapter?.chapterNumber
+        });
       }
 
       // Chuyển sang chương vừa dịch

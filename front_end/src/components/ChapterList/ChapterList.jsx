@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -9,6 +9,7 @@ import useTranslationProgress from "../../hook/useTranslationProgress";
 import "./ChapterList.css";
 import { useSession } from '../../context/SessionContext';
 import useTranslationSocket from '../../hook/useTranslationSocket';
+import { AuthContext } from '../../context/ConverteContext';
 
 const ChapterList = ({
   chapters,
@@ -25,6 +26,7 @@ const ChapterList = ({
   ...rest
 }) => {
   const { selectedModel: modelFromContext } = useSession();
+  const { userData } = useContext(AuthContext); // Lấy userData từ context
   // Ưu tiên prop model nếu là object, nếu không thì lấy từ context
   const modelObject = (modelProp && typeof modelProp === 'object' && modelProp.rpm) ? modelProp : modelFromContext;
   
@@ -71,15 +73,29 @@ const ChapterList = ({
           setChapterTranslatingStates((prev) => ({ ...prev, [index]: true }));
           setChapterProgresses((prev) => ({ ...prev, [index]: 0 }));
 
+          // Tính thời gian dự kiến dựa trên số từ và thời gian trung bình
+          const chapter = chapters[index];
+          const titleWords = (chapter?.title || chapter?.chapterName || "").split(/\s+/).filter(Boolean).length;
+          const contentWords = (chapter?.content || chapter?.rawText || "").split(/\s+/).filter(Boolean).length;
+          const totalWords = titleWords + contentWords;
+          
+          // Sử dụng averageTimePerWord hoặc default 0.1s/từ
+          const avgTimePerWord = parseFloat(averageTimePerWord) || 0.1;
+          const estimatedDuration = totalWords * avgTimePerWord;
+          
+          console.log(`[PROGRESS] Chương ${index}: ${totalWords} từ, dự kiến ${estimatedDuration.toFixed(1)}s`);
+          
+          // Tính interval dựa trên thời gian dự kiến (tăng 1% mỗi interval)
+          const progressInterval = Math.max(estimatedDuration * 10, 100); // Tối thiểu 100ms
+          
           // Tạo interval để cập nhật tiến độ
-          // Mỗi 150ms tăng 1% (6.6% mỗi giây)
           const interval = setInterval(() => {
             setChapterProgresses((prev) => {
               const currentProgress = prev[index] || 0;
               const newProgress = Math.min(currentProgress + 1, 98); // Tăng 1% mỗi lần, dừng ở 98%
               return { ...prev, [index]: newProgress };
             });
-          }, 150); // 150ms = 0.15s cho mỗi 1%
+          }, progressInterval);
 
           // Lưu interval để có thể clear sau
           chapterProgressHooks.current[index].interval = interval;
@@ -249,6 +265,11 @@ const ChapterList = ({
     // Reset trạng thái hủy cho các chương sắp dịch
     chaptersToTranslate.forEach(ch => {
       cancelMapRef.current[ch.originalIndex] = false;
+      // Chỉ đặt trạng thái PENDING, không khởi động thanh tiến độ ngay
+      setChapterStatus(prev => ({
+        ...prev,
+        [ch.originalIndex]: "PENDING"
+      }));
     });
 
     try {
@@ -258,6 +279,7 @@ const ChapterList = ({
         apiKey,
         model: modelObject,
         storyId,
+        userData, // Truyền userData
         setResults: (updater) => {
           // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
           if (typeof updater === 'function') {
@@ -728,9 +750,19 @@ const ChapterList = ({
   // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
   const handleSocketChapterTranslated = useCallback((data) => {
     // data: { chapterNumber, translatedContent, translatedTitle, duration, error, jobIndex, totalJobs }
+    console.log('[SOCKET][chapterTranslated] ===== NHẬN KẾT QUẢ TỪ SOCKET =====');
+    console.log('[SOCKET][chapterTranslated] Data nhận được:', data);
+    
     const idx = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
-    if (idx === -1) return;
-    console.log('[SOCKET][chapterTranslated] Nhận kết quả:', data);
+    console.log('[SOCKET][chapterTranslated] Tìm chapter index:', idx, 'cho chapterNumber:', data.chapterNumber);
+    
+    if (idx === -1) {
+      console.warn('[SOCKET][chapterTranslated] Không tìm thấy chapter với number:', data.chapterNumber);
+      console.log('[SOCKET][chapterTranslated] Danh sách chapters:', chapters.map(ch => ch.chapterNumber));
+      return;
+    }
+    
+    console.log('[SOCKET][chapterTranslated] Cập nhật results cho index:', idx);
     setResults(prev => ({
       ...prev,
       [idx]: {
@@ -740,6 +772,7 @@ const ChapterList = ({
         error: data.error,
       }
     }));
+    
     if (data.error) {
       setErrorMessages(prev => ({ ...prev, [idx]: data.error }));
       console.error(`[SOCKET][chapterTranslated] Dịch chương ${data.chapterNumber} thất bại: ${data.error}`);
@@ -748,8 +781,23 @@ const ChapterList = ({
       setTranslatedCount(prev => prev + 1);
       console.log(`[SOCKET][chapterTranslated] Đã dịch xong chương ${data.chapterNumber}`);
       toast.success(`Đã dịch xong chương ${data.chapterNumber}`);
+      
+      // Gọi callback để lưu database
+      if (onTranslationResult) {
+        console.log(`[SOCKET][chapterTranslated] Gọi onTranslationResult cho index ${idx}`);
+        console.log(`[SOCKET][chapterTranslated] Dữ liệu gửi:`, {
+          index: idx,
+          translatedContent: data.translatedContent?.substring(0, 100) + '...',
+          translatedTitle: data.translatedTitle,
+          duration: data.duration
+        });
+        onTranslationResult(idx, data.translatedContent, data.translatedTitle, data.duration);
+      } else {
+        console.warn('[SOCKET][chapterTranslated] onTranslationResult không được truyền!');
+      }
     }
-  }, [chapters]);
+    console.log('[SOCKET][chapterTranslated] ===== HOÀN THÀNH XỬ LÝ =====');
+  }, [chapters, onTranslationResult]);
 
   // Lắng nghe progress từ socket.io
   const handleSocketChapterProgress = useCallback((data) => {
@@ -767,6 +815,10 @@ const ChapterList = ({
     
     // Cập nhật progress bar
     if (data.status === 'PROCESSING') {
+      // Khởi động thanh tiến độ khi thực sự bắt đầu dịch
+      const chapterHook = getChapterProgressHook(idx);
+      chapterHook.startProgress();
+      
       setChapterProgresses(prev => ({
         ...prev,
         [idx]: data.progress
@@ -803,7 +855,18 @@ const ChapterList = ({
     }
   }, [chapters]);
 
-  useTranslationSocket(storyId, handleSocketChapterTranslated, handleSocketChapterProgress);
+  const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
+  const roomId = userId ? `user:${userId}` : `story:${storyId}`;
+  useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress);
+
+  // Debug: Log room ID và socket connection
+  useEffect(() => {
+    const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
+    const roomId = userId ? `user:${userId}` : `story:${storyId}`;
+    console.log('[SOCKET-DEBUG] Room ID:', roomId);
+    console.log('[SOCKET-DEBUG] User ID:', userId);
+    console.log('[SOCKET-DEBUG] Story ID:', storyId);
+  }, [storyId, userData?.id]);
 
   // Log props thay đổi mỗi lần render
   const prevPropsRef = useRef({});
@@ -989,24 +1052,29 @@ const ChapterList = ({
                     <span>
                 Trạng thái: <b>{chapterStatus}</b>
                     </span>
-                    {/* Hiển thị thanh tiến độ nếu đang PROCESSING hoặc PENDING */}
-              {(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
+                    {/* Hiển thị thanh tiến độ nếu đang PROCESSING */}
+              {chapterStatus === "PROCESSING" && (
                 <ChapterProgressBar progress={chapterProgress} />
                     )}
-                    {/* Hiển thị label Đang dịch hoặc Đã dịch */}
-              {(chapterStatus === "PROCESSING" || chapterStatus === "PENDING") && (
+                    {/* Hiển thị label cho từng trạng thái */}
+              {chapterStatus === "PENDING" && (
+                      <span className="translated-label" style={{ color: "#ffa500" }}>
+                        ⏳ Đang xử lý hàng chờ...
+                      </span>
+                    )}
+              {chapterStatus === "PROCESSING" && (
                       <span className="translated-label" >
                         🔄 Đang dịch, vui lòng chờ...
                       </span>
                     )}
               {chapterStatus === "COMPLETE" && (
                       <span className="translated-label">
-                        ✅ Đã dịch {duration ? `(${duration.toFixed(1)}s)` : ""}
+                        ✅ Đã hoàn thành dịch trong: {duration ? `(${duration.toFixed(1)}s)` : ""}
                       </span>
                     )}
               {chapterStatus === "FAILED" && (
                       <span className="translated-label" style={{ color: "red" }}>
-                        ❌ Đã dịch thất bại
+                        ❌ Chương dịch thất bại!
                       </span>
                     )}
                   </div>
