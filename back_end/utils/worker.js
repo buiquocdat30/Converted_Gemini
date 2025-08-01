@@ -165,20 +165,98 @@ const worker = new Worker('my-queue', async job => {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
     
-    // Emit progress 25% khi bắt đầu dịch thực sự
+    // Emit progress từng bước nhỏ trong quá trình dịch
+    let currentProgress = 0;
+    const progressInterval = setInterval(() => {
+      try {
+        if (socket && socket.connected) {
+          // Tính progress dựa trên thời gian đã trôi qua
+          const elapsedTime = (Date.now() - translationStartTime) / 1000;
+          
+          // Ước tính thời gian dựa trên độ dài nội dung và model
+          const titleLength = job.data.chapter?.title?.length || 0;
+          const contentLength = job.data.chapter?.content?.length || 0;
+          const totalLength = titleLength + contentLength;
+          
+          // Tính thời gian ước tính dựa trên model và độ dài
+          let estimatedTimePerChar = 0.001; // Default: 1ms/char
+          
+          // Điều chỉnh dựa trên model (model chậm hơn = thời gian lâu hơn)
+          if (job.data.model?.rpm) {
+            // Model có RPM thấp = chậm hơn
+            const rpm = job.data.model.rpm;
+            if (rpm <= 10) estimatedTimePerChar = 0.005; // 5ms/char cho model chậm
+            else if (rpm <= 30) estimatedTimePerChar = 0.003; // 3ms/char cho model trung bình
+            else if (rpm <= 60) estimatedTimePerChar = 0.002; // 2ms/char cho model nhanh
+            else estimatedTimePerChar = 0.001; // 1ms/char cho model rất nhanh
+          }
+          
+          // Điều chỉnh dựa trên độ phức tạp của nội dung
+          const complexityFactor = Math.max(1, totalLength / 1000); // Nội dung dài = phức tạp hơn
+          const estimatedTotalTime = totalLength * estimatedTimePerChar * complexityFactor;
+          
+          // Tính progress dựa trên thời gian thực tế với điều chỉnh để chậm hơn
+          if (estimatedTotalTime > 0) {
+            // Sử dụng hàm easing để làm mượt progress
+            const progressRatio = elapsedTime / estimatedTotalTime;
+            
+            // Hàm easing: chậm ở đầu, nhanh ở giữa, chậm ở cuối
+            let adjustedProgressRatio;
+            if (progressRatio < 0.5) {
+              // Nửa đầu: tăng chậm
+              adjustedProgressRatio = 2 * progressRatio * progressRatio;
+            } else {
+              // Nửa sau: tăng nhanh hơn
+              const t = 2 * progressRatio - 1;
+              adjustedProgressRatio = 1 - 2 * (1 - progressRatio) * (1 - progressRatio);
+            }
+            
+            // Giới hạn progress tối đa 95% trong quá trình xử lý
+            currentProgress = Math.min(adjustedProgressRatio * 95, 95);
+          } else {
+            // Fallback: tăng 0.3% mỗi 1s nếu không tính được
+            currentProgress = Math.min(currentProgress + 0.3, 95);
+          }
+          
+          const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+          socket.emit('chapterProgress', {
+            chapterNumber: job.data.chapter.chapterNumber,
+            status: 'PROCESSING',
+            progress: Math.round(currentProgress),
+            jobIndex: job.data.jobIndex,
+            totalJobs: job.data.totalJobs,
+            room: room
+          });
+          console.log(`[WORKER] 📊 Progress chương ${job.data.chapter.chapterNumber}: ${Math.round(currentProgress)}% (${elapsedTime.toFixed(1)}s/${estimatedTotalTime.toFixed(1)}s)`);
+        }
+      } catch (error) {
+        console.error('[WORKER] ❌ Lỗi khi emit progress:', error);
+      }
+    }, 1000); // Tăng lên 1 giây thay vì 500ms để chậm hơn
+    
+    const result = await callTranslateAPI(job.data.chapter, job.data.model, job.data.apiKey, job.data.storyId);
+    
+    // Dừng interval progress
+    clearInterval(progressInterval);
+    
+    // Emit progress 100% ngay lập tức khi hoàn thành
     if (socket && socket.connected) {
       const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      
+      // Emit progress 100% ngay lập tức
       socket.emit('chapterProgress', {
         chapterNumber: job.data.chapter.chapterNumber,
-        status: 'PROCESSING',
-        progress: 25,
+        status: 'COMPLETE',
+        progress: 100,
         jobIndex: job.data.jobIndex,
         totalJobs: job.data.totalJobs,
         room: room
       });
+      console.log(`[WORKER] ✅ Progress chương ${job.data.chapter.chapterNumber}: 100% - Hoàn thành ngay lập tức`);
+      
+      // Thêm delay nhỏ để đảm bảo progress 100% được hiển thị trước khi emit kết quả
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
-    
-    const result = await callTranslateAPI(job.data.chapter, job.data.model, job.data.apiKey, job.data.storyId);
     
     // Tính thời gian thực tế đã dịch
     const actualDuration = (Date.now() - translationStartTime) / 1000;
@@ -206,6 +284,7 @@ const worker = new Worker('my-queue', async job => {
         titleLength: result.translatedTitle?.length || 0,
         contentLength: result.translatedContent?.length || 0,
         duration: result.duration,
+        actualDuration: actualDuration,
         hasError: result.hasError,
         jobIndex: job.data.jobIndex,
         totalJobs: job.data.totalJobs,
@@ -217,18 +296,9 @@ const worker = new Worker('my-queue', async job => {
         translatedContent: result.translatedContent,
         translatedTitle: result.translatedTitle,
         duration: result.duration,
+        actualDuration: actualDuration,
         hasError: result.hasError,
         error: result.error,
-        jobIndex: job.data.jobIndex,
-        totalJobs: job.data.totalJobs,
-        room: room
-      });
-
-      // Emit progress hoàn thành
-      socket.emit('chapterProgress', {
-        chapterNumber: job.data.chapter.chapterNumber,
-        status: 'COMPLETE',
-        progress: 100,
         jobIndex: job.data.jobIndex,
         totalJobs: job.data.totalJobs,
         room: room
@@ -240,6 +310,11 @@ const worker = new Worker('my-queue', async job => {
     console.log("🔄 [WORKER] ===== HOÀN THÀNH JOB =====");
     return result;
   } catch (err) {
+    // Đảm bảo clear interval nếu có lỗi
+    if (typeof progressInterval !== 'undefined') {
+      clearInterval(progressInterval);
+    }
+    
     console.error(`[WORKER] ❌ Lỗi dịch chương ${job.data.chapter?.chapterNumber}:`, err);
     
     // Emit lỗi về FE qua socket với format room rõ ràng
