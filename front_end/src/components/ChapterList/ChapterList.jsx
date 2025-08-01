@@ -10,6 +10,7 @@ import "./ChapterList.css";
 import { useSession } from '../../context/SessionContext';
 import useTranslationSocket from '../../hook/useTranslationSocket';
 import { AuthContext } from '../../context/ConverteContext';
+import { API_URL } from '../../config/config';
 
 const ChapterList = ({
   chapters,
@@ -397,7 +398,7 @@ const ChapterList = ({
   }, []);
 
   // Sửa hàm translate để log ra khi bấm dịch 1 chương
-  const translate = (index) => {
+  const translate = async (index) => {
     cancelMapRef.current[index] = false; // Reset trạng thái hủy khi dịch lại
     // Nếu không được phép dịch thì return luôn, không chạy tiếp
     if (!canTranslate(index)) return;
@@ -424,7 +425,7 @@ const ChapterList = ({
       return newStatus;
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       // Nếu user đã hủy trước khi gửi request
       if (cancelMapRef.current[index]) {
         console.log(
@@ -442,92 +443,51 @@ const ChapterList = ({
       const chapterHook = getChapterProgressHook(index);
       chapterHook.startProgress(); // Bắt đầu tiến độ cho chương này
 
-      translateSingleChapter({
-        index,
-        chapters,
-        apiKey,
-        model: modelObject,
-        storyId,
-        setProgress: (progress) => {
-          setChapterProgresses((prev) => ({ ...prev, [index]: progress }));
-        },
-        setResults: (updater) => {
-          if (cancelMapRef.current[index]) {
-            console.log(`[SKIP][setResults-single] idx=${index} đã CANCELLED hoặc cờ hủy, bỏ qua cập nhật.`);
-            return;
+      // Sử dụng queue thay vì translateSingleChapter để nhận progress từ socket
+      try {
+        const chapter = chapters[index];
+        const token = localStorage.getItem("auth-token");
+        
+        // Gửi job qua queue để nhận progress từ socket
+        const response = await axios.post(
+          `${API_URL}/translate/queue`,
+          {
+            chapters: [
+              {
+                title: chapter.chapterName || `Chương ${index + 1}`,
+                content: chapter.rawText || chapter.content,
+                chapterNumber: chapter.chapterNumber || index + 1,
+              },
+            ],
+            model: modelObject,
+            storyId: storyId,
+            userKeys: Array.isArray(apiKey) ? apiKey : [apiKey],
+            userId: userData?.id,
+            jobIndex: 0,
+            totalJobs: 1
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-          setResults(updater);
-        },
-        setErrorMessages,
-        setTranslatedCount,
-        setTotalProgress: (progress) => {
-          startTotalProgress();
-        },
-        onTranslationResult: (idx, translated, translatedTitle, duration, errorObj) => {
-          // Áp dụng errorHandlerService: Nếu có lỗi, đánh FAILED và toast
-          if (errorObj && (errorObj.hasError || errorObj.status === 'FAILED' || errorObj.translationError)) {
-            console.warn(`[LOG][FAILED][onTranslationResult] idx=${idx}: hasError=${errorObj.hasError}, status=${errorObj.status}, translationError=${errorObj.translationError}`);
-            setChapterStatus((prev) => ({ ...prev, [idx]: "FAILED" }));
-            toast.error(errorObj.error || errorObj.userMessage || "Lỗi không xác định khi dịch chương!");
-            chapterHook.stopProgress();
-            setChapterProgresses((prev) => ({ ...prev, [idx]: 0 }));
-            setErrorMessages((prev) => ({ ...prev, [idx]: errorObj.error || errorObj.userMessage }));
-            return;
-          }
-          // ... logic cập nhật chương khi dịch thành công ...
-          onTranslationResult(idx, translated, translatedTitle, duration);
-        },
-        onSelectChapter,
-        isStopped: isStoppedRef.current,
-        onComplete: (duration, error) => {
-          // Nếu user đã hủy trong lúc đang dịch
-          if (cancelMapRef.current[index]) {
-            chapterHook.stopProgress();
-            setChapterStatus((prev) => {
-              const newStatus = { ...prev, [index]: "CANCELLED" };
-              console.log(`[SET][CANCELLED] idx=${index}, status mới=${newStatus[index]}, cancelFlag=${cancelMapRef.current[index]}`);
-              return newStatus;
-            });
-            console.log(
-              `[CHAPTER ${index}] Đã hủy trong lúc đang dịch, bỏ qua kết quả.`
-            );
-            return;
-          }
-          chapterHook.stopProgress();
-          if (error) {
-            setChapterStatus((prev) => {
-              const newStatus = { ...prev, [index]: "FAILED" };
-              console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: FAILED. Lý do:`, error);
-              return newStatus;
-            });
-            setErrorMessages((prev) => ({ ...prev, [index]: error.message || "Dịch thất bại" }));
-            toast.error(error.message || "Dịch thất bại");
-            console.log(`[CHAPTER ${index}] Lỗi khi dịch:`, error);
-          } else {
-            if (cancelMapRef.current[index]) {
-              console.log(`[COMPLETE][SetStatus] idx=${index}, cancelFlag=${cancelMapRef.current[index]}`);
-              console.log(`[CHAPTER ${index}] Đã hủy, không set COMPLETE.`);
-              return;
-            }
-            setChapterStatus((prev) => {
-              console.log(`[COMPLETE][SetStatus] idx=${index}, status cũ=${prev[index]}, cancelFlag=${cancelMapRef.current[index]}`);
-              const newStatus = { ...prev, [index]: "COMPLETE" };
-              console.log(`[QUEUE][${new Date().toLocaleTimeString()}] Chương ${index} chuyển trạng thái: COMPLETE`);
-              return newStatus;
-            });
-            console.log(`[CHAPTER ${index}] Dịch xong.`);
-          }
-          stopTotalProgress();
-          setTranslationDurations((prev) => ({ ...prev, [index]: duration }));
-          setTimeout(() => {
-            setChapterProgresses((prev) => {
-              const newProgresses = { ...prev };
-              delete newProgresses[index];
-              return newProgresses;
-            });
-          }, 2000);
-        },
-      });
+        );
+
+        console.log(`[CHAPTER ${index}] Đã gửi job qua queue, chờ progress từ socket`);
+        
+        // Progress sẽ được cập nhật qua socket, không cần xử lý response ở đây
+        // Chỉ xử lý lỗi nếu có
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Lỗi khi gửi job');
+        }
+        
+      } catch (error) {
+        console.error(`[CHAPTER ${index}] Lỗi khi gửi job qua queue:`, error);
+        setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
+        setErrorMessages((prev) => ({ ...prev, [index]: error.message }));
+        chapterHook.stopProgress();
+        toast.error(`Lỗi khi dịch chương: ${error.message}`);
+      }
     }, 200); // delay nhỏ để user có thể bấm hủy ngay sau khi bấm dịch
   };
 
