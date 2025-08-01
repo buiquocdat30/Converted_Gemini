@@ -212,10 +212,12 @@ const worker = new Worker('my-queue', async job => {
             }
             
             // Giới hạn progress tối đa 95% trong quá trình xử lý
-            currentProgress = Math.min(adjustedProgressRatio * 95, 95);
+            // Đảm bảo progress không giảm khi thời gian thực tế vượt quá ước tính
+            const newProgress = Math.min(adjustedProgressRatio * 95, 95);
+            currentProgress = Math.max(currentProgress, newProgress); // Không bao giờ giảm
           } else {
-            // Fallback: tăng 0.3% mỗi 1s nếu không tính được
-            currentProgress = Math.min(currentProgress + 0.3, 95);
+            // Fallback: tăng 0.2% mỗi 1s nếu không tính được
+            currentProgress = Math.min(currentProgress + 0.2, 95);
           }
           
           const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
@@ -232,7 +234,7 @@ const worker = new Worker('my-queue', async job => {
       } catch (error) {
         console.error('[WORKER] ❌ Lỗi khi emit progress:', error);
       }
-    }, 1000); // Tăng lên 1 giây thay vì 500ms để chậm hơn
+    }, 1000); // Tăng lên 1 giây để chậm hơn và mượt mà hơn
     
     const result = await callTranslateAPI(job.data.chapter, job.data.model, job.data.apiKey, job.data.storyId);
     
@@ -255,7 +257,7 @@ const worker = new Worker('my-queue', async job => {
       console.log(`[WORKER] ✅ Progress chương ${job.data.chapter.chapterNumber}: 100% - Hoàn thành ngay lập tức`);
       
       // Thêm delay nhỏ để đảm bảo progress 100% được hiển thị trước khi emit kết quả
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     // Tính thời gian thực tế đã dịch
