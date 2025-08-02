@@ -117,6 +117,32 @@ async function initializeSocket() {
 const worker = new Worker('my-queue', async job => {
   console.log("🔄 [WORKER] ===== BẮT ĐẦU XỬ LÝ JOB =====");
   console.log(`[WORKER] 📥 Nhận job dịch chương: ${job.data.chapter?.chapterNumber}`);
+  
+  // 🚀 Kiểm tra job có phải là job cũ không
+  const jobTimestamp = job.data.timestamp || 0;
+  const jobServerId = job.data.serverId || 0;
+  const currentTime = Date.now();
+  const currentServerId = process.pid;
+  
+  // Nếu job quá cũ (hơn 30 phút) hoặc từ server khác, bỏ qua
+  if (currentTime - jobTimestamp > 1800000) { // 30 phút = 1800000ms
+    console.log(`[WORKER] 🚫 Bỏ qua job cũ: timestamp ${jobTimestamp}, hiện tại ${currentTime}, chênh lệch ${currentTime - jobTimestamp}ms`);
+    return { hasError: true, error: 'Job quá cũ, đã bỏ qua' };
+  }
+  
+  if (jobServerId !== 0 && jobServerId !== currentServerId) {
+    console.log(`[WORKER] 🚫 Bỏ qua job từ server khác: jobServerId ${jobServerId}, currentServerId ${currentServerId}`);
+    return { hasError: true, error: 'Job từ server khác, đã bỏ qua' };
+  }
+  
+  console.log(`[WORKER] ✅ Job hợp lệ: timestamp ${jobTimestamp}, serverId ${jobServerId}`);
+  
+  // 🚀 Thêm timeout cho job để tránh chạy quá lâu
+  const jobTimeout = setTimeout(() => {
+    console.log(`[WORKER] ⏰ Job ${job.id} timeout sau 5 phút`);
+    job.moveToFailed(new Error('Job timeout'), '0', true);
+  }, 300000); // 5 phút
+  
   console.log("[WORKER] 📋 Job data:", {
     chapterNumber: job.data.chapter?.chapterNumber,
     model: job.data.model?.label || job.data.model?.name || job.data.model,
@@ -129,7 +155,9 @@ const worker = new Worker('my-queue', async job => {
     jobIndex: job.data.jobIndex,
     totalJobs: job.data.totalJobs,
     titleLength: job.data.chapter?.title?.length || 0,
-    contentLength: job.data.chapter?.content?.length || 0
+    contentLength: job.data.chapter?.content?.length || 0,
+    timestamp: job.data.timestamp,
+    serverId: job.data.serverId
   });
   
   // 🚀 Kiểm soát concurrency để tránh quá tải API
@@ -171,6 +199,14 @@ const worker = new Worker('my-queue', async job => {
       const delayMs = Math.max((60 / job.data.model.rpm) * 1000, 1000); // Tối thiểu 1s
       console.log(`[WORKER] ⏱️ Delay ${delayMs}ms để đảm bảo không vượt quá RPM ${job.data.model.rpm}`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    
+    // 🚀 Thêm delay bổ sung nếu có lỗi 503 gần đây
+    const recent503Errors = job.data.recent503Errors || 0;
+    if (recent503Errors > 0) {
+      const additionalDelay = recent503Errors * 5000; // 5s cho mỗi lỗi 503
+      console.log(`[WORKER] ⏱️ Thêm delay ${additionalDelay}ms do có ${recent503Errors} lỗi 503 gần đây`);
+      await new Promise(resolve => setTimeout(resolve, additionalDelay));
     }
     
     // Emit progress từng bước nhỏ trong quá trình dịch
@@ -327,6 +363,45 @@ const worker = new Worker('my-queue', async job => {
     
     console.error(`[WORKER] ❌ Lỗi dịch chương ${job.data.chapter?.chapterNumber}:`, err);
     
+    // Đảm bảo clear timeout cho job
+    if (typeof jobTimeout !== 'undefined') {
+      clearTimeout(jobTimeout);
+    }
+
+    // 🚀 Kiểm tra nếu là lỗi 503, không retry
+    if (err.message && err.message.includes('503')) {
+      console.log(`[WORKER] 🚫 Lỗi 503 - Service Unavailable, bỏ qua retry cho chương ${job.data.chapter?.chapterNumber}`);
+      
+      // Emit lỗi về FE qua socket với format room rõ ràng
+      if (socket && socket.connected) {
+        const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+        console.log(`[WORKER] 📤 Emit lỗi 503 về room: ${room}`);
+        
+        socket.emit('chapterTranslated', {
+          chapterNumber: job.data.chapter.chapterNumber,
+          error: 'Service Unavailable - API quá tải, vui lòng thử lại sau',
+          hasError: true,
+          jobIndex: job.data.jobIndex,
+          totalJobs: job.data.totalJobs,
+          room: room
+        });
+
+        // Emit progress lỗi
+        socket.emit('chapterProgress', {
+          chapterNumber: job.data.chapter.chapterNumber,
+          status: 'FAILED',
+          progress: 0,
+          jobIndex: job.data.jobIndex,
+          totalJobs: job.data.totalJobs,
+          room: room
+        });
+      }
+      
+      console.log("🔄 [WORKER] ===== JOB 503 THẤT BẠI =====");
+      // Không throw error để tránh retry
+      return { hasError: true, error: 'Service Unavailable' };
+    }
+    
     // Emit lỗi về FE qua socket với format room rõ ràng
     if (socket && socket.connected) {
       const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
@@ -358,6 +433,11 @@ const worker = new Worker('my-queue', async job => {
     // 🚀 Giảm số lượng active jobs khi job hoàn thành (thành công hoặc thất bại)
     activeJobs--;
     console.log(`[WORKER] 🚦 Active jobs sau khi hoàn thành: ${activeJobs}/${MAX_CONCURRENT_JOBS}`);
+    
+    // 🚀 Clear timeout cho job
+    if (typeof jobTimeout !== 'undefined') {
+      clearTimeout(jobTimeout);
+    }
   }
 }, { 
   connection,
@@ -370,26 +450,123 @@ worker.on('completed', job => {
 
 worker.on('failed', (job, err) => {
   console.error(`[WORKER] Job ${job.id} thất bại:`, err);
+  
+  // 🚀 Kiểm tra nếu là lỗi 503 (Service Unavailable), không retry
+  if (err.message && err.message.includes('503')) {
+    console.log(`[WORKER] 🚫 Job ${job.id} bị lỗi 503, bỏ qua retry`);
+    return;
+  }
+  
+  // 🚀 Kiểm tra số lần retry đã thực hiện
+  const attemptsMade = job.attemptsMade;
+  const maxAttempts = job.opts.attempts || 3;
+  
+  if (attemptsMade >= maxAttempts) {
+    console.log(`[WORKER] 🚫 Job ${job.id} đã retry ${attemptsMade}/${maxAttempts} lần, bỏ qua`);
+    return;
+  }
+  
+  console.log(`[WORKER] 🔄 Job ${job.id} sẽ retry lần ${attemptsMade + 1}/${maxAttempts}`);
 });
 
 // Khởi tạo socket khi worker start
 initializeSocket().then(() => {
   console.log('[WORKER] ✅ Worker đã sẵn sàng với Socket.io connection');
+  
+  // 🚀 Clear queue cũ khi worker start
+  clearOldJobs();
 }).catch(error => {
   console.error('[WORKER] ❌ Không thể khởi tạo Socket.io connection:', error);
 });
 
+// 🚀 Hàm clear job cũ
+const clearOldJobs = async () => {
+  try {
+    console.log('[WORKER] 🧹 Đang clear job cũ...');
+    
+    const waitingJobs = await worker.queue.getWaiting();
+    const activeJobs = await worker.queue.getActive();
+    const delayedJobs = await worker.queue.getDelayed();
+    const failedJobs = await worker.queue.getFailed();
+    
+    console.log(`[WORKER] 📊 Tìm thấy jobs:`, {
+      waiting: waitingJobs.length,
+      active: activeJobs.length,
+      delayed: delayedJobs.length,
+      failed: failedJobs.length
+    });
+    
+    // Xóa tất cả jobs cũ
+    let clearedCount = 0;
+    
+    for (const job of [...waitingJobs, ...activeJobs, ...delayedJobs, ...failedJobs]) {
+      try {
+        await job.remove();
+        clearedCount++;
+      } catch (error) {
+        console.log(`[WORKER] ⚠️ Không thể xóa job ${job.id}:`, error.message);
+      }
+    }
+    
+    console.log(`[WORKER] ✅ Đã clear ${clearedCount} jobs cũ`);
+  } catch (error) {
+    console.error('[WORKER] ❌ Lỗi khi clear job cũ:', error);
+  }
+};
+
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('[WORKER] Đang đóng worker...');
+  console.log('[WORKER] 🛑 Đang đóng worker gracefully...');
+  try {
+    // 🚀 Dừng nhận job mới
+    await worker.pause();
+    console.log('[WORKER] ✅ Đã pause worker');
+    
+    // 🚀 Đợi các job đang chạy hoàn thành (tối đa 30 giây)
+    let waitTime = 0;
+    const maxWaitTime = 30000; // 30 giây
+    const checkInterval = 1000; // 1 giây
+    
+    while (activeJobs > 0 && waitTime < maxWaitTime) {
+      console.log(`[WORKER] ⏳ Đợi ${activeJobs} job hoàn thành... (${waitTime}ms/${maxWaitTime}ms)`);
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      waitTime += checkInterval;
+    }
+    
+    if (activeJobs > 0) {
+      console.log(`[WORKER] ⚠️ Vẫn còn ${activeJobs} job chưa hoàn thành, force close`);
+    } else {
+      console.log('[WORKER] ✅ Tất cả job đã hoàn thành');
+    }
+    
+    // 🚀 Đóng worker
+    await worker.close();
+    console.log('[WORKER] ✅ Đã đóng worker');
+    
+    // 🚀 Đóng socket
+    if (socket) {
+      socket.disconnect();
+      console.log('[WORKER] ✅ Đã đóng socket');
+    }
+    
+    console.log('[WORKER] ✅ Graceful shutdown hoàn thành');
+  } catch (error) {
+    console.error('[WORKER] ❌ Lỗi khi đóng worker:', error);
+  }
+  process.exit(0);
+});
+
+// 🚀 Thêm handler cho SIGTERM
+process.on('SIGTERM', async () => {
+  console.log('[WORKER] 🛑 Nhận SIGTERM, đang đóng worker...');
   try {
     await worker.close();
     if (socket) {
       socket.disconnect();
     }
-    console.log('[WORKER] Đã đóng worker và socket');
+    console.log('[WORKER] ✅ Đã đóng worker với SIGTERM');
   } catch (error) {
-    console.error('[WORKER] Lỗi khi đóng worker:', error);
+    console.error('[WORKER] ❌ Lỗi khi đóng worker với SIGTERM:', error);
   }
   process.exit(0);
 }); 
