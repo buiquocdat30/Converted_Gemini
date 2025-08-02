@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
+import { flushSync } from "react-dom";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -135,6 +136,9 @@ const ChapterList = ({
   //khu vực phân Trang
   const [currentPage, setCurrentPage] = useState(1);
   const chaptersPerPage = 10;
+  
+  // 🚀 Thêm ref để track user click pagination (không bị re-render)
+  const userClickedPaginationRef = useRef(false);
 
   // Sắp xếp chapters theo chapterNumber tăng dần
   const sortedChapters = [...chapters].sort(
@@ -145,6 +149,18 @@ const ChapterList = ({
   const startIdx = (currentPage - 1) * chaptersPerPage;
   const endIdx = startIdx + chaptersPerPage;
   const currentChapters = sortedChapters.slice(startIdx, endIdx);
+
+  // 🚀 Debug pagination
+  console.log(`[ChapterList] 📊 Debug pagination:`, {
+    totalChapters: sortedChapters.length,
+    chaptersPerPage,
+    totalPages,
+    currentPage,
+    startIdx,
+    endIdx,
+    currentChaptersCount: currentChapters.length,
+    currentChapters: currentChapters.map(ch => ch.chapterNumber)
+  });
 
   // Tách riêng state cho nhảy trang và nhảy chương
   const [jumpToPage, setJumpToPage] = useState("");
@@ -195,7 +211,13 @@ const ChapterList = ({
 
   // 🚀 Tự động cập nhật trang khi currentIndex thay đổi từ Back/Next
   useEffect(() => {
-    if (currentIndex !== undefined) {
+    console.log(`[ChapterList] 🔍 useEffect triggered:`, {
+      currentIndex,
+      userClickedPagination: userClickedPaginationRef.current,
+      shouldRun: currentIndex !== undefined && !userClickedPaginationRef.current
+    });
+    
+    if (currentIndex !== undefined && !userClickedPaginationRef.current) {
       const calculatedPage = Math.floor(currentIndex / chaptersPerPage) + 1;
       console.log(`[ChapterList] 📊 Debug trang:`, {
         currentIndex,
@@ -203,9 +225,12 @@ const ChapterList = ({
         calculatedPage,
         currentPage,
         totalPages,
+        userClickedPagination: userClickedPaginationRef.current,
         shouldUpdate: calculatedPage !== currentPage
       });
       
+      // 🚀 Chỉ cập nhật nếu trang hiện tại không đúng với currentIndex
+      // và không phải do user vừa click pagination
       if (calculatedPage !== currentPage) {
         console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho currentIndex ${currentIndex}`);
         setCurrentPage(calculatedPage);
@@ -222,6 +247,8 @@ const ChapterList = ({
           console.log(`[ChapterList] 📜 Đã scroll đến chương ${currentIndex + 1}`);
         }
       }, 100);
+    } else if (userClickedPaginationRef.current) {
+      console.log(`[ChapterList] 🚫 Bỏ qua auto update vì userClickedPagination = true`);
     }
   }, [currentIndex, chaptersPerPage, currentPage]);
 
@@ -1038,6 +1065,23 @@ const ChapterList = ({
     );
   });
 
+  // Hàm xử lý click pagination
+  const handlePageChange = useCallback((newPage) => {
+    console.log(`[ChapterList] 🔄 Click pagination: ${currentPage} → ${newPage}`);
+    userClickedPaginationRef.current = true;
+    
+    // Sử dụng flushSync để đảm bảo state update ngay lập tức
+    flushSync(() => {
+      setCurrentPage(newPage);
+    });
+    
+    // Reset flag sau 2 giây để đảm bảo useEffect không override
+    setTimeout(() => {
+      console.log(`[ChapterList] 🔄 Reset userClickedPagination flag`);
+      userClickedPaginationRef.current = false;
+    }, 2000);
+  }, [currentPage]);
+
   return (
     <div className="chapter-list">
       <h3>📚 Danh sách chương ({sortedChapters.length})</h3>
@@ -1087,7 +1131,7 @@ const ChapterList = ({
 
           // Previous button
           pageButtons.push(
-            <button key="prev" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+            <button key="prev" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
               &laquo;
             </button>
           );
@@ -1099,7 +1143,7 @@ const ChapterList = ({
                 <button
                   key={i}
                   className={currentPage === i ? "active" : ""}
-                  onClick={() => setCurrentPage(i)}
+                  onClick={() => handlePageChange(i)}
                 >
                   {String(i).padStart(2, "0")}
                 </button>
@@ -1114,7 +1158,7 @@ const ChapterList = ({
                   <button
                     key={i}
                     className={currentPage === i ? "active" : ""}
-                    onClick={() => setCurrentPage(i)}
+                    onClick={() => handlePageChange(i)}
                   >
                     {String(i).padStart(2, "0")}
                   </button>
@@ -1122,14 +1166,14 @@ const ChapterList = ({
               }
               pageButtons.push(<span key="end-ellipsis">...</span>);
               pageButtons.push(
-                <button key="last" onClick={() => setCurrentPage(totalPages)}>
+                <button key="last" onClick={() => handlePageChange(totalPages)}>
                   Last
                 </button>
               );
             } else if (currentPage > totalPages - (pagesToShowAtEnds - 1)) {
               // 2.3: At the end
               pageButtons.push(
-                <button key="first" onClick={() => setCurrentPage(1)}>
+                <button key="first" onClick={() => handlePageChange(1)}>
                   First
                 </button>
               );
@@ -1139,7 +1183,7 @@ const ChapterList = ({
                   <button
                     key={i}
                     className={currentPage === i ? "active" : ""}
-                    onClick={() => setCurrentPage(i)}
+                    onClick={() => handlePageChange(i)}
                   >
                     {String(i).padStart(2, "0")}
                   </button>
@@ -1148,7 +1192,7 @@ const ChapterList = ({
             } else {
               // 2.2: In the middle
               pageButtons.push(
-                <button key="first" onClick={() => setCurrentPage(1)}>
+                <button key="first" onClick={() => handlePageChange(1)}>
                   First
                 </button>
               );
@@ -1160,7 +1204,7 @@ const ChapterList = ({
                   <button
                     key={i}
                     className={currentPage === i ? "active" : ""}
-                    onClick={() => setCurrentPage(i)}
+                    onClick={() => handlePageChange(i)}
                   >
                     {String(i).padStart(2, "0")}
                   </button>
@@ -1168,7 +1212,7 @@ const ChapterList = ({
               }
               pageButtons.push(<span key="end-ellipsis">...</span>);
               pageButtons.push(
-                <button key="last" onClick={() => setCurrentPage(totalPages)}>
+                <button key="last" onClick={() => handlePageChange(totalPages)}>
                   Last
                 </button>
               );
@@ -1177,7 +1221,7 @@ const ChapterList = ({
 
           // Next button
           pageButtons.push(
-            <button key="next" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+            <button key="next" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
               &raquo;
             </button>
           );
