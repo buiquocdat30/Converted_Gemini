@@ -2,6 +2,54 @@ const { myQueue } = require('../utils/queue');
 const ApiKeyManager = require("../services/apiKeyManagers");
 const { translateText } = require("../services/translateService");
 
+// Khởi tạo queue và clear các job cũ khi start server
+const initializeQueue = async () => {
+  try {
+    console.log('[QUEUE] 🧹 Đang clear queue cũ...');
+    
+    // Sử dụng BullMQ API đúng cách để clear queue
+    const waitingJobs = await myQueue.getWaiting();
+    const activeJobs = await myQueue.getActive();
+    const delayedJobs = await myQueue.getDelayed();
+    const failedJobs = await myQueue.getFailed();
+    
+    console.log(`[QUEUE] 📊 Tìm thấy jobs cũ:`, {
+      waiting: waitingJobs.length,
+      active: activeJobs.length,
+      delayed: delayedJobs.length,
+      failed: failedJobs.length
+    });
+    
+    // Xóa tất cả jobs cũ
+    if (waitingJobs.length > 0) {
+      await Promise.all(waitingJobs.map(job => job.remove()));
+      console.log(`[QUEUE] ✅ Đã xóa ${waitingJobs.length} waiting jobs`);
+    }
+    
+    if (activeJobs.length > 0) {
+      await Promise.all(activeJobs.map(job => job.remove()));
+      console.log(`[QUEUE] ✅ Đã xóa ${activeJobs.length} active jobs`);
+    }
+    
+    if (delayedJobs.length > 0) {
+      await Promise.all(delayedJobs.map(job => job.remove()));
+      console.log(`[QUEUE] ✅ Đã xóa ${delayedJobs.length} delayed jobs`);
+    }
+    
+    if (failedJobs.length > 0) {
+      await Promise.all(failedJobs.map(job => job.remove()));
+      console.log(`[QUEUE] ✅ Đã xóa ${failedJobs.length} failed jobs`);
+    }
+    
+    console.log('[QUEUE] ✅ Đã clear queue thành công');
+  } catch (error) {
+    console.error('[QUEUE] ❌ Lỗi khi clear queue:', error);
+  }
+};
+
+// Gọi initializeQueue khi module được load
+initializeQueue();
+
 // Endpoint dịch trực tiếp (giữ nguyên)
 exports.translateText = async (req, res) => {
   const { chapters, userKey, userKeys, model, storyId } = req.body;
@@ -237,7 +285,9 @@ exports.translateTextQueue = async (req, res) => {
         storyId: storyId,
         userId: userIdFromToken,
         jobIndex: i, // Index để track thứ tự
-        totalJobs: chapters.length // Tổng số jobs
+        totalJobs: chapters.length, // Tổng số jobs
+        timestamp: Date.now(), // 🚀 Thêm timestamp để tránh job cũ
+        serverId: process.pid // 🚀 Thêm server ID để tránh conflict
       };
 
       console.log(`[QUEUE-API] 📝 Thêm job ${i + 1}/${chapters.length}:`, {
@@ -265,11 +315,14 @@ exports.translateTextQueue = async (req, res) => {
       
       const job = await myQueue.add('translate-chapter', jobData, {
         delay: i * delayPerJob, // ✅ Giữ delay tích lũy để tránh "many requests"
-        attempts: 3, // Retry 3 lần nếu fail
+        attempts: 2, // Giảm từ 3 xuống 2 lần retry
         backoff: {
           type: 'exponential',
-          delay: 2000
-        }
+          delay: 5000 // Tăng delay từ 2000ms lên 5000ms
+        },
+        removeOnComplete: true, // Tự động xóa job khi hoàn thành
+        removeOnFail: true, // Tự động xóa job khi fail
+        timeout: 300000 // 🚀 Timeout 5 phút cho mỗi job
       });
 
       jobs.push(job);
