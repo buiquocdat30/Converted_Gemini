@@ -68,6 +68,12 @@
   font-size: 16px;
 }
 
+.total-estimated-time {
+  margin: 8px 0;
+  color: #888;
+  font-size: 15px;
+}
+
 .chapter-item {
   display: flex;
   flex-direction: column;

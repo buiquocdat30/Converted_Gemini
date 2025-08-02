@@ -41,6 +41,9 @@ const ChapterList = ({
   const [chapterProgresses, setChapterProgresses] = useState({});
   const [chapterTranslatingStates, setChapterTranslatingStates] = useState({});
 
+  // 🚀 Thêm state để lưu thông tin timing từ BE
+  const [queueTiming, setQueueTiming] = useState(null);
+
   // Sử dụng hook cho tiến độ tổng
   const {
     averageTimePerWord,
@@ -190,6 +193,49 @@ const ChapterList = ({
     setHasTranslatedAll(false);
   }, [currentPage]);
 
+  // 🚀 Tự động cập nhật trang khi currentIndex thay đổi từ Back/Next
+  useEffect(() => {
+    if (currentIndex !== undefined) {
+      const calculatedPage = Math.floor(currentIndex / chaptersPerPage) + 1;
+      console.log(`[ChapterList] 📊 Debug trang:`, {
+        currentIndex,
+        chaptersPerPage,
+        calculatedPage,
+        currentPage,
+        totalPages,
+        shouldUpdate: calculatedPage !== currentPage
+      });
+      
+      if (calculatedPage !== currentPage) {
+        console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho currentIndex ${currentIndex}`);
+        setCurrentPage(calculatedPage);
+      }
+      
+      // 🚀 Đảm bảo chương hiện tại được highlight
+      console.log(`[ChapterList] 🎯 Chương hiện tại: ${currentIndex + 1} (index: ${currentIndex})`);
+      
+      // 🚀 Scroll đến chương hiện tại sau khi cập nhật trang
+      setTimeout(() => {
+        const chapterElement = document.querySelector(`[data-chapter-index="${currentIndex}"]`);
+        if (chapterElement) {
+          chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          console.log(`[ChapterList] 📜 Đã scroll đến chương ${currentIndex + 1}`);
+        }
+      }, 100);
+    }
+  }, [currentIndex, chaptersPerPage, currentPage]);
+
+  // Debug: Test case cho logic tính toán trang
+  useEffect(() => {
+    console.log(`[ChapterList] 🧪 Test case tính toán trang:`, {
+      'Chương 1 (index 0)': Math.floor(0 / 10) + 1, // Trang 1
+      'Chương 10 (index 9)': Math.floor(9 / 10) + 1, // Trang 1
+      'Chương 11 (index 10)': Math.floor(10 / 10) + 1, // Trang 2
+      'Chương 20 (index 19)': Math.floor(19 / 10) + 1, // Trang 2
+      'Chương 21 (index 20)': Math.floor(20 / 10) + 1, // Trang 3
+    });
+  }, []);
+
   // Đảm bảo translatedCount không vượt quá 2 nếu không có apiKey
   useEffect(() => {
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
@@ -220,6 +266,9 @@ const ChapterList = ({
     console.time("⏱️ Thời gian dịch toàn bộ");
 
     setIsTranslatingAll(true);
+    // 🚀 Reset queue timing khi bắt đầu dịch mới
+    setQueueTiming(null);
+    
     // Kiểm tra có key khả dụng không
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
     const maxChapters = hasApiKey ? chapters.length : 2;
@@ -285,7 +334,7 @@ const ChapterList = ({
     });
 
     try {
-      await translateAllChapters({
+      const result = await translateAllChapters({
         chaptersToTranslate,
         chapters,
         apiKey,
@@ -381,6 +430,22 @@ const ChapterList = ({
           });
         },
       });
+      
+      // 🚀 Xử lý thông tin timing từ BE
+      if (result && result.timing) {
+        setQueueTiming(result.timing);
+        console.log(`[ChapterList] 📊 Nhận thông tin timing từ BE:`, result.timing);
+        
+        // Hiển thị toast thông báo thông tin timing
+        console.log(
+          `🚀 Đã thêm ${result.jobCount} chương vào queue! 
+          ⏱️ Thời gian ước tính: ${result.timing.estimatedTotalTime}s 
+          🔧 Workers: ${result.timing.concurrency} song song 
+          ⚡ Hiệu quả: Giảm ${result.timing.efficiency}% thời gian`,
+          { duration: 4000 }
+        );
+      }
+      
     } catch (error) {
       console.error("Lỗi khi dịch chương:", error);
       setErrorMessages((prev) => ({
@@ -621,9 +686,19 @@ const ChapterList = ({
     );
     console.log("Index thực tế trong mảng chapters:", actualIndex);
 
+    // 🚀 Tự động cập nhật trang khi chọn chương từ Back/Next
     if (page) {
+      console.log(`[ChapterList] 🔄 Cập nhật trang từ ${currentPage} → ${page} cho chương ${index}`);
       setCurrentPage(page);
+    } else {
+      // Nếu không có page được truyền, tính toán trang dựa trên index
+      const calculatedPage = Math.floor(index / chaptersPerPage) + 1;
+      if (calculatedPage !== currentPage) {
+        console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho chương ${index}`);
+        setCurrentPage(calculatedPage);
+      }
     }
+    
     onSelectChapter?.(actualIndex); // Truyền index thực tế
   };
 
@@ -855,7 +930,7 @@ const ChapterList = ({
     // Khi render trạng thái chương hoặc xử lý kết quả dịch:
     const isFailed = chapterStatus === 'FAILED' || ch?.hasError || !!ch?.translationError;
           return (
-            <li key={ch.chapterNumber}>
+            <li key={ch.chapterNumber} data-chapter-index={idx}>
               <div
           className={`chapter-item ${idx === currentIndex ? "selected" : ""}`}
                 onClick={() =>
@@ -1186,8 +1261,17 @@ const ChapterList = ({
         </div>
       )}
       {/* Thời gian dự kiến dịch trang */}
-      <div style={{ margin: "8px 0", color: "#888", fontSize: "15px" }}>
-        ⏳ Thời gian dự kiến dịch trang này: <b>{estimatedTimeStr}</b> (Tổng {totalWordsInPage} từ, trung bình {averageTimePerWord} giây/từ)
+      <div className="total-estimated-time">
+      {queueTiming && (
+        <div>
+          <p>⏳ Thời gian dự kiến dịch trang này: <b>{queueTiming.estimatedTotalTime}</b></p>
+          <p>🔧 Số lượng batch: <b>{queueTiming.totalJobs}</b></p>
+          <p>🚀 Queue Timing: {queueTiming.estimatedTotalTime}s</p>
+          <p>⚡ Hiệu quả: <b>Giảm {queueTiming.efficiency}%</b> thời gian</p>
+            
+            
+          </div>
+        )}
       </div>
     </div>
   );

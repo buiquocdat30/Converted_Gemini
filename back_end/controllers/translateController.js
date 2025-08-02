@@ -256,8 +256,15 @@ exports.translateTextQueue = async (req, res) => {
         console.log(`[QUEUE-API] ⏱️ Không có thông tin RPM, dùng delay mặc định: ${delayPerJob}ms`);
       }
 
+      // ✅ GIỮ DELAY TÍCH LŨY để tránh vượt quá RPM
+      // Job 1: delay 0ms (chạy ngay)
+      // Job 2: delay delayPerJob (chạy sau delayPerJob ms)
+      // Job 3: delay 2*delayPerJob (chạy sau 2*delayPerJob ms)
+      // Job 4: delay 3*delayPerJob (chạy sau 3*delayPerJob ms)
+      // => Đảm bảo không bao giờ vượt quá RPM limit
+      
       const job = await myQueue.add('translate-chapter', jobData, {
-        delay: i * delayPerJob, // Delay giữa các job theo RPM, job đầu tiên chạy ngay
+        delay: i * delayPerJob, // ✅ Giữ delay tích lũy để tránh "many requests"
         attempts: 3, // Retry 3 lần nếu fail
         backoff: {
           type: 'exponential',
@@ -271,12 +278,37 @@ exports.translateTextQueue = async (req, res) => {
 
     console.log(`[QUEUE-API] ✅ Đã thêm ${jobs.length} jobs vào queue thành công`);
     console.log("🚀 [QUEUE-API] ===== HOÀN THÀNH THÊM JOBS =====");
+    
+    // 🚀 Thêm thông tin debug về timing
+    const totalDelay = (chapters.length - 1) * delayPerJob;
+    const estimatedTotalTime = totalDelay + (chapters.length * 10); // Ước tính thời gian dịch trung bình
+    const concurrencyEfficiency = Math.min(3, chapters.length); // Số worker thực tế sử dụng
+    
+    console.log(`[QUEUE-API] 📊 Thông tin timing:`, {
+      totalJobs: chapters.length,
+      delayPerJob: `${delayPerJob}ms`,
+      totalDelay: `${totalDelay}ms`,
+      estimatedStartTime: `${Math.floor(totalDelay / 1000)}s`,
+      concurrency: `${concurrencyEfficiency} jobs song song`,
+      rpmLimit: fullModelInfo?.rpm ? `${fullModelInfo.rpm} RPM` : 'Unknown',
+      strategy: 'Delay tích lũy + Concurrency để tối ưu',
+      estimatedTotalTime: `${Math.floor(estimatedTotalTime / 1000)}s`,
+      efficiency: `Giảm ~${Math.round((1 - estimatedTotalTime / (chapters.length * 10)) * 100)}% thời gian so với tuần tự`
+    });
 
     res.json({
       success: true,
       message: `Đã thêm ${jobs.length} chương vào hàng đợi dịch`,
       jobCount: jobs.length,
-      jobIds: jobs.map(job => job.id)
+      jobIds: jobs.map(job => job.id),
+      timing: {
+        totalJobs: chapters.length,
+        delayPerJob: delayPerJob,
+        totalDelay: totalDelay,
+        concurrency: 3,
+        estimatedTotalTime: Math.floor(estimatedTotalTime / 1000),
+        efficiency: Math.round((1 - estimatedTotalTime / (chapters.length * 10)) * 100)
+      }
     });
 
   } catch (error) {

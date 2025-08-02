@@ -75,7 +75,7 @@ const useTranslationProgress = (storyId, defaultTime = 15) => {
       const averageTime = calculateStoryTranslationTime(storyId);
       setAverageTimePerWord(averageTime / 1000); // Chuyển từ giây sang giây/từ (giả sử 1000 từ)
       console.log(`[STORY-HISTORY] Truyện ${storyId}: Cập nhật thời gian trung bình ${averageTime.toFixed(1)}s`);
-    }
+      }
   }, [stories, storyId]);
 
   // Hàm cập nhật lịch sử dịch (không cần localStorage nữa)

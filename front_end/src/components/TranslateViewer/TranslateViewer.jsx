@@ -35,6 +35,46 @@ const TranslateViewer = ({
     setIsEditing(false);
   }, [chapters, currentIndex, selectedChapterIndex]);
 
+  // Thêm event listener cho phím mũi tên
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Chỉ xử lý khi không đang edit và không focus vào input/textarea
+      if (isEditing) return;
+      
+      const activeElement = document.activeElement;
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          if (currentIndex > 0) {
+            console.log('🔄 Chuyển chương bằng phím tắt ←');
+            goToChapter(-1);
+          }
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          if (currentIndex < chapters.length - 1) {
+            console.log('🔄 Chuyển chương bằng phím tắt →');
+            goToChapter(1);
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    // Thêm event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup khi component unmount
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentIndex, chapters.length, isEditing]);
+
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -138,6 +178,17 @@ const TranslateViewer = ({
       ) {
         return;
       }
+      
+      // 🚀 Scroll đến phần nội dung chương
+      const viewerElement = document.querySelector('.translation-viewer');
+      if (viewerElement) {
+        viewerElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Fallback: scroll về đầu trang
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      
+      // Chuyển chương sau khi scroll
       onChangeIndex?.(newIndex);
     }
   };
