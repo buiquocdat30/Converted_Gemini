@@ -60,16 +60,32 @@ export const translateAllChapters = async ({
     console.log(`[ALL-QUEUE] 📥 Nhận response từ Queue API:`, {
       success: res.data.success,
       jobCount: res.data.jobCount,
-      message: res.data.message
+      message: res.data.message,
+      timing: res.data.timing // 🚀 Thêm thông tin timing từ BE
     });
 
     if (res.data.success) {
       console.log(`[ALL-QUEUE] ✅ Đã thêm ${res.data.jobCount} jobs vào queue`);
       console.log(`[ALL-QUEUE] 🎧 Đang chờ kết quả qua Socket...`);
       
+      // 🚀 Log thông tin timing nếu có
+      if (res.data.timing) {
+        console.log(`[ALL-QUEUE] 📊 Thông tin timing:`, {
+          totalJobs: res.data.timing.totalJobs,
+          delayPerJob: `${res.data.timing.delayPerJob}ms`,
+          totalDelay: `${res.data.timing.totalDelay}ms`,
+          concurrency: res.data.timing.concurrency,
+          estimatedTotalTime: `${res.data.timing.estimatedTotalTime}s`,
+          efficiency: `${res.data.timing.efficiency}%`
+        });
+      }
+      
       // Jobs đã được thêm vào queue, Worker sẽ xử lý
       // FE sẽ nhận kết quả qua Socket.io
-      return res.data.jobCount;
+      return {
+        jobCount: res.data.jobCount,
+        timing: res.data.timing // 🚀 Trả về thông tin timing cho FE
+      };
     } else {
       throw new Error(res.data.message || 'Lỗi khi thêm jobs vào queue');
     }

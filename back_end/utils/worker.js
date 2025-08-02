@@ -83,6 +83,10 @@ console.log(`[WORKER] Worker process started at ${new Date().toLocaleString()} |
 // Khởi tạo socket connection
 let socket = null;
 
+// 🚀 Thêm semaphore để kiểm soát số lượng request đồng thời
+let activeJobs = 0;
+const MAX_CONCURRENT_JOBS = 3; // Giới hạn 3 job đồng thời
+
 // Hàm khởi tạo socket với retry
 async function initializeSocket() {
   let retries = 0;
@@ -127,6 +131,10 @@ const worker = new Worker('my-queue', async job => {
     titleLength: job.data.chapter?.title?.length || 0,
     contentLength: job.data.chapter?.content?.length || 0
   });
+  
+  // 🚀 Kiểm soát concurrency để tránh quá tải API
+  activeJobs++;
+  console.log(`[WORKER] 🚦 Active jobs: ${activeJobs}/${MAX_CONCURRENT_JOBS}`);
   
   try {
     // Đảm bảo socket đã kết nối
@@ -346,8 +354,15 @@ const worker = new Worker('my-queue', async job => {
     
     console.log("🔄 [WORKER] ===== JOB THẤT BẠI =====");
     throw err;
+  } finally {
+    // 🚀 Giảm số lượng active jobs khi job hoàn thành (thành công hoặc thất bại)
+    activeJobs--;
+    console.log(`[WORKER] 🚦 Active jobs sau khi hoàn thành: ${activeJobs}/${MAX_CONCURRENT_JOBS}`);
   }
-}, { connection });
+}, { 
+  connection,
+  concurrency: 3 // 🚀 Xử lý 3 job song song thay vì 1 job tuần tự
+});
 
 worker.on('completed', job => {
   console.log(`[WORKER] Job ${job.id} đã hoàn thành!`);
