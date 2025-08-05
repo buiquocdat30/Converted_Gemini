@@ -1,4 +1,5 @@
 const { Worker, connection } = require('./queue');
+const { myQueue } = require('./queue');
 const { io } = require('socket.io-client');
 const { translateText } = require("../services/translateService");
 
@@ -484,14 +485,14 @@ const clearOldJobs = async () => {
   try {
     console.log('[WORKER] 🧹 Đang clear job cũ...');
     
-    const waitingJobs = await worker.queue.getWaiting();
-    const activeJobs = await worker.queue.getActive();
-    const delayedJobs = await worker.queue.getDelayed();
-    const failedJobs = await worker.queue.getFailed();
+    const waitingJobs = await myQueue.getWaiting();
+    const queueActiveJobs = await myQueue.getActive();
+    const delayedJobs = await myQueue.getDelayed();
+    const failedJobs = await myQueue.getFailed();
     
     console.log(`[WORKER] 📊 Tìm thấy jobs:`, {
       waiting: waitingJobs.length,
-      active: activeJobs.length,
+      active: queueActiveJobs.length,
       delayed: delayedJobs.length,
       failed: failedJobs.length
     });
@@ -499,7 +500,7 @@ const clearOldJobs = async () => {
     // Xóa tất cả jobs cũ
     let clearedCount = 0;
     
-    for (const job of [...waitingJobs, ...activeJobs, ...delayedJobs, ...failedJobs]) {
+    for (const job of [...waitingJobs, ...queueActiveJobs, ...delayedJobs, ...failedJobs]) {
       try {
         await job.remove();
         clearedCount++;
@@ -543,6 +544,10 @@ process.on('SIGINT', async () => {
     await worker.close();
     console.log('[WORKER] ✅ Đã đóng worker');
     
+    // 🚀 Đóng queue
+    await myQueue.close();
+    console.log('[WORKER] ✅ Đã đóng queue');
+    
     // 🚀 Đóng socket
     if (socket) {
       socket.disconnect();
@@ -561,6 +566,7 @@ process.on('SIGTERM', async () => {
   console.log('[WORKER] 🛑 Nhận SIGTERM, đang đóng worker...');
   try {
     await worker.close();
+    await myQueue.close();
     if (socket) {
       socket.disconnect();
     }

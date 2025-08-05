@@ -660,27 +660,82 @@ class ApiKeyManager {
         },
       });
 
+      // Lấy ngày hiện tại (00:00:00)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Lấy ngày hôm qua (00:00:00)
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
       // Chuyển đổi dữ liệu để dễ sử dụng
-      const formattedKeys = keys.map(key => ({
-        ...key,
-        models: key.usage.map(usage => ({
-          id: usage.model.id,
-          value: usage.model.value,
-          label: usage.model.label,
-          description: usage.model.description,
-          rpm: usage.model.rpm,
-          tpm: usage.model.tpm,
-          rpd: usage.model.rpd,
-          providerId: usage.model.providerId,
-          provider: usage.model.provider,
-          status: usage.status,
-          usageCount: usage.usageCount,
-          promptTokens: usage.promptTokens,
-          completionTokens: usage.completionTokens,
-          totalTokens: usage.totalTokens,
-          lastUsedAt: usage.lastUsedAt
-        }))
-      }));
+      const formattedKeys = keys.map(key => {
+        // 🚀 Tính tổng thống kê theo ngày cho toàn bộ key
+        let keyTodayUsageCount = 0;
+        let keyYesterdayUsageCount = 0;
+        let keyTotalUsageCount = 0;
+        let keyLastUsedAt = null;
+        
+        const models = key.usage.map(usage => {
+          // 🚀 Tính thống kê theo ngày
+          const lastUsedAt = usage.lastUsedAt;
+          const isUsedToday = lastUsedAt && lastUsedAt >= today;
+          const isUsedYesterday = lastUsedAt && lastUsedAt >= yesterday && lastUsedAt < today;
+          
+          // 🚀 Tính tổng usage count theo ngày
+          let todayUsageCount = 0;
+          let yesterdayUsageCount = 0;
+          
+          if (isUsedToday) {
+            todayUsageCount = usage.usageCount || 0;
+            keyTodayUsageCount += todayUsageCount;
+          }
+          
+          if (isUsedYesterday) {
+            yesterdayUsageCount = usage.usageCount || 0;
+            keyYesterdayUsageCount += yesterdayUsageCount;
+          }
+          
+          keyTotalUsageCount += usage.usageCount || 0;
+          
+          if (lastUsedAt && (!keyLastUsedAt || lastUsedAt > keyLastUsedAt)) {
+            keyLastUsedAt = lastUsedAt;
+          }
+          
+          return {
+            id: usage.model.id,
+            value: usage.model.value,
+            label: usage.model.label,
+            description: usage.model.description,
+            rpm: usage.model.rpm,
+            tpm: usage.model.tpm,
+            rpd: usage.model.rpd,
+            providerId: usage.model.providerId,
+            provider: usage.model.provider,
+            status: usage.status,
+            usageCount: usage.usageCount, // Tổng tất cả thời gian
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens,
+            lastUsedAt: usage.lastUsedAt,
+            // 🚀 Thêm thống kê theo ngày
+            todayUsageCount: todayUsageCount,
+            yesterdayUsageCount: yesterdayUsageCount,
+            isUsedToday: isUsedToday,
+            isUsedYesterday: isUsedYesterday
+          };
+        });
+        
+        return {
+          ...key,
+          models: models,
+          // 🚀 Thêm thống kê tổng theo ngày cho key
+          todayUsageCount: keyTodayUsageCount,
+          yesterdayUsageCount: keyYesterdayUsageCount,
+          usageCount: keyTotalUsageCount,
+          lastUsedAt: keyLastUsedAt
+        };
+      });
 
       return formattedKeys;
     } catch (error) {
