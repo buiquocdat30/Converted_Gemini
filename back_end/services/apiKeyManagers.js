@@ -703,20 +703,20 @@ class ApiKeyManager {
           }
           
           return {
-            id: usage.model.id,
-            value: usage.model.value,
-            label: usage.model.label,
-            description: usage.model.description,
-            rpm: usage.model.rpm,
-            tpm: usage.model.tpm,
-            rpd: usage.model.rpd,
-            providerId: usage.model.providerId,
-            provider: usage.model.provider,
-            status: usage.status,
+          id: usage.model.id,
+          value: usage.model.value,
+          label: usage.model.label,
+          description: usage.model.description,
+          rpm: usage.model.rpm,
+          tpm: usage.model.tpm,
+          rpd: usage.model.rpd,
+          providerId: usage.model.providerId,
+          provider: usage.model.provider,
+          status: usage.status,
             usageCount: usage.usageCount, // Tổng tất cả thời gian
-            promptTokens: usage.promptTokens,
-            completionTokens: usage.completionTokens,
-            totalTokens: usage.totalTokens,
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          totalTokens: usage.totalTokens,
             lastUsedAt: usage.lastUsedAt,
             // 🚀 Thêm thống kê theo ngày
             todayUsageCount: todayUsageCount,

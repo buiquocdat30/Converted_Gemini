@@ -147,3 +147,246 @@ button:hover {
 button:disabled {
   background-color: var(--button-background-disabled);
 }
+
+/* ExportModal CSS - Sử dụng tên class riêng */
+
+/* Modal overlay */
+.export-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1500;
+}
+
+/* Modal content */
+.export-modal {
+  border: 2px solid #28a745;
+  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.15);
+  background: #f8fff8;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  margin: 0 auto;
+  position: relative;
+  border-radius: 8px;
+  overflow-y: auto;
+  font-family: Arial, sans-serif;
+}
+
+.dark .export-modal {
+  background: #232d23;
+  border-color: #218838;
+  color: #A8C4B5;
+}
+
+.export-modal h3 {
+  color: #28a745;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+/* Content */
+.export-modal-content {
+  padding: 1rem;
+}
+
+/* Chapter list header */
+.chapter-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chapter-list-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.dark .chapter-list-header h4 {
+  color: #A8C4B5;
+}
+
+.select-all-button {
+  padding: 0.5rem 1rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.select-all-button:hover {
+  background-color: #218838;
+}
+
+/* Chapter select */
+.modal-chapter-select {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.dark .modal-chapter-select {
+  border-color: #555;
+}
+
+.modal-chapter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+  padding: 8px 12px;
+}
+
+.dark .modal-chapter-item {
+  border-color: #555;
+}
+
+.modal-chapter-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dark .modal-chapter-item:hover {
+  background-color: #3a3a3a;
+}
+
+.modal-chapter-item.selected {
+  background-color: #e8f5e9;
+}
+
+.dark .modal-chapter-item.selected {
+  background-color: #2d4d2d;
+}
+
+.modal-chapter-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #28a745;
+}
+
+.modal-chapter-number {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+  min-width: 80px;
+}
+
+.dark .modal-chapter-number {
+  color: #999;
+}
+
+.modal-chapter-title {
+  flex: 1;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.dark .modal-chapter-title {
+  color: #ccc;
+}
+
+/* Selected count */
+.selected-count {
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+  border-top: 1px solid #eee;
+  margin-bottom: 1rem;
+}
+
+.dark .selected-count {
+  background-color: #3a3a3a;
+  color: #ccc;
+  border-color: #555;
+}
+
+/* Export section */
+.export-section {
+  margin-bottom: 1.5rem;
+}
+
+.export-section h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.dark .export-section h4 {
+  color: #A8C4B5;
+}
+
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  background-color: white;
+}
+
+.dark .export-option {
+  background-color: #2a2a2a;
+  border-color: #555;
+  color: #ccc;
+}
+
+.export-option:hover {
+  background-color: #f8f9fa;
+}
+
+.dark .export-option:hover {
+  background-color: #3a3a3a;
+}
+
+.export-option input[type="radio"] {
+  margin: 0;
+  transform: scale(1.2);
+  accent-color: #28a745;
+}
+
+.export-option span {
+  flex: 1;
+  font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .export-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .export-modal-content {
+    padding: 0;
+  }
+}
