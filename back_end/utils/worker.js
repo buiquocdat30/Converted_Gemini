@@ -88,6 +88,29 @@ let socket = null;
 let activeJobs = 0;
 const MAX_CONCURRENT_JOBS = 3; // Giới hạn 3 job đồng thời
 
+// 🚀 Thêm semaphore để kiểm soát API calls theo RPM
+let lastApiCall = 0; // Timestamp của lần gọi API cuối cùng
+const apiCallSemaphore = {
+  lastCall: 0,
+  minInterval: 0,
+  setMinInterval: function(rpm) {
+    this.minInterval = (60 / rpm) * 1000; // Chuyển RPM thành milliseconds
+  },
+  waitForNextCall: async function() {
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastCall;
+    
+    if (timeSinceLastCall < this.minInterval) {
+      const waitTime = this.minInterval - timeSinceLastCall;
+      console.log(`[WORKER] ⏳ Semaphore: Chờ ${waitTime}ms để tuân thủ RPM limit`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.lastCall = Date.now();
+    console.log(`[WORKER] ✅ Semaphore: Cho phép gọi API tại ${new Date().toLocaleTimeString()}`);
+  }
+};
+
 // Hàm khởi tạo socket với retry
 async function initializeSocket() {
   let retries = 0;
@@ -195,11 +218,14 @@ const worker = new Worker('my-queue', async job => {
     // Lưu thời gian bắt đầu dịch
     const translationStartTime = Date.now();
     
-    // Thêm delay để đảm bảo không vượt quá RPM của model
+    // 🚀 Sử dụng semaphore thay vì delay cố định
     if (job.data.model && job.data.model.rpm) {
-      const delayMs = Math.max((60 / job.data.model.rpm) * 1000, 1000); // Tối thiểu 1s
-      console.log(`[WORKER] ⏱️ Delay ${delayMs}ms để đảm bảo không vượt quá RPM ${job.data.model.rpm}`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      // Thiết lập RPM limit cho semaphore
+      apiCallSemaphore.setMinInterval(job.data.model.rpm);
+      console.log(`[WORKER] ⏱️ Semaphore: Thiết lập RPM limit ${job.data.model.rpm} (${apiCallSemaphore.minInterval}ms giữa các lần gọi)`);
+      
+      // Chờ semaphore cho phép gọi API
+      await apiCallSemaphore.waitForNextCall();
     }
     
     // 🚀 Thêm delay bổ sung nếu có lỗi 503 gần đây

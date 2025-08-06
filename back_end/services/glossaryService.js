@@ -92,6 +92,32 @@ async function extractAndSaveGlossary(storyId, glossaryText) {
         skippedCount++;
         continue;
       }
+
+      // Kiểm tra xem có phải là tên chương dài không (chứa từ khóa chương)
+      if (originalTrim.includes('章') || originalTrim.includes('第') || originalTrim.includes('chapter') || 
+          originalTrim.includes('Chapter') || originalTrim.length > 20) {
+        console.log(`⚠️ Bỏ qua tên chương dài: "${originalTrim}"`);
+        skippedCount++;
+        continue;
+      }
+
+      // Kiểm tra xem có phải là câu hoặc cụm từ dài không
+      if (originalTrim.split('').length > 15 || originalTrim.includes(' ') || originalTrim.includes('：')) {
+        console.log(`⚠️ Bỏ qua câu/cụm từ dài: "${originalTrim}"`);
+        skippedCount++;
+        continue;
+      }
+
+      // Kiểm tra xem có phải là từ chung không (không phải danh từ riêng)
+      const commonWords = ['ma', 'vương', 'học', 'viện', 'giám', 'đốc', 'công', 'ty', 'trường', 'đại', 'học'];
+      const isCommonWord = commonWords.some(word => 
+        originalTrim.toLowerCase().includes(word) || translatedTrim.toLowerCase().includes(word)
+      );
+      if (isCommonWord && !isForeignLanguage(originalTrim)) {
+        console.log(`⚠️ Bỏ qua từ chung: "${originalTrim}"`);
+        skippedCount++;
+        continue;
+      }
       
       try {
         // Kiểm tra xem đã tồn tại chưa

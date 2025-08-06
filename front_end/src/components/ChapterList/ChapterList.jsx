@@ -295,7 +295,7 @@ const ChapterList = ({
     setIsTranslatingAll(true);
     // 🚀 Reset queue timing khi bắt đầu dịch mới
     setQueueTiming(null);
-    
+
     // Kiểm tra có key khả dụng không
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
     const maxChapters = hasApiKey ? chapters.length : 2;

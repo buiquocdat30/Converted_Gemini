@@ -164,16 +164,38 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       
       Nếu KHÔNG có tên riêng mới nào, hãy ghi: "Không có từ mới"
       
-      QUY TẮC LIỆT KÊ:
-      1. Chỉ liệt kê các DANH TỪ RIÊNG: Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt
-      2. KHÔNG liệt kê các từ chung như "ma vương", "học viện", "giám đốc" (trừ khi có tên cụ thể)
-      3. Chỉ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh), KHÔNG liệt kê tên tiếng Việt
-      4. KHÔNG liệt kê những tên đã có trong THƯ VIỆN TỪ ĐÃ CÓ ở trên
+      QUY TẮC LIỆT KÊ CHÍNH XÁC:
+      1. CHỈ liệt kê các DANH TỪ RIÊNG (Proper Nouns):
+         - Tên người: 张伟, 李美, Haikura Shinku
+         - Tên địa danh: 北京, 东京, Seoul
+         - Tên tổ chức: 清华大学, 东京大学
+         - Tên vật phẩm đặc biệt: 轩辕剑, 屠龙刀
+         - Tên chiêu thức: 降龙十八掌, 九阴真经
+         - Tên công pháp: 易筋经, 洗髓经
       
-      Ví dụ:
+      2. KHÔNG liệt kê:
+         - Các từ chung: "ma vương", "học viện", "giám đốc" (trừ khi có tên cụ thể)
+         - Các câu hoặc cụm từ dài: "第一章 距离末日还有180天" (đây là tên chương, không phải danh từ riêng)
+         - Tên tiếng Việt: "Lý Vũ", "Trần Minh"
+         - Tên đã có trong THƯ VIỆN TỪ ĐÃ CÓ ở trên
+      
+      3. CHỈ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh)
+      
+      4. MỖI TỪ RIÊNG PHẢI LÀ MỘT ĐƠN VỊ ĐỘC LẬP:
+         - ĐÚNG: 张伟 = Trương Vĩ [Nhân vật] [Trung]
+         - SAI: 张伟李美 = Trương Vĩ Lý Mỹ [Nhân vật] [Trung] (phải tách thành 2 từ)
+      
+      Ví dụ ĐÚNG:
       张伟 = Trương Vĩ [Nhân vật] [Trung]
+      李美 = Lý Mỹ [Nhân vật] [Trung]
       M都 = M Đô [Địa danh] [Trung]
       Haikura Shinku = Haikura Shinku [Nhân vật] [Nhật]
+      轩辕剑 = Hiên Viên Kiếm [Vật phẩm] [Trung]
+      
+      Ví dụ SAI (không được liệt kê):
+      "第一章 距离末日还有180天" (tên chương dài)
+      "ma vương" (từ chung)
+      "Lý Vũ" (tên tiếng Việt)
       
       ⚠️ QUAN TRỌNG: Nếu không có tên riêng mới nào, PHẢI ghi "Không có từ mới"
     `;
