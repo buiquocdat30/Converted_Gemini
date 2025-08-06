@@ -314,7 +314,7 @@ exports.translateTextQueue = async (req, res) => {
       // => Đảm bảo không bao giờ vượt quá RPM limit
       
       const job = await myQueue.add('translate-chapter', jobData, {
-        delay: i * delayPerJob, // ✅ Giữ delay tích lũy để tránh "many requests"
+        delay: 0, // 🚀 Bỏ delay tích lũy, để semaphore kiểm soát
         attempts: 2, // Giảm từ 3 xuống 2 lần retry
         backoff: {
           type: 'exponential',
@@ -332,21 +332,17 @@ exports.translateTextQueue = async (req, res) => {
     console.log(`[QUEUE-API] ✅ Đã thêm ${jobs.length} jobs vào queue thành công`);
     console.log("🚀 [QUEUE-API] ===== HOÀN THÀNH THÊM JOBS =====");
     
-    // 🚀 Thêm thông tin debug về timing
-    const totalDelay = (chapters.length - 1) * delayPerJob;
-    const estimatedTotalTime = totalDelay + (chapters.length * 10); // Ước tính thời gian dịch trung bình
+    // 🚀 Cập nhật thông tin debug về timing với semaphore
+    const estimatedTotalTime = chapters.length * 10; // Ước tính thời gian dịch trung bình
     const concurrencyEfficiency = Math.min(3, chapters.length); // Số worker thực tế sử dụng
     
-    console.log(`[QUEUE-API] 📊 Thông tin timing:`, {
+    console.log(`[QUEUE-API] 📊 Thông tin timing với Semaphore:`, {
       totalJobs: chapters.length,
-      delayPerJob: `${delayPerJob}ms`,
-      totalDelay: `${totalDelay}ms`,
-      estimatedStartTime: `${Math.floor(totalDelay / 1000)}s`,
+      strategy: 'Semaphore kiểm soát RPM thay vì delay tích lũy',
       concurrency: `${concurrencyEfficiency} jobs song song`,
       rpmLimit: fullModelInfo?.rpm ? `${fullModelInfo.rpm} RPM` : 'Unknown',
-      strategy: 'Delay tích lũy + Concurrency để tối ưu',
       estimatedTotalTime: `${Math.floor(estimatedTotalTime / 1000)}s`,
-      efficiency: `Giảm ~${Math.round((1 - estimatedTotalTime / (chapters.length * 10)) * 100)}% thời gian so với tuần tự`
+      efficiency: 'Tối ưu thời gian với kiểm soát RPM chính xác'
     });
 
     res.json({
@@ -356,11 +352,10 @@ exports.translateTextQueue = async (req, res) => {
       jobIds: jobs.map(job => job.id),
       timing: {
         totalJobs: chapters.length,
-        delayPerJob: delayPerJob,
-        totalDelay: totalDelay,
+        strategy: 'Semaphore RPM Control',
         concurrency: 3,
         estimatedTotalTime: Math.floor(estimatedTotalTime / 1000),
-        efficiency: Math.round((1 - estimatedTotalTime / (chapters.length * 10)) * 100)
+        efficiency: 'Tối ưu với kiểm soát RPM chính xác'
       }
     });
 
