@@ -48,7 +48,8 @@ const TranslateViewer = ({
       const fallbackChapters = chapters
         .map((ch, i) => ({
           title: ch.translatedTitle || ch.chapterName || `Chương ${i + 1}`,
-          content: ch.translatedContent?.trim(),
+          // Sửa: tìm translatedContent trong nhiều vị trí có thể
+          content: ch.translatedContent?.trim() || ch.translated?.trim() || ch.content?.trim(),
           index: i,
           chapterNumber: ch.chapterNumber || i + 1
         }))
@@ -60,7 +61,9 @@ const TranslateViewer = ({
         chapterName: ch.chapterName,
         translatedTitle: ch.translatedTitle,
         translatedContent: ch.translatedContent ? `${ch.translatedContent.substring(0, 50)}...` : null,
-        hasTranslatedContent: !!ch.translatedContent?.trim()
+        translated: ch.translated ? `${ch.translated.substring(0, 50)}...` : null,
+        content: ch.content ? `${ch.content.substring(0, 50)}...` : null,
+        hasTranslatedContent: !!(ch.translatedContent?.trim() || ch.translated?.trim() || ch.content?.trim())
       })));
       return fallbackChapters;
     }
@@ -69,7 +72,8 @@ const TranslateViewer = ({
     const contextChapters = currentStory.chapters
       .map((ch, i) => ({
         title: ch.translatedTitle || ch.chapterName || `Chương ${i + 1}`,
-        content: ch.translatedContent?.trim(),
+        // Sửa: tìm translatedContent trong nhiều vị trí có thể
+        content: ch.translation?.translatedContent?.trim() || ch.translatedContent?.trim() || ch.translated?.trim() || ch.content?.trim(),
         index: i,
         chapterNumber: ch.chapterNumber || i + 1
       }))
@@ -116,9 +120,10 @@ const TranslateViewer = ({
       return;
     }
 
+    // Sử dụng dữ liệu từ translatedChapters thay vì chapters prop
     const selectedChaptersData = Array.from(selectedChapters)
-      .map(index => chapters[index])
-      .filter(ch => ch?.translatedContent?.trim());
+      .map(index => translatedChapters.find(ch => ch.index === index))
+      .filter(ch => ch && ch.content);
     
     if (selectedChaptersData.length === 0) {
       toast.error('Không có chương nào đã dịch trong các chương đã chọn.');
@@ -126,9 +131,19 @@ const TranslateViewer = ({
     }
     
     const chaptersToExport = selectedChaptersData.map(ch => ({
-      title: ch.translatedTitle || ch.chapterName || `Chương ${ch.chapterNumber}`,
-      content: ch.translatedContent.trim()
+      title: ch.title,
+      content: ch.content
     }));
+
+    console.log('🔍 [DEBUG] Export - Dữ liệu xuất file:', {
+      selectedChaptersSize: selectedChapters.size,
+      selectedChaptersDataLength: selectedChaptersData.length,
+      chaptersToExport: chaptersToExport.map(ch => ({
+        title: ch.title,
+        contentLength: ch.content?.length || 0
+      })),
+      exportType: exportType
+    });
 
     // Tạo nội dung file
     const fullText = chaptersToExport

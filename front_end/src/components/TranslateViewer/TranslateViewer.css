@@ -217,7 +217,7 @@ button:disabled {
 
 .select-all-button {
   padding: 0.5rem 1rem;
-  background-color: #28a745;
+  background-color: var(--button-green-background);
   color: white;
   border: none;
   border-radius: 4px;
@@ -227,7 +227,7 @@ button:disabled {
 }
 
 .select-all-button:hover {
-  background-color: #218838;
+  background-color: var(--button-green-background-hover);
 }
 
 /* Chapter select */
