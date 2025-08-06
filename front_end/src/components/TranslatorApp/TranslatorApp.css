@@ -342,7 +342,7 @@
   font-size: 1.1rem;
 }
 
-.select-all-button {
+/* .select-all-button {
   padding: 0.5rem 1rem;
   background-color: #f0f0f0;
   border: 1px solid #ddd;
@@ -354,7 +354,7 @@
 
 .select-all-button:hover {
   background-color: #e8f5e9;
-}
+} */
 
 .modal-chapter-select {
   max-height: 300px;

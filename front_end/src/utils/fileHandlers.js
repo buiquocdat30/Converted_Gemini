@@ -4,8 +4,17 @@ import ePub from "epubjs";
 export const cleanContentForExport = (content) => {
   if (!content) return "";
   
+  let cleanedContent = content;
+  
   // Loại bỏ phần "📚 THƯ VIỆN TỪ MỚI:" và tất cả nội dung sau đó
-  const cleanedContent = content.replace(/📚 THƯ VIỆN TỪ MỚI:[\s\S]*$/g, '');
+  cleanedContent = cleanedContent.replace(/📚 THƯ VIỆN TỪ MỚI:[\s\S]*$/g, '');
+  
+  // Loại bỏ phần "THƯ VIỆN TỪ MỚI:" (không có emoji)
+  cleanedContent = cleanedContent.replace(/THƯ VIỆN TỪ MỚI:[\s\S]*$/g, '');
+  
+  // Loại bỏ phần "Không có từ mới" và các biến thể
+  cleanedContent = cleanedContent.replace(/Không có từ mới[\s\S]*$/g, '');
+  cleanedContent = cleanedContent.replace(/Không có từ mới nào[\s\S]*$/g, '');
   
   // Loại bỏ các dòng trống thừa ở cuối
   return cleanedContent.trim();
