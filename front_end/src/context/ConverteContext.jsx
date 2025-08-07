@@ -307,6 +307,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const [userApiKeyToday, setUserApiKeyToday] = useState([]);
+
+  // Lấy usage key theo ngày hôm nay
+  const fetchApiKeyToday = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/user/keys/usage/today`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUserApiKeyToday(response.data);
+      setError(null);
+    } catch (err) {
+      console.error("Lỗi khi tải usage key theo ngày:", err);
+      setError(
+        "Lỗi khi tải usage key theo ngày: " +
+          (err.response?.data?.error || err.message)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ===== STORY MANAGEMENT =====
   const [stories, setStories] = useState([]);
  
@@ -722,6 +746,7 @@ export const AuthProvider = ({ children }) => {
         userData,
         stories,
         userApiKey,
+        userApiKeyToday,
         getAuthToken,
 
         // User Functions
@@ -736,6 +761,7 @@ export const AuthProvider = ({ children }) => {
         addApiKey,
         removeApiKey,
         fetchApiKey,
+        fetchApiKeyToday,
 
         // Story Functions
         fetchStories,

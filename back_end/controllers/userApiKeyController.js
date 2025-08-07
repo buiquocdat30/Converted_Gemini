@@ -109,6 +109,79 @@ const userApiKeyController = {
             console.error('Error getting API keys by model:', error);
             res.status(500).json({ error: 'Lỗi khi lấy API keys theo model' });
         }
+    },
+
+    // Lấy usage thống kê trong ngày cho user (group theo key và model)
+    getTodayUsageStats: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            // Lấy mốc thời gian đầu và cuối ngày hôm nay
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+            // Lấy tất cả key của user
+            const keys = await prisma.userApiKey.findMany({
+                where: { userId },
+                select: {
+                    id: true,
+                    key: true,
+                    label: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    usage: {
+                        where: {
+                            lastUsedAt: {
+                                gte: startOfDay,
+                                lte: endOfDay
+                            }
+                        },
+                        select: {
+                            id: true,
+                            modelId: true,
+                            status: true,
+                            usageCount: true,
+                            promptTokens: true,
+                            completionTokens: true,
+                            totalTokens: true,
+                            lastUsedAt: true,
+                            model: {
+                                select: {
+                                    id: true,
+                                    value: true,
+                                    label: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Format lại cho FE: mỗi key có mảng usage theo model trong ngày
+            const result = keys.map(key => ({
+                id: key.id,
+                key: key.key,
+                label: key.label,
+                createdAt: key.createdAt,
+                updatedAt: key.updatedAt,
+                usage: key.usage.map(u => ({
+                    id: u.id,
+                    modelId: u.modelId,
+                    model: u.model,
+                    status: u.status,
+                    usageCount: u.usageCount,
+                    promptTokens: u.promptTokens,
+                    completionTokens: u.completionTokens,
+                    totalTokens: u.totalTokens,
+                    lastUsedAt: u.lastUsedAt
+                }))
+            }));
+
+            res.json(result);
+        } catch (error) {
+            console.error('Error getting today usage stats:', error);
+            res.status(500).json({ error: error.message });
+        }
     }
 };
 
