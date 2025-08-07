@@ -45,6 +45,26 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  // 🚀 Thêm useEffect để áp dụng background ngay khi app khởi động
+  useEffect(() => {
+    if (userData.backgroundImage) {
+      const bgImage = `http://localhost:8000/data/upload/background/${userData.backgroundImage}`;
+      document.body.style.backgroundImage = `url(${bgImage})`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+      document.body.style.backgroundAttachment = "fixed";
+      localStorage.setItem("backgroundImage", bgImage);
+      console.log(`[BACKGROUND] Đã áp dụng background: ${bgImage}`);
+    } else {
+      // Chỉ xóa background nếu user không đăng nhập hoặc không có background
+      if (!userData.id) {
+        document.body.style.backgroundImage = "";
+        localStorage.removeItem("backgroundImage");
+        console.log('[BACKGROUND] Đã xóa background vì user không đăng nhập');
+      }
+    }
+  }, [userData.backgroundImage, userData.id]);
+
   const onLogin = (userData) => {
     if (!userData) return;
     setIsLoggedIn(true);
@@ -65,6 +85,10 @@ export const AuthProvider = ({ children }) => {
   const onLogout = () => {
     localStorage.removeItem("auth-token");
     setIsLoggedIn(false);
+    // 🚀 Xóa background khi logout
+    document.body.style.backgroundImage = "";
+    localStorage.removeItem("backgroundImage");
+    console.log('[BACKGROUND] Đã xóa background khi logout');
     setUserData({
       id: "",
       username: "",

@@ -7,6 +7,7 @@ import { translateAllChapters } from "../../services/translateChapters";
 import { translateSingleChapter } from "../../services/translateSingleChapter";
 import { toast } from "react-hot-toast";
 import useTranslationProgress from "../../hook/useTranslationProgress";
+import useTranslationSocket  from '../../hook/useTranslationSocket';
 import "./ChapterList.css";
 import { useSession } from '../../context/SessionContext';
 import { AuthContext } from '../../context/ConverteContext';
@@ -825,19 +826,77 @@ const ChapterList = ({
 
   // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
   const handleSocketChapterTranslated = useCallback((data) => {
-    // Bỏ logic socket, chỉ dùng ước tính
-    console.log('[PROGRESS] Bỏ qua socket, chỉ dùng ước tính thời gian');
+    const chapterIndex = data.jobIndex;
+    console.log(`[SOCKET] Chương ${chapterIndex} hoàn thành dịch từ BE`);
+    
+    // Cập nhật kết quả dịch
+    if (data.translatedContent || data.translatedTitle) {
+      setResults((prev) => ({
+        ...prev,
+        [chapterIndex]: {
+          translatedContent: data.translatedContent,
+          translatedTitle: data.translatedTitle,
+          duration: data.duration,
+          hasError: data.hasError,
+          error: data.error
+        }
+      }));
+    }
+    
+    // Cập nhật trạng thái và dừng progress
+    setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "COMPLETE" }));
+    setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: false }));
+    setChapterProgresses((prev) => ({ ...prev, [chapterIndex]: 100 }));
+    
+    // Dừng progress hook
+    const chapterHook = getChapterProgressHook(chapterIndex);
+    chapterHook.stopProgress();
+    
+    // Tăng số chương đã dịch
+    setTranslatedCount((prev) => prev + 1);
+    
+    console.log(`[SOCKET] ✅ Đã xử lý kết quả dịch chương ${chapterIndex}`);
   }, []);
 
   // Lắng nghe progress từ socket.io
   const handleSocketChapterProgress = useCallback((data) => {
-    // Bỏ logic socket, chỉ dùng ước tính
-    console.log('[PROGRESS] Bỏ qua socket progress, chỉ dùng ước tính thời gian');
+    const chapterIndex = data.jobIndex;
+    console.log(`[SOCKET] Progress chương ${chapterIndex}: ${data.progress}%`);
+    
+    // Cập nhật progress từ BE
+    setChapterProgresses((prev) => ({ ...prev, [chapterIndex]: data.progress }));
+    
+    // Cập nhật trạng thái nếu cần
+    if (data.status === 'PROCESSING') {
+      setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "PROCESSING" }));
+      setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: true }));
+    } else if (data.status === 'COMPLETE') {
+      setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "COMPLETE" }));
+      setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: false }));
+    }
+  }, []);
+
+  // Lắng nghe event chapterStarted từ socket.io
+  const handleSocketChapterStarted = useCallback((data) => {
+    const chapterIndex = data.jobIndex;
+    console.log(`[SOCKET] Chương ${chapterIndex} bắt đầu dịch từ BE (RPM: ${data.modelRpm})`);
+    
+    // Bắt đầu progress bar ngay khi nhận được sự kiện từ BE
+    setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "PROCESSING" }));
+    setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: true }));
+    setChapterProgresses((prev) => ({ ...prev, [chapterIndex]: 0 }));
+    
+    // Bắt đầu progress hook với thông tin từ BE
+    const chapterHook = getChapterProgressHook(chapterIndex);
+    chapterHook.startProgress();
+    
+    console.log(`[SOCKET] ✅ Đã bắt đầu progress cho chương ${chapterIndex}`);
   }, []);
 
   const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
   const roomId = userId ? `user:${userId}` : `story:${storyId}`;
-  // useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress); // Bỏ socket
+  // Bật lại socket để sử dụng real-time progress
+  useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress, handleSocketChapterStarted);
 
   // Debug: Log room ID và socket connection
   useEffect(() => {

@@ -991,22 +991,8 @@ const Users = () => {
     }
   }, [userData.backgroundImage]);
 
-  // Effect để áp dụng background vào body
-  useEffect(() => {
-    if (backgroundImage) {
-      document.body.style.backgroundImage = `url(${backgroundImage})`;
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
-      document.body.style.backgroundAttachment = "fixed";
-      localStorage.setItem("backgroundImage", backgroundImage);
-    } else {
-      // Chỉ xóa background nếu user không đăng nhập
-      if (!userData.id) {
-        document.body.style.backgroundImage = "";
-        localStorage.removeItem("backgroundImage");
-      }
-    }
-  }, [backgroundImage, userData.id]);
+  // 🚀 Bỏ logic duplicate background vì đã được xử lý trong ConverteContext.jsx
+  // Background sẽ được áp dụng tự động khi userData.backgroundImage thay đổi
 
   // Effect để áp dụng theme
   useEffect(() => {
@@ -1027,7 +1013,7 @@ const Users = () => {
   const handleLogout = () => {
     onLogout();
     navigate("/");
-    document.body.style.backgroundImage = "";
+    // 🚀 Bỏ logic duplicate vì đã được xử lý trong ConverteContext.jsx
     console.log("User logged out");
     alert("Đăng xuất thành công!");
   };

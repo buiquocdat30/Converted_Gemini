@@ -111,6 +111,30 @@ const apiCallSemaphore = {
   }
 };
 
+// 🚀 Thêm semaphore để kiểm soát thời gian bắt đầu giữa các chương
+const chapterSemaphore = {
+  lastChapterStart: 0,
+  minInterval: 2000, // Default 2s, sẽ được cập nhật theo RPM
+  setMinInterval: function(rpm) {
+    // Tính toán interval dựa trên RPM: 60/rpm giây
+    this.minInterval = (60 / rpm) * 1000; // Chuyển thành milliseconds
+    console.log(`[WORKER] ⏱️ Chapter Semaphore: Thiết lập interval ${this.minInterval}ms (60/${rpm}s) giữa các chương`);
+  },
+  waitForNextChapter: async function() {
+    const now = Date.now();
+    const timeSinceLastChapter = now - this.lastChapterStart;
+    
+    if (timeSinceLastChapter < this.minInterval) {
+      const waitTime = this.minInterval - timeSinceLastChapter;
+      console.log(`[WORKER] ⏳ Chapter Semaphore: Chờ ${waitTime}ms trước khi bắt đầu chương tiếp theo`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.lastChapterStart = Date.now();
+    console.log(`[WORKER] ✅ Chapter Semaphore: Cho phép bắt đầu chương mới tại ${new Date().toLocaleTimeString()}`);
+  }
+};
+
 // Hàm khởi tạo socket với retry
 async function initializeSocket() {
   let retries = 0;
@@ -197,6 +221,29 @@ const worker = new Worker('my-queue', async job => {
       } catch (error) {
         console.error('[WORKER] ❌ Không thể kết nối Socket.io, bỏ qua emit kết quả');
       }
+    }
+
+    // 🚀 Emit ngay khi bắt đầu xử lý job để FE biết chương đã bắt đầu
+    if (socket && socket.connected) {
+      const room = job.data.userId ? `user:${job.data.userId}` : `story:${job.data.storyId}`;
+      console.log(`[WORKER] 🚀 Emit chapterStarted về room: ${room}`);
+      socket.emit('chapterStarted', {
+        chapterNumber: job.data.chapter.chapterNumber,
+        jobIndex: job.data.jobIndex,
+        totalJobs: job.data.totalJobs,
+        room: room,
+        startTime: Date.now(),
+        modelRpm: job.data.model?.rpm
+      });
+    }
+
+    // 🚀 Sử dụng chapterSemaphore để kiểm soát thời gian bắt đầu giữa các chương
+    if (job.data.model && job.data.model.rpm) {
+      // Thiết lập interval cho chapterSemaphore dựa trên RPM
+      chapterSemaphore.setMinInterval(job.data.model.rpm);
+      
+      // Chờ semaphore cho phép bắt đầu chương mới
+      await chapterSemaphore.waitForNextChapter();
     }
 
     // Emit progress bắt đầu
