@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '../config/config';
 
-export default function useTranslationSocket(roomId, onChapterTranslated, onChapterProgress) {
+export default function useTranslationSocket(roomId, onChapterTranslated, onChapterProgress, onChapterStarted) {
   const socketRef = useRef(null);
   const callbackRef = useRef(onChapterTranslated);
   const progressCallbackRef = useRef(onChapterProgress);
+  const startedCallbackRef = useRef(onChapterStarted);
 
   // Luôn giữ callback mới nhất
   useEffect(() => {
@@ -15,6 +16,10 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
   useEffect(() => {
     progressCallbackRef.current = onChapterProgress;
   }, [onChapterProgress]);
+
+  useEffect(() => {
+    startedCallbackRef.current = onChapterStarted;
+  }, [onChapterStarted]);
 
   // Chỉ tạo socket một lần duy nhất
   useEffect(() => {
@@ -79,6 +84,28 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
         console.warn('[FE-SOCKET] ⚠️ Không có callback để xử lý progress');
       }
       console.log('📊 [FE-SOCKET] ===== HOÀN THÀNH XỬ LÝ PROGRESS ====');
+    });
+
+    // Lắng nghe event chapterStarted
+    socketRef.current.on('chapterStarted', (data) => {
+      console.log('🚀 [FE-SOCKET] ===== NHẬN EVENT CHAPTER STARTED ====');
+      console.log('[FE-SOCKET] 📋 Chapter started data:', {
+        chapterNumber: data.chapterNumber,
+        jobIndex: data.jobIndex,
+        totalJobs: data.totalJobs,
+        startTime: data.startTime,
+        modelRpm: data.modelRpm
+      });
+
+      // Gọi callback chapterStarted
+      if (startedCallbackRef.current) {
+        console.log('[FE-SOCKET] 🔄 Gọi callback xử lý chapter started...');
+        startedCallbackRef.current(data);
+        console.log('[FE-SOCKET] ✅ Đã xử lý chapter started thành công');
+      } else {
+        console.warn('[FE-SOCKET] ⚠️ Không có callback để xử lý chapter started');
+      }
+      console.log('🚀 [FE-SOCKET] ===== HOÀN THÀNH XỬ LÝ CHAPTER STARTED ====');
     });
 
     // Lắng nghe lỗi socket

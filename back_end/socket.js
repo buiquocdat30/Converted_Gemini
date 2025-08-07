@@ -97,6 +97,30 @@ async function startSocketServer() {
         console.log('📤 [SOCKET] ===== EMIT HOÀN THÀNH ====');
       });
 
+      // Lắng nghe event chapterStarted từ worker
+      socket.on('chapterStarted', (data) => {
+        console.log('🚀 [SOCKET] ===== NHẬN EVENT CHAPTER STARTED ====');
+        console.log('[SOCKET] 📥 Nhận event chapterStarted:', {
+          chapterNumber: data.chapterNumber,
+          jobIndex: data.jobIndex,
+          totalJobs: data.totalJobs,
+          startTime: data.startTime,
+          modelRpm: data.modelRpm,
+          room: data.room
+        });
+        
+        // Emit về đúng room cho FE
+        const room = data.room || (data.userId ? `user:${data.userId}` : `story:${data.storyId}`);
+        if (room) {
+          console.log(`[SOCKET] 📤 Emit chapterStarted về room: ${room}`);
+          io.to(room).emit('chapterStarted', data);
+          console.log('[SOCKET] ✅ Đã emit chapterStarted thành công');
+        } else {
+          console.warn('[SOCKET] ⚠️ Không có room để emit chapterStarted');
+        }
+        console.log('🚀 [SOCKET] ===== EMIT CHAPTER STARTED HOÀN THÀNH ====');
+      });
+
       // Lắng nghe event progress từ worker
       socket.on('chapterProgress', (data) => {
         console.log('📊 [SOCKET] ===== NHẬN PROGRESS TỪ WORKER ====');
