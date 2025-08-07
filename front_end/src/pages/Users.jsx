@@ -691,9 +691,11 @@ const KeyManagement = () => {
     loading,
     error,
     userApiKey,
+    userApiKeyToday,
     addApiKey,
     removeApiKey,
     fetchApiKey,
+    fetchApiKeyToday,
   } = useContext(AuthContext);
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
@@ -702,6 +704,7 @@ const KeyManagement = () => {
 
   useEffect(() => {
     fetchApiKey();
+    fetchApiKeyToday();
   }, []);
 
   const handleAddKey = useCallback(() => {
@@ -727,6 +730,7 @@ const KeyManagement = () => {
         await removeApiKey(keyId);
         toast.success("Xóa key thành công!");
         fetchApiKey();
+        fetchApiKeyToday();
       } catch (error) {
         toast.error(
           "Lỗi khi xóa key: " + (error.response?.data?.error || error.message)
@@ -734,6 +738,9 @@ const KeyManagement = () => {
       }
     }
   };
+
+  // Ưu tiên usage theo ngày, nếu không có thì fallback sang usage tổng
+  const keysToShow = userApiKeyToday && userApiKeyToday.length > 0 ? userApiKeyToday : userApiKey;
 
   if (loading) return <div>Đang tải...</div>;
   if (error) return <div>Lỗi: {error}</div>;
@@ -770,7 +777,7 @@ const KeyManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {userApiKey.map((key) => (
+            {keysToShow.map((key) => (
               <tr 
                 key={key.id} 
                 className="key-row"
@@ -812,6 +819,19 @@ const KeyManagement = () => {
                         <div className="model-count">
                           {key.models.length} models
                         </div>
+                        {/* Hiển thị usage trong ngày nếu có */}
+                        {key.usage && key.usage.length > 0 && (
+                          <div className="today-usage">
+                            <strong>Usage hôm nay:</strong>
+                            <ul>
+                              {key.usage.map(u => (
+                                <li key={u.modelId}>
+                                  {u.model?.label || u.modelId}: {u.usageCount} lần, {u.totalTokens} tokens
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <span className="status-badge">
