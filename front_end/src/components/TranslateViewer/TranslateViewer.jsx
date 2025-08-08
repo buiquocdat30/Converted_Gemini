@@ -33,15 +33,15 @@ const TranslateViewer = ({
     // Lấy story hiện tại từ ConverteContext
     const currentStory = stories?.find(story => story.id === chapters[0]?.storyId);
     
-    console.log('🔍 [DEBUG] ExportModal - Dữ liệu từ ConverteContext:', {
-      stories: stories,
-      currentStory: currentStory,
-      chapters: chapters,
-      storyId: chapters[0]?.storyId,
-      hasStories: !!stories,
-      hasCurrentStory: !!currentStory,
-      currentStoryChapters: currentStory?.chapters
-    });
+    // console.log('🔍 [DEBUG] ExportModal - Dữ liệu từ ConverteContext:', {
+    //   stories: stories,
+    //   currentStory: currentStory,
+    //   chapters: chapters,
+    //   storyId: chapters[0]?.storyId,
+    //   hasStories: !!stories,
+    //   hasCurrentStory: !!currentStory,
+    //   currentStoryChapters: currentStory?.chapters
+    // });
     
     if (!currentStory || !currentStory.chapters) {
       // Fallback: sử dụng chapters prop nếu không có dữ liệu từ ConverteContext
@@ -55,16 +55,16 @@ const TranslateViewer = ({
         }))
         .filter((ch) => ch.content); // Chỉ lấy chương có nội dung dịch
       
-      console.log('🔍 [DEBUG] ExportModal - Sử dụng fallback chapters:', fallbackChapters);
-      console.log('🔍 [DEBUG] ExportModal - Raw chapters data:', chapters.map(ch => ({
-        chapterNumber: ch.chapterNumber,
-        chapterName: ch.chapterName,
-        translatedTitle: ch.translatedTitle,
-        translatedContent: ch.translatedContent ? `${ch.translatedContent.substring(0, 50)}...` : null,
-        translated: ch.translated ? `${ch.translated.substring(0, 50)}...` : null,
-        content: ch.content ? `${ch.content.substring(0, 50)}...` : null,
-        hasTranslatedContent: !!(ch.translatedContent?.trim() || ch.translated?.trim() || ch.content?.trim())
-      })));
+      //console.log('🔍 [DEBUG] ExportModal - Sử dụng fallback chapters:', fallbackChapters);
+      // console.log('🔍 [DEBUG] ExportModal - Raw chapters data:', chapters.map(ch => ({
+      //   chapterNumber: ch.chapterNumber,
+      //   chapterName: ch.chapterName,
+      //   translatedTitle: ch.translatedTitle,
+      //   translatedContent: ch.translatedContent ? `${ch.translatedContent.substring(0, 50)}...` : null,
+      //   translated: ch.translated ? `${ch.translated.substring(0, 50)}...` : null,
+      //   content: ch.content ? `${ch.content.substring(0, 50)}...` : null,
+      //   hasTranslatedContent: !!(ch.translatedContent?.trim() || ch.translated?.trim() || ch.content?.trim())
+      // })));
       return fallbackChapters;
     }
 
@@ -85,9 +85,9 @@ const TranslateViewer = ({
 
   const translatedChapters = getTranslatedChapters();
 
-  console.log('🔍 [DEBUG] ExportModal - translatedChapters:', translatedChapters);
-  console.log('🔍 [DEBUG] ExportModal - chapters prop:', chapters);
-  console.log('🔍 [DEBUG] ExportModal - stories from context:', stories);
+  //console.log('🔍 [DEBUG] ExportModal - translatedChapters:', translatedChapters);
+  //console.log('🔍 [DEBUG] ExportModal - chapters prop:', chapters);
+  //console.log('🔍 [DEBUG] ExportModal - stories from context:', stories);
 
   // Hàm quản lý chọn/bỏ chọn một chương
   const handleChapterSelect = (index) => {
@@ -375,7 +375,7 @@ const TranslateViewer = ({
               translatedTitle ||
               chapter?.chapterName ||
               `Chương ${currentIndex + 1}`;
-            console.log("📌 Tiêu đề chương đang hiển thị:", displayTitle);
+            //console.log("📌 Tiêu đề chương đang hiển thị:", displayTitle);
             return displayTitle;
           })()}
         </h3>

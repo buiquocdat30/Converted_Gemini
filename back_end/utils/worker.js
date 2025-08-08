@@ -8,10 +8,10 @@ const SOCKET_PORT = 8001; // Socket.io server port
 // Hàm tạo socket connection với retry
 function createSocketConnection() {
   return new Promise((resolve, reject) => {
-    console.log(`[WORKER] 🔌 Đang kết nối đến Socket.io server ws://localhost:${SOCKET_PORT}...`);
+    console.log(`[WORKER] 🔌 Đang kết nối đến Socket.io server http://localhost:${SOCKET_PORT}...`);
     
-    const socket = io(`ws://localhost:${SOCKET_PORT}`, {
-      transports: ['websocket'],
+    const socket = io(`http://localhost:${SOCKET_PORT}`, {
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
@@ -172,18 +172,19 @@ const worker = new Worker('my-queue', async job => {
   const currentTime = Date.now();
   const currentServerId = process.pid;
   
-  // Nếu job quá cũ (hơn 30 phút) hoặc từ server khác, bỏ qua
-  if (currentTime - jobTimestamp > 1800000) { // 30 phút = 1800000ms
+  // Nếu job quá cũ (hơn 5 phút) thì bỏ qua
+  if (currentTime - jobTimestamp > 300000) { // 5 phút = 300000ms thay vì 30 phút
     console.log(`[WORKER] 🚫 Bỏ qua job cũ: timestamp ${jobTimestamp}, hiện tại ${currentTime}, chênh lệch ${currentTime - jobTimestamp}ms`);
     return { hasError: true, error: 'Job quá cũ, đã bỏ qua' };
   }
   
-  if (jobServerId !== 0 && jobServerId !== currentServerId) {
-    console.log(`[WORKER] 🚫 Bỏ qua job từ server khác: jobServerId ${jobServerId}, currentServerId ${currentServerId}`);
-    return { hasError: true, error: 'Job từ server khác, đã bỏ qua' };
+  // Chỉ bỏ qua job từ server khác nếu job quá cũ (hơn 2 phút)
+  if (jobServerId !== 0 && jobServerId !== currentServerId && (currentTime - jobTimestamp > 120000)) {
+    console.log(`[WORKER] 🚫 Bỏ qua job từ server khác: jobServerId ${jobServerId}, currentServerId ${currentServerId}, job cũ ${currentTime - jobTimestamp}ms`);
+    return { hasError: true, error: 'Job từ server khác và quá cũ, đã bỏ qua' };
   }
   
-  console.log(`[WORKER] ✅ Job hợp lệ: timestamp ${jobTimestamp}, serverId ${jobServerId}`);
+  console.log(`[WORKER] ✅ Job hợp lệ: timestamp ${jobTimestamp}, serverId ${jobServerId}, tuổi ${currentTime - jobTimestamp}ms`);
   
   // 🚀 Thêm timeout cho job để tránh chạy quá lâu
   const jobTimeout = setTimeout(() => {
