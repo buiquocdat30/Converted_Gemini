@@ -54,13 +54,13 @@ export const AuthProvider = ({ children }) => {
       document.body.style.backgroundPosition = "center";
       document.body.style.backgroundAttachment = "fixed";
       localStorage.setItem("backgroundImage", bgImage);
-      console.log(`[BACKGROUND] Đã áp dụng background: ${bgImage}`);
+      //console.log(`[BACKGROUND] Đã áp dụng background: ${bgImage}`);
     } else {
       // Chỉ xóa background nếu user không đăng nhập hoặc không có background
       if (!userData.id) {
         document.body.style.backgroundImage = "";
         localStorage.removeItem("backgroundImage");
-        console.log('[BACKGROUND] Đã xóa background vì user không đăng nhập');
+        //console.log('[BACKGROUND] Đã xóa background vì user không đăng nhập');
       }
     }
   }, [userData.backgroundImage, userData.id]);

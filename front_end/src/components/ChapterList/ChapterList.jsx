@@ -48,8 +48,8 @@ const ChapterList = ({
 
   // Sử dụng hook cho tiến độ tổng
   const {
-    averageTimePerWord,
-  } = useTranslationProgress(storyId, 30);
+    estimatedDuration,
+  } = useTranslationProgress(storyId, 30); // Sử dụng defaultTime = 30s từ hook
   // console.log("đây là thời gian trung bình dịch từ:", averageTimePerWord);
   // Sử dụng hook cho tiến độ từng chương
   const chapterProgressHooks = useRef({});
@@ -62,32 +62,40 @@ const ChapterList = ({
 
   // Hàm khởi tạo hook tiến độ cho một chương
   const getChapterProgressHook = (index) => {
+    console.log(`[PROGRESS-HOOK] 🔍 Lấy progress hook cho chapter index: ${index}`);
+    console.log(`[PROGRESS-HOOK] 📊 Progress hooks hiện tại:`, Object.keys(chapterProgressHooks.current));
+    
     if (!chapterProgressHooks.current[index]) {
+      console.log(`[PROGRESS-HOOK] 🆕 Tạo mới progress hook cho chapter index: ${index}`);
+      
       // Tạo một object giả lập hook thay vì gọi hook thật
       chapterProgressHooks.current[index] = {
         progress: 0,
         isTranslating: false,
         startProgress: () => {
-          setChapterTranslatingStates((prev) => ({ ...prev, [index]: true }));
-          setChapterProgresses((prev) => ({ ...prev, [index]: 0 }));
+          console.log(`[PROGRESS-HOOK] 🚀 Bắt đầu progress cho chapter ${index}:`, {
+            estimatedDuration,
+            estimatedTime: estimatedDuration || 30
+          });
+          
+          setChapterTranslatingStates((prev) => {
+            const newStates = { ...prev, [index]: true };
+            console.log(`[PROGRESS-HOOK] 📊 Cập nhật translating states:`, newStates);
+            return newStates;
+          });
+          setChapterProgresses((prev) => {
+            const newProgresses = { ...prev, [index]: 0 };
+            console.log(`[PROGRESS-HOOK] 📊 Cập nhật progresses:`, newProgresses);
+            return newProgresses;
+          });
 
-          console.log(`[PROGRESS] Khởi tạo progress cho chương ${index} - chỉ dùng ước tính thời gian`);
+          console.log(`[PROGRESS] Khởi tạo progress cho chương ${index} - sử dụng thời gian ước tính từ lịch sử`);
           
-          // Tính thời gian dự kiến dựa trên số từ và thời gian trung bình từ ConverteContext
-          const chapter = chapters[index];
-          const titleWords = (chapter?.title || chapter?.chapterName || "").split(/\s+/).filter(Boolean).length;
-          const contentWords = (chapter?.content || chapter?.rawText || "").split(/\s+/).filter(Boolean).length;
-          const totalWords = titleWords + contentWords;
+          // Sử dụng thời gian ước tính đã tính sẵn từ useTranslationProgress hook
+          const finalEstimatedDuration = estimatedDuration || 30;
           
-          // Sử dụng averageTimePerWord từ hook (đã tính từ ConverteContext)
-          const avgTimePerWord = parseFloat(averageTimePerWord) || 0.05;
-          const estimatedDuration = totalWords * avgTimePerWord;
-          
-          console.log(`[PROGRESS] Chương ${index}: ${totalWords} từ, dự kiến ${estimatedDuration.toFixed(1)}s (avgTimePerWord: ${avgTimePerWord}s/từ)`);
-          
-          // Đảm bảo estimatedDuration không quá nhỏ (tối thiểu 10 giây cho progress mượt mà)
-          const finalEstimatedDuration = Math.max(estimatedDuration, 10);
-          console.log(`[PROGRESS-FINAL] estimatedDuration: ${estimatedDuration.toFixed(1)}s → final: ${finalEstimatedDuration.toFixed(1)}s`);
+          console.log(`[PROGRESS] Chương ${index}: Ước tính ${finalEstimatedDuration.toFixed(1)}s từ lịch sử dịch`);
+          console.log(`[PROGRESS-FINAL] estimatedDuration: ${finalEstimatedDuration.toFixed(1)}s`);
           
           // Lưu thời gian bắt đầu và thời gian dự kiến
           const startTime = Date.now();
@@ -99,7 +107,7 @@ const ChapterList = ({
             const elapsedTime = (Date.now() - startTime) / 1000; // Thời gian đã trôi qua (giây)
             
             // Chỉ dùng ước tính, không có socket
-            const progressPercent = Math.min((elapsedTime / finalEstimatedDuration) * 100, 95); // Tối đa 95%
+            const progressPercent = Math.min((elapsedTime / finalEstimatedDuration) * 100, 99); // Tối đa 99%
             
             // Đảm bảo progress không giảm khi thời gian thực tế vượt quá ước tính
             const currentProgress = chapterProgressHooks.current[index].currentProgress || 0;
@@ -111,26 +119,49 @@ const ChapterList = ({
               console.log(`[PROGRESS-ESTIMATE] Chương ${index}: ${elapsedTime.toFixed(1)}s/${finalEstimatedDuration.toFixed(1)}s = ${newProgress.toFixed(1)}%`);
             }
             
-            setChapterProgresses((prev) => ({
-              ...prev,
-              [index]: Math.round(newProgress)
-            }));
+            setChapterProgresses((prev) => {
+              const newProgresses = { ...prev, [index]: Math.round(newProgress) };
+              console.log(`[PROGRESS-HOOK] 📈 Progress update chapter ${index}: ${prev[index] || 0}% → ${newProgresses[index]}%`);
+              return newProgresses;
+            });
           }, 500); // Cập nhật mỗi 500ms
 
           // Lưu interval để có thể clear sau
           chapterProgressHooks.current[index].interval = interval;
+          console.log(`[PROGRESS-HOOK] ✅ Đã bắt đầu progress hook cho chapter ${index}`);
         },
         stopProgress: () => {
-          setChapterTranslatingStates((prev) => ({ ...prev, [index]: false }));
-          setChapterProgresses((prev) => ({ ...prev, [index]: 100 }));
+          console.log(`[PROGRESS-HOOK] 🛑 Dừng progress cho chapter ${index}`);
+          
+          setChapterTranslatingStates((prev) => {
+            const newStates = { ...prev, [index]: false };
+            console.log(`[PROGRESS-HOOK] 📊 Cập nhật translating states khi dừng:`, newStates);
+            return newStates;
+          });
+          setChapterProgresses((prev) => {
+            const newProgresses = { ...prev, [index]: 100 };
+            console.log(`[PROGRESS-HOOK] 📊 Cập nhật progresses khi dừng:`, newProgresses);
+            return newProgresses;
+          });
 
           // Clear interval
           if (chapterProgressHooks.current[index].interval) {
             clearInterval(chapterProgressHooks.current[index].interval);
+            console.log(`[PROGRESS-HOOK] 🧹 Đã clear interval cho chapter ${index}`);
           }
+          console.log(`[PROGRESS-HOOK] ✅ Đã dừng progress hook cho chapter ${index}`);
         },
       };
+    } else {
+      console.log(`[PROGRESS-HOOK] ✅ Đã có progress hook cho chapter index: ${index}`);
     }
+    
+    console.log(`[PROGRESS-HOOK] 📤 Trả về progress hook cho chapter ${index}:`, {
+      hasStartProgress: !!chapterProgressHooks.current[index].startProgress,
+      hasStopProgress: !!chapterProgressHooks.current[index].stopProgress,
+      currentProgress: chapterProgressHooks.current[index].currentProgress || 0
+    });
+    
     return chapterProgressHooks.current[index];
   };
 
@@ -280,12 +311,41 @@ const ChapterList = ({
 
   // Callback cho translateAllChapters để điều khiển progress từng chương
   const handleChapterStartProgress = (index) => {
+    console.log(`[ChapterList] 🚀 handleChapterStartProgress được gọi cho chapter index: ${index}`);
+    console.log(`[ChapterList] 📊 Trạng thái chapter ${index} trước khi start:`, {
+      chapterStatus: chapterStatus[index],
+      chapterProgress: chapterProgresses[index],
+      chapterTranslatingState: chapterTranslatingStates[index]
+    });
+    
     const chapterHook = getChapterProgressHook(index);
+    console.log(`[ChapterList] 🔍 Chapter hook nhận được:`, {
+      hasStartProgress: !!chapterHook.startProgress,
+      hasStopProgress: !!chapterHook.stopProgress
+    });
+    
     chapterHook.startProgress();
+    
+    console.log(`[ChapterList] ✅ Đã gọi startProgress cho chapter ${index}`);
   };
+  
   const handleChapterStopProgress = (index) => {
+    console.log(`[ChapterList] 🛑 handleChapterStopProgress được gọi cho chapter index: ${index}`);
+    console.log(`[ChapterList] 📊 Trạng thái chapter ${index} trước khi stop:`, {
+      chapterStatus: chapterStatus[index],
+      chapterProgress: chapterProgresses[index],
+      chapterTranslatingState: chapterTranslatingStates[index]
+    });
+    
     const chapterHook = getChapterProgressHook(index);
+    console.log(`[ChapterList] 🔍 Chapter hook nhận được:`, {
+      hasStartProgress: !!chapterHook.startProgress,
+      hasStopProgress: !!chapterHook.stopProgress
+    });
+    
     chapterHook.stopProgress();
+    
+    console.log(`[ChapterList] ✅ Đã gọi stopProgress cho chapter ${index}`);
   };
 
   // Hàm dịch tất cả các chương
@@ -758,22 +818,10 @@ const ChapterList = ({
     return sum + titleWords + contentWords;
   }, 0);
 
-  // Lấy averageTimePerWord từ hook
-  const estimatedTime = Math.round(
-    totalWordsInPage * (parseFloat(averageTimePerWord) || 0.1)
-  ); // giây
+  // Sử dụng thời gian ước tính từ hook
+  const estimatedTime = Math.round(estimatedDuration || 30); // giây
   
-  // Debug log để kiểm tra tính toán
-  console.log('[PROGRESS-DEBUG] Tính thời gian ước tính:', {
-    totalWordsInPage,
-    averageTimePerWord,
-    parsedAvgTime: parseFloat(averageTimePerWord),
-    fallbackAvgTime: parseFloat(averageTimePerWord) || 0.1,
-    estimatedTime,
-    estimatedTimeStr: estimatedTime < 60
-      ? `${estimatedTime} giây`
-      : `${Math.floor(estimatedTime / 60)} phút ${estimatedTime % 60} giây`
-  });
+  
   
   const estimatedTimeStr =
     estimatedTime < 60
@@ -806,7 +854,7 @@ const ChapterList = ({
     toast.success("Đã dừng dịch toàn bộ chương trong trang!");
     setHasTranslatedAll(false);
     toast(
-      `Ước tính thời gian dịch 1 trang: ${estimatedTimeStr} (Tổng ${totalWordsInPage} từ, trung bình ${averageTimePerWord} giây/từ)`
+      `Ước tính thời gian dịch 1 trang: ${estimatedTimeStr} (Dựa trên lịch sử dịch: ${estimatedDuration?.toFixed(1) || 30}s)`
     );
   };
 
@@ -826,77 +874,230 @@ const ChapterList = ({
 
   // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
   const handleSocketChapterTranslated = useCallback((data) => {
-    const chapterIndex = data.jobIndex;
-    console.log(`[SOCKET] Chương ${chapterIndex} hoàn thành dịch từ BE`);
+    console.log('🎯 [ChapterList] ===== CALLBACK ĐƯỢC GỌI ====');
+    console.log('[ChapterList] 📥 Data nhận được trong callback:', data);
+    console.log('[ChapterList] 🔍 Kiểm tra callback có tồn tại:', !!handleSocketChapterTranslated);
+    console.log('[ChapterList] 🔍 Callback function type:', typeof handleSocketChapterTranslated);
+    console.log('[ChapterList] 🔍 Callback function name:', handleSocketChapterTranslated?.name || 'anonymous');
+    
+    // Tìm chapter index dựa trên chapterNumber thay vì jobIndex
+    const chapterIndex = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
+    
+    console.log('[ChapterList] 🔍 Tìm chapter index:', {
+      chapterNumber: data.chapterNumber,
+      foundIndex: chapterIndex,
+      totalChapters: chapters.length,
+      chapters: chapters.map(ch => ({ number: ch.chapterNumber, title: ch.chapterName }))
+    });
+    
+    if (chapterIndex === -1) {
+      console.warn(`[ChapterList] ⚠️ Không tìm thấy chapter ${data.chapterNumber} trong danh sách chapters`);
+      console.warn('[ChapterList] ⚠️ Danh sách chapters hiện tại:', chapters.map(ch => ch.chapterNumber));
+      return;
+    }
+    
+    console.log(`[ChapterList] ✅ Chương ${data.chapterNumber} (index: ${chapterIndex}) hoàn thành dịch từ BE`);
     
     // Cập nhật kết quả dịch
     if (data.translatedContent || data.translatedTitle) {
-      setResults((prev) => ({
-        ...prev,
-        [chapterIndex]: {
-          translatedContent: data.translatedContent,
-          translatedTitle: data.translatedTitle,
-          duration: data.duration,
-          hasError: data.hasError,
-          error: data.error
-        }
-      }));
+      console.log('[ChapterList] 📝 Cập nhật results với data:', {
+        chapterIndex,
+        hasTranslatedTitle: !!data.translatedTitle,
+        hasTranslatedContent: !!data.translatedContent,
+        titleLength: data.translatedTitle?.length || 0,
+        contentLength: data.translatedContent?.length || 0
+      });
+      
+      setResults((prev) => {
+        const newResults = {
+          ...prev,
+          [chapterIndex]: {
+            translatedContent: data.translatedContent,
+            translatedTitle: data.translatedTitle,
+            duration: data.duration,
+            hasError: data.hasError,
+            error: data.error
+          }
+        };
+        console.log('[ChapterList] 📊 Results mới:', newResults);
+        return newResults;
+      });
     }
     
     // Cập nhật trạng thái và dừng progress
-    setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "COMPLETE" }));
-    setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: false }));
-    setChapterProgresses((prev) => ({ ...prev, [chapterIndex]: 100 }));
+    console.log('[ChapterList] 🔄 Cập nhật trạng thái chapter:', chapterIndex);
+    setChapterStatus((prev) => {
+      const newStatus = { ...prev, [chapterIndex]: "COMPLETE" };
+      console.log('[ChapterList] 📊 Chapter status mới:', newStatus);
+      return newStatus;
+    });
+    
+    setChapterTranslatingStates((prev) => {
+      const newStates = { ...prev, [chapterIndex]: false };
+      console.log('[ChapterList] 📊 Chapter translating states mới:', newStates);
+      return newStates;
+    });
+    
+    // ✅ Tăng progress lên 100% khi hoàn thành
+    setChapterProgresses((prev) => {
+      const newProgresses = { ...prev, [chapterIndex]: 100 };
+      console.log(`[ChapterList] ✅ Progress hoàn thành: ${prev[chapterIndex] || 0}% → 100%`);
+      return newProgresses;
+    });
     
     // Dừng progress hook
     const chapterHook = getChapterProgressHook(chapterIndex);
+    console.log('[ChapterList] 🛑 Dừng progress hook cho chapter:', chapterIndex);
     chapterHook.stopProgress();
     
     // Tăng số chương đã dịch
-    setTranslatedCount((prev) => prev + 1);
+    setTranslatedCount((prev) => {
+      const newCount = prev + 1;
+      console.log('[ChapterList] 📈 Tăng translated count:', prev, '->', newCount);
+      return newCount;
+    });
     
-    console.log(`[SOCKET] ✅ Đã xử lý kết quả dịch chương ${chapterIndex}`);
-  }, []);
+    console.log(`[ChapterList] ✅ Đã xử lý kết quả dịch chương ${data.chapterNumber} (index: ${chapterIndex})`);
+    console.log('🎯 [ChapterList] ===== CALLBACK HOÀN THÀNH ====');
+  }, [chapters]);
 
   // Lắng nghe progress từ socket.io
   const handleSocketChapterProgress = useCallback((data) => {
-    const chapterIndex = data.jobIndex;
-    console.log(`[SOCKET] Progress chương ${chapterIndex}: ${data.progress}%`);
+    console.log('📊 [ChapterList] ===== PROGRESS CALLBACK ĐƯỢC GỌI ====');
+    console.log('[ChapterList] 📥 Progress data nhận được:', data);
+    console.log('[ChapterList] 🔍 Kiểm tra progress callback có tồn tại:', !!handleSocketChapterProgress);
+    console.log('[ChapterList] 🔍 Progress callback type:', typeof handleSocketChapterProgress);
     
-    // Cập nhật progress từ BE
-    setChapterProgresses((prev) => ({ ...prev, [chapterIndex]: data.progress }));
+    // Tìm chapter index dựa trên chapterNumber
+    const chapterIndex = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
     
-    // Cập nhật trạng thái nếu cần
-    if (data.status === 'PROCESSING') {
-      setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "PROCESSING" }));
-      setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: true }));
-    } else if (data.status === 'COMPLETE') {
-      setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "COMPLETE" }));
-      setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: false }));
+    console.log('[ChapterList] 🔍 Tìm chapter index cho progress:', {
+      chapterNumber: data.chapterNumber,
+      foundIndex: chapterIndex,
+      totalChapters: chapters.length
+    });
+    
+    if (chapterIndex === -1) {
+      console.warn(`[ChapterList] ⚠️ Không tìm thấy chapter ${data.chapterNumber} trong danh sách chapters`);
+      return;
     }
-  }, []);
+    
+    console.log(`[ChapterList] 📊 Progress chương ${data.chapterNumber} (index: ${chapterIndex}): ${data.progress}%`);
+    
+    // 🚫 KHÔNG cập nhật progress từ BE - để progress hook chạy tự nhiên theo ước tính
+    console.log(`[ChapterList] 🚫 Bỏ qua progress từ socket - ưu tiên thời gian ước tính`);
+    
+    // Chỉ cập nhật trạng thái nếu cần
+    if (data.status === 'PROCESSING') {
+      console.log('[ChapterList] 🔄 Cập nhật status thành PROCESSING cho chapter:', chapterIndex);
+      setChapterStatus((prev) => {
+        const newStatus = { ...prev, [chapterIndex]: "PROCESSING" };
+        console.log('[ChapterList] 📊 Status mới:', newStatus);
+        return newStatus;
+      });
+      setChapterTranslatingStates((prev) => {
+        const newStates = { ...prev, [chapterIndex]: true };
+        console.log('[ChapterList] 📊 Translating states mới:', newStates);
+        return newStates;
+      });
+    } else if (data.status === 'COMPLETE') {
+      console.log('[ChapterList] ✅ Cập nhật status thành COMPLETE cho chapter:', chapterIndex);
+      setChapterStatus((prev) => {
+        const newStatus = { ...prev, [chapterIndex]: "COMPLETE" };
+        console.log('[ChapterList] 📊 Status mới:', newStatus);
+        return newStatus;
+      });
+      setChapterTranslatingStates((prev) => {
+        const newStates = { ...prev, [chapterIndex]: false };
+        console.log('[ChapterList] 📊 Translating states mới:', newStates);
+        return newStates;
+      });
+    }
+    
+    console.log('📊 [ChapterList] ===== PROGRESS CALLBACK HOÀN THÀNH ====');
+  }, [chapters]);
 
   // Lắng nghe event chapterStarted từ socket.io
   const handleSocketChapterStarted = useCallback((data) => {
-    const chapterIndex = data.jobIndex;
-    console.log(`[SOCKET] Chương ${chapterIndex} bắt đầu dịch từ BE (RPM: ${data.modelRpm})`);
+    console.log('🚀 [ChapterList] ===== STARTED CALLBACK ĐƯỢC GỌI ====');
+    console.log('[ChapterList] 📥 Started data nhận được:', data);
+    console.log('[ChapterList] 🔍 Kiểm tra started callback có tồn tại:', !!handleSocketChapterStarted);
+    console.log('[ChapterList] 🔍 Started callback type:', typeof handleSocketChapterStarted);
+    
+    // Tìm chapter index dựa trên chapterNumber
+    const chapterIndex = chapters.findIndex(ch => ch.chapterNumber === data.chapterNumber);
+    
+    console.log('[ChapterList] 🔍 Tìm chapter index cho started:', {
+      chapterNumber: data.chapterNumber,
+      foundIndex: chapterIndex,
+      totalChapters: chapters.length
+    });
+    
+    if (chapterIndex === -1) {
+      console.warn(`[ChapterList] ⚠️ Không tìm thấy chapter ${data.chapterNumber} trong danh sách chapters`);
+      return;
+    }
+    
+    console.log(`[ChapterList] 🚀 Chương ${data.chapterNumber} (index: ${chapterIndex}) bắt đầu dịch từ BE (RPM: ${data.modelRpm})`);
     
     // Bắt đầu progress bar ngay khi nhận được sự kiện từ BE
-    setChapterStatus((prev) => ({ ...prev, [chapterIndex]: "PROCESSING" }));
-    setChapterTranslatingStates((prev) => ({ ...prev, [chapterIndex]: true }));
-    setChapterProgresses((prev) => ({ ...prev, [chapterIndex]: 0 }));
+    console.log('[ChapterList] 🔄 Bắt đầu progress cho chapter:', chapterIndex);
+    setChapterStatus((prev) => {
+      const newStatus = { ...prev, [chapterIndex]: "PROCESSING" };
+      console.log('[ChapterList] 📊 Status mới:', newStatus);
+      return newStatus;
+    });
+    
+    setChapterTranslatingStates((prev) => {
+      const newStates = { ...prev, [chapterIndex]: true };
+      console.log('[ChapterList] 📊 Translating states mới:', newStates);
+      return newStates;
+    });
+    
+    setChapterProgresses((prev) => {
+      const newProgresses = { ...prev, [chapterIndex]: 0 };
+      console.log('[ChapterList] 📊 Progress mới:', newProgresses);
+      return newProgresses;
+    });
     
     // Bắt đầu progress hook với thông tin từ BE
     const chapterHook = getChapterProgressHook(chapterIndex);
+    console.log('[ChapterList] 🚀 Bắt đầu progress hook cho chapter:', chapterIndex);
     chapterHook.startProgress();
     
-    console.log(`[SOCKET] ✅ Đã bắt đầu progress cho chương ${chapterIndex}`);
-  }, []);
+    console.log(`[ChapterList] ✅ Đã bắt đầu progress cho chương ${data.chapterNumber} (index: ${chapterIndex})`);
+    console.log('🚀 [ChapterList] ===== STARTED CALLBACK HOÀN THÀNH ====');
+  }, [chapters]);
 
   const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
   const roomId = userId ? `user:${userId}` : `story:${storyId}`;
+  
+  console.log('[ChapterList] 🔌 ===== KHỞI TẠO SOCKET HOOK ====');
+  console.log('[ChapterList] 📊 Thông tin socket:', {
+    userId,
+    storyId,
+    roomId,
+    hasUserData: !!userData,
+    userDataId: userData?.id
+  });
+  console.log('[ChapterList] 🔍 Callbacks được truyền vào socket hook:', {
+    hasTranslatedCallback: !!handleSocketChapterTranslated,
+    hasProgressCallback: !!handleSocketChapterProgress,
+    hasStartedCallback: !!handleSocketChapterStarted,
+    translatedCallbackType: typeof handleSocketChapterTranslated,
+    progressCallbackType: typeof handleSocketChapterProgress,
+    startedCallbackType: typeof handleSocketChapterStarted
+  });
+  
   // Bật lại socket để sử dụng real-time progress
-  useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress, handleSocketChapterStarted);
+  const socketRef = useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress, handleSocketChapterStarted);
+  
+  console.log('[ChapterList] 🔌 Socket hook đã được khởi tạo:', {
+    socketRef,
+    socketConnected: socketRef?.connected,
+    socketId: socketRef?.id
+  });
+  console.log('[ChapterList] 🔌 ===== HOÀN THÀNH KHỞI TẠO SOCKET ====');
 
   // Debug: Log room ID và socket connection
   useEffect(() => {
@@ -917,79 +1118,85 @@ const ChapterList = ({
     if (prevPropsRef.current.currentIndex !== currentIndex) changed.push('currentIndex');
     if (prevPropsRef.current.storyId !== storyId) changed.push('storyId');
     if (changed.length > 0) {
-      console.log('%c[DEBUG] ChapterList re-render vì props:', 'color: orange', changed);
+      //console.log('%c[DEBUG] ChapterList re-render vì props:', 'color: orange', changed);
       const currentProps = { chapters, apiKey, model: modelProp, currentIndex, storyId };
       changed.forEach(key => {
-        console.log(`[DEBUG] Giá trị mới của ${key}:`, currentProps[key]);
+        //console.log(`[DEBUG] Giá trị mới của ${key}:`, currentProps[key]);
       });
     }
     prevPropsRef.current = { chapters, apiKey, model: modelProp, currentIndex, storyId };
   });
 
-  // Log các state chính mỗi lần render
-  useEffect(() => {
-    console.log('%c[DEBUG] ChapterList state:', 'color: green', {
-      results,
-      chapterStatus,
-      translatedCount,
-      isTranslatingAll,
-      isTranslateAllDisabled,
-      chapterProgresses,
-      chapterTranslatingStates,
-    });
-  });
+  // // Log các state chính mỗi lần render
+  // useEffect(() => {
+  //   console.log('%c[DEBUG] ChapterList state:', 'color: green', {
+  //     results,
+  //     chapterStatus,
+  //     translatedCount,
+  //     isTranslatingAll,
+  //     isTranslateAllDisabled,
+  //     chapterProgresses,
+  //     chapterTranslatingStates,
+  //   });
+  // });
 
-  // Log từng state riêng biệt khi thay đổi
-  useEffect(() => {
-    console.log('[DEBUG][STATE] results thay đổi:', results);
-  }, [results]);
-  useEffect(() => {
-    console.log('[DEBUG][STATE] chapterStatus thay đổi:', chapterStatus);
-  }, [chapterStatus]);
-  useEffect(() => {
-    console.log('[DEBUG][STATE] translatedCount thay đổi:', translatedCount);
-  }, [translatedCount]);
-  useEffect(() => {
-    console.log('[DEBUG][STATE] isTranslatingAll thay đổi:', isTranslatingAll);
-  }, [isTranslatingAll]);
-  useEffect(() => {
-    console.log('[DEBUG][STATE] isTranslateAllDisabled thay đổi:', isTranslateAllDisabled);
-  }, [isTranslateAllDisabled]);
-  useEffect(() => {
-    console.log('[DEBUG][STATE] chapterProgresses thay đổi:', chapterProgresses);
-  }, [chapterProgresses]);
-  useEffect(() => {
-    console.log('[DEBUG][STATE] chapterTranslatingStates thay đổi:', chapterTranslatingStates);
-  }, [chapterTranslatingStates]);
+  // // Log từng state riêng biệt khi thay đổi
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] results thay đổi:', results);
+  // }, [results]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] chapterStatus thay đổi:', chapterStatus);
+  // }, [chapterStatus]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] translatedCount thay đổi:', translatedCount);
+  // }, [translatedCount]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] isTranslatingAll thay đổi:', isTranslatingAll);
+  // }, [isTranslatingAll]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] isTranslateAllDisabled thay đổi:', isTranslateAllDisabled);
+  // }, [isTranslateAllDisabled]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] chapterProgresses thay đổi:', chapterProgresses);
+  // }, [chapterProgresses]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][STATE] chapterTranslatingStates thay đổi:', chapterTranslatingStates);
+  // }, [chapterTranslatingStates]);
 
-  // Log từng prop riêng biệt khi thay đổi
-  useEffect(() => {
-    console.log('[DEBUG][PROP] chapters thay đổi:', chapters);
-  }, [chapters]);
-  useEffect(() => {
-    console.log('[DEBUG][PROP] apiKey thay đổi:', apiKey);
-  }, [apiKey]);
-  useEffect(() => {
-    console.log('[DEBUG][PROP] modelProp thay đổi:', modelProp);
-  }, [modelProp]);
-  useEffect(() => {
-    console.log('[DEBUG][PROP] currentIndex thay đổi:', currentIndex);
-  }, [currentIndex]);
-  useEffect(() => {
-    console.log('[DEBUG][PROP] storyId thay đổi:', storyId);
-  }, [storyId]);
+  // // Log từng prop riêng biệt khi thay đổi
+  // useEffect(() => {
+  //   console.log('[DEBUG][PROP] chapters thay đổi:', chapters);
+  // }, [chapters]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][PROP] apiKey thay đổi:', apiKey);
+  // }, [apiKey]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][PROP] modelProp thay đổi:', modelProp);
+  // }, [modelProp]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][PROP] currentIndex thay đổi:', currentIndex);
+  // }, [currentIndex]);
+  // useEffect(() => {
+  //   console.log('[DEBUG][PROP] storyId thay đổi:', storyId);
+  // }, [storyId]);
  
+
+
   // Progress bar component tối ưu hóa bằng React.memo
-  const ChapterProgressBar = React.memo(({ progress }) => (
-    <div className="chapter-progress-bar-container">
-      <div className="chapter-progress-bar" style={{ width: `${progress}%` }}></div>
-      <div className="progress-info">
-        <small className="progress-text">
-          Đang dịch... {progress.toFixed(0)}%
-        </small>
+  const ChapterProgressBar = React.memo(({ progress }) => {
+    console.log(`[PROGRESS-BAR] 🎨 Render progress bar với progress: ${progress}%`);
+    
+    return (
+      <div className="chapter-progress-bar-container">
+        <div className="chapter-progress-bar" style={{ width: `${progress}%` }}></div>
+        <div className="progress-info">
+          <small className="progress-text">
+            Đang dịch... {progress.toFixed(0)}%
+          </small>
+        </div>
       </div>
-    </div>
-  ));
+    );
+  });
 
   // Component con cho từng chương, tối ưu hóa bằng React.memo
   const ChapterItem = React.memo(({
@@ -1013,6 +1220,16 @@ const ChapterList = ({
     chaptersPerPage,
     onSelectChapter
   }) => {
+    // console.log(`[ChapterItem] 🎨 Render ChapterItem ${calculatedChapterNumber}:`, {
+    //   chapterNumber: ch.chapterNumber,
+    //   chapterStatus,
+    //   chapterProgress,
+    //   chapterTranslatingState,
+    //   isTranslated,
+    //   duration,
+    //   shouldShowProgress: chapterStatus === "PENDING" || chapterStatus === "PROCESSING"
+    // });
+    
     // Khi render trạng thái chương hoặc xử lý kết quả dịch:
     const isFailed = chapterStatus === 'FAILED' || ch?.hasError || !!ch?.translationError;
           return (
@@ -1155,6 +1372,10 @@ const ChapterList = ({
           const chapterProgress = chapterProgresses[idx] || 0;
           const chapterTranslatingState = chapterTranslatingStates[idx] || false;
           const errorMessage = errorMessages[idx];
+          const currentChapterStatus = chapterStatus[idx];
+          
+                      
+          
           return (
             <ChapterItem
               key={ch.chapterNumber}
@@ -1162,7 +1383,7 @@ const ChapterList = ({
               idx={idx}
               calculatedChapterNumber={calculatedChapterNumber}
               currentIndex={currentIndex}
-              chapterStatus={chapterStatus[idx]}
+              chapterStatus={currentChapterStatus}
               chapterProgress={chapterProgress}
               chapterTranslatingState={chapterTranslatingState}
               isTranslated={isTranslated}
