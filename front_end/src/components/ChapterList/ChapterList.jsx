@@ -180,16 +180,16 @@ const ChapterList = ({
   const currentChapters = sortedChapters.slice(startIdx, endIdx);
 
   // 🚀 Debug pagination
-  console.log(`[ChapterList] 📊 Debug pagination:`, {
-    totalChapters: sortedChapters.length,
-    chaptersPerPage,
-    totalPages,
-    currentPage,
-    startIdx,
-    endIdx,
-    currentChaptersCount: currentChapters.length,
-    currentChapters: currentChapters.map(ch => ch.chapterNumber)
-  });
+  // console.log(`[ChapterList] 📊 Debug pagination:`, {
+  //   totalChapters: sortedChapters.length,
+  //   chaptersPerPage,
+  //   totalPages,
+  //   currentPage,
+  //   startIdx,
+  //   endIdx,
+  //   currentChaptersCount: currentChapters.length,
+  //   currentChapters: currentChapters.map(ch => ch.chapterNumber)
+  // });
 
   // Tách riêng state cho nhảy trang và nhảy chương
   const [jumpToPage, setJumpToPage] = useState("");
@@ -240,11 +240,7 @@ const ChapterList = ({
 
   // 🚀 Tự động cập nhật trang khi currentIndex thay đổi từ Back/Next
   useEffect(() => {
-    console.log(`[ChapterList] 🔍 useEffect triggered:`, {
-      currentIndex,
-      userClickedPagination: userClickedPaginationRef.current,
-      shouldRun: currentIndex !== undefined && !userClickedPaginationRef.current
-    });
+    
     
     if (currentIndex !== undefined && !userClickedPaginationRef.current) {
       const calculatedPage = Math.floor(currentIndex / chaptersPerPage) + 1;
@@ -261,7 +257,7 @@ const ChapterList = ({
       // 🚀 Chỉ cập nhật nếu trang hiện tại không đúng với currentIndex
       // và không phải do user vừa click pagination
       if (calculatedPage !== currentPage) {
-        console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho currentIndex ${currentIndex}`);
+       // console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho currentIndex ${currentIndex}`);
         setCurrentPage(calculatedPage);
       }
       
@@ -938,6 +934,11 @@ const ChapterList = ({
         titleLength: data.translatedTitle?.length || 0,
         contentLength: data.translatedContent?.length || 0
       });
+      const titlePreview = (data.translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
+      const contentPreview = (data.translatedContent || '').replace(/\s+/g, ' ').slice(0, 250);
+      console.log(`[ChapterList] 🧩 Preview chương ${data.chapterNumber}:`);
+      console.log(`              • Tiêu đề: "${titlePreview}"`);
+      console.log(`              • Nội dung[0..250]: "${contentPreview}"`);
       
       setResults((prev) => {
         const newResults = {
@@ -953,6 +954,23 @@ const ChapterList = ({
         console.log('[ChapterList] 📊 Results mới:', newResults);
         return newResults;
       });
+
+      // 🔄 Đẩy kết quả lên cha (TranslatorApp) để merge vào chapters và hiển thị ở Title/Viewer
+      try {
+        if (typeof onTranslationResult === 'function') {
+          console.log('[ChapterList] 📤 Gọi onTranslationResult để cập nhật chapters ở cấp cha');
+          onTranslationResult(
+            chapterIndex,
+            data.translatedContent,
+            data.translatedTitle,
+            data.duration
+          );
+        } else {
+          console.warn('[ChapterList] ⚠️ onTranslationResult không phải là function');
+        }
+      } catch (err) {
+        console.error('[ChapterList] ❌ Lỗi khi gọi onTranslationResult:', err);
+      }
     }
     
     // Cập nhật trạng thái và dừng progress
@@ -1087,7 +1105,7 @@ const ChapterList = ({
     
     setChapterProgresses((prev) => {
       const newProgresses = { ...prev, [chapterIndex]: 0 };
-      console.log('[ChapterList] 📊 Progress mới:', newProgresses);
+      //console.log('[ChapterList] 📊 Progress mới:', newProgresses);
       return newProgresses;
     });
     
@@ -1104,21 +1122,7 @@ const ChapterList = ({
   const roomId = userId ? `user:${userId}` : `story:${storyId}`;
   
   console.log('[ChapterList] 🔌 ===== KHỞI TẠO SOCKET HOOK ====');
-  console.log('[ChapterList] 📊 Thông tin socket:', {
-    userId,
-    storyId,
-    roomId,
-    hasUserData: !!userData,
-    userDataId: userData?.id
-  });
-  console.log('[ChapterList] 🔍 Callbacks được truyền vào socket hook:', {
-    hasTranslatedCallback: !!handleSocketChapterTranslated,
-    hasProgressCallback: !!handleSocketChapterProgress,
-    hasStartedCallback: !!handleSocketChapterStarted,
-    translatedCallbackType: typeof handleSocketChapterTranslated,
-    progressCallbackType: typeof handleSocketChapterProgress,
-    startedCallbackType: typeof handleSocketChapterStarted
-  });
+  
   
   // Bật lại socket để sử dụng real-time progress
   const socketRef = useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress, handleSocketChapterStarted);
@@ -1215,7 +1219,7 @@ const ChapterList = ({
  
   // Progress bar component tối ưu hóa bằng React.memo
   const ChapterProgressBar = React.memo(({ progress }) => {
-    console.log(`[PROGRESS-BAR] 🎨 Render progress bar với progress: ${progress}%`);
+    //console.log(`[PROGRESS-BAR] 🎨 Render progress bar với progress: ${progress}%`);
     
     return (
     <div className="chapter-progress-bar-container">

@@ -65,6 +65,11 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
         jobIndex: data.jobIndex,
         totalJobs: data.totalJobs
       });
+      const titlePreview = (data.translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
+      const contentPreview = (data.translatedContent || '').replace(/\s+/g, ' ').slice(0, 250);
+      console.log(`[FE-SOCKET] 🧩 Preview chương ${data.chapterNumber}:`);
+      console.log(`             • Tiêu đề: "${titlePreview}"`);
+      console.log(`             • Nội dung[0..250]: "${contentPreview}"`);
       console.log('[FE-SOCKET] 🔍 Kiểm tra callback có tồn tại:', !!callbackRef.current);
       console.log('[FE-SOCKET] 🔍 Callback function type:', typeof callbackRef.current);
       console.log('[FE-SOCKET] 🔍 Callback function name:', callbackRef.current?.name || 'anonymous');
