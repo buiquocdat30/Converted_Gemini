@@ -122,6 +122,11 @@ export const translateSingleChapter = async ({
         duration: duration,
         durationType: typeof duration
       });
+      const titlePreview = (translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
+      const contentPreview = (translated || '').replace(/\s+/g, ' ').slice(0, 250);
+      console.log(`[FE] 🧩 Preview chương ${chapters[index]?.chapterNumber}:`);
+      console.log(`     • Tiêu đề: "${titlePreview}"`);
+      console.log(`     • Nội dung[0..250]: "${contentPreview}"`);
 
       // Cập nhật kết quả dịch
       setResults((prev) => ({

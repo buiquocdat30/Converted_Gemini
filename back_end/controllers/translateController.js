@@ -172,14 +172,23 @@ exports.translateText = async (req, res) => {
         contentDuration: contentResult.duration || 0
       });
 
-      results.push({
+      const resultItem = {
         chapterNumber: ch.chapterNumber || i + 1,
         translatedTitle: titleResult.translated,
         translatedContent: contentResult.translated,
         timeTranslation: duration,
         hasError: titleResult.hasError || contentResult.hasError,
         error: titleResult.error || contentResult.error
-      });
+      };
+
+      // 🔎 Thêm preview rõ ràng cho REST flow
+      const titlePreview = (resultItem.translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
+      const contentPreview = (resultItem.translatedContent || '').replace(/\s+/g, ' ').slice(0, 250);
+      console.log(`[API] 🧩 Preview chương ${resultItem.chapterNumber}:`);
+      console.log(`      • Tiêu đề: "${titlePreview}"`);
+      console.log(`      • Nội dung[0..250]: "${contentPreview}"`);
+
+      results.push(resultItem);
 
     } catch (error) {
       console.error(`[API] ❌ Lỗi dịch chương ${ch.chapterNumber || i + 1}:`, error.message);
