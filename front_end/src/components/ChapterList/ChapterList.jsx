@@ -102,29 +102,26 @@ const ChapterList = ({
           chapterProgressHooks.current[index].startTime = startTime;
           chapterProgressHooks.current[index].estimatedDuration = finalEstimatedDuration;
           
-          // Cập nhật progress mỗi 500ms để mượt mà hơn
+          // Cập nhật progress mượt mà với easing mỗi 100ms
+          const tickInterval = 100; // ms
+          const easingPower = 3; // ease-out (càng cao càng chậm về cuối)
           const interval = setInterval(() => {
-            const elapsedTime = (Date.now() - startTime) / 1000; // Thời gian đã trôi qua (giây)
-            
-            // Chỉ dùng ước tính, không có socket
-            const progressPercent = Math.min((elapsedTime / finalEstimatedDuration) * 100, 99); // Tối đa 99%
-            
-            // Đảm bảo progress không giảm khi thời gian thực tế vượt quá ước tính
+            const elapsedTime = (Date.now() - startTime) / 1000; // giây
+            const t = Math.min(elapsedTime / finalEstimatedDuration, 1); // 0 → 1
+            const eased = 1 - Math.pow(1 - t, easingPower); // ease-out
+            const next = Math.min(eased * 100, 99); // dừng ở 99%
+
+            // Đảm bảo progress không giảm
             const currentProgress = chapterProgressHooks.current[index].currentProgress || 0;
-            const newProgress = Math.max(currentProgress, progressPercent);
+            const newProgress = Math.max(currentProgress, next);
             chapterProgressHooks.current[index].currentProgress = newProgress;
-            
-            // Debug log mỗi 2 giây
-            if (Math.floor(elapsedTime) % 2 === 0 && elapsedTime > 0) {
-              console.log(`[PROGRESS-ESTIMATE] Chương ${index}: ${elapsedTime.toFixed(1)}s/${finalEstimatedDuration.toFixed(1)}s = ${newProgress.toFixed(1)}%`);
-            }
-            
+
             setChapterProgresses((prev) => {
-              const newProgresses = { ...prev, [index]: Math.round(newProgress) };
-              console.log(`[PROGRESS-HOOK] 📈 Progress update chapter ${index}: ${prev[index] || 0}% → ${newProgresses[index]}%`);
+              const newProgresses = { ...prev, [index]: newProgress };
+              // Log tối giản để tránh spam console
               return newProgresses;
             });
-          }, 500); // Cập nhật mỗi 500ms
+          }, tickInterval);
 
           // Lưu interval để có thể clear sau
           chapterProgressHooks.current[index].interval = interval;
@@ -584,17 +581,32 @@ const ChapterList = ({
 
   // Sửa hàm translate để log ra khi bấm dịch 1 chương
   const translate = async (index) => {
+    console.log(`[CHAPTER ${index}] ===== BẮT ĐẦU DỊCH 1 CHƯƠNG =====`);
+    console.log(`[CHAPTER ${index}] 📊 estimatedDuration từ hook:`, estimatedDuration);
+    console.log(`[CHAPTER ${index}] 📊 storyId:`, storyId);
+    
     cancelMapRef.current[index] = false; // Reset trạng thái hủy khi dịch lại
+    
     // Nếu không được phép dịch thì return luôn, không chạy tiếp
-    if (!canTranslate(index)) return;
+    if (!canTranslate(index)) {
+      console.log(`[CHAPTER ${index}] ❌ Không thể dịch chương này`);
+      return;
+    }
+    
     // Nếu chương đang PROCESSING hoặc PENDING thì không cho dịch lại
     if (
       chapterStatus[index] === "PROCESSING" ||
       chapterStatus[index] === "PENDING"
-    )
+    ) {
+      console.log(`[CHAPTER ${index}] ❌ Chương đang trong quá trình dịch`);
       return;
+    }
+    
     // Nếu đang cooldown dịch lẻ thì không cho dịch
-    if (singleTranslateCooldown > 0) return;
+    if (singleTranslateCooldown > 0) {
+      console.log(`[CHAPTER ${index}] ❌ Đang trong cooldown: ${singleTranslateCooldown}s`);
+      return;
+    }
 
     // Log model object và rpm
     console.log('[ChapterList] Bấm dịch chương', index, 'Model:', modelObject, 'RPM:', modelObject?.rpm);
@@ -611,6 +623,14 @@ const ChapterList = ({
       return newStatus;
     });
 
+    // Reset error message
+    setErrorMessages((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[index];
+      return newErrors;
+    });
+
+    // Delay nhỏ để user có thể bấm hủy ngay sau khi bấm dịch
     setTimeout(async () => {
       // Nếu user đã hủy trước khi gửi request
       if (cancelMapRef.current[index]) {
@@ -619,6 +639,7 @@ const ChapterList = ({
         );
         return;
       }
+
       // Chuyển sang PROCESSING
       setChapterStatus((prev) => {
         const newStatus = { ...prev, [index]: "PROCESSING" };
@@ -626,7 +647,15 @@ const ChapterList = ({
         return newStatus;
       });
 
+      // Lấy progress hook cho chương này
       const chapterHook = getChapterProgressHook(index);
+      console.log(`[CHAPTER ${index}] 🔧 Progress hook:`, {
+        hasStartProgress: !!chapterHook.startProgress,
+        hasStopProgress: !!chapterHook.stopProgress,
+        estimatedDuration: estimatedDuration
+      });
+
+      // Bắt đầu progress với thời gian ước tính từ hook
       chapterHook.startProgress(); // Bắt đầu tiến độ cho chương này
 
       // Sử dụng translateSingleChapter thay vì queue
@@ -649,6 +678,8 @@ const ChapterList = ({
         onSelectChapter,
           onComplete: (duration) => {
             // Khi hoàn thành, dừng progress và cập nhật trạng thái
+            console.log(`[CHAPTER ${index}] ✅ Hoàn thành dịch trong ${duration}s`);
+            console.log(`[CHAPTER ${index}] 📊 estimatedDuration đã sử dụng:`, estimatedDuration);
             chapterHook.stopProgress();
             setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
             setTranslatedCount((prev) => prev + 1);
@@ -676,7 +707,7 @@ const ChapterList = ({
     ) {
       setChapterStatus((prev) => {
         const newStatus = { ...prev, [index]: "CANCELLED" };
-        console.log(`[SET][CANCELLED] idx=${index}, status mới=${newStatus[index]}, cancelFlag=${cancelMapRef.current[index]}`);
+        console.log(`[SET][CANCELLED] idx=${index}, status mới=${newStatus[index]}`);
         return newStatus;
       });
       cancelMapRef.current[index] = true;
@@ -910,14 +941,14 @@ const ChapterList = ({
       
       setResults((prev) => {
         const newResults = {
-          ...prev,
-          [chapterIndex]: {
-            translatedContent: data.translatedContent,
-            translatedTitle: data.translatedTitle,
-            duration: data.duration,
-            hasError: data.hasError,
-            error: data.error
-          }
+        ...prev,
+        [chapterIndex]: {
+          translatedContent: data.translatedContent,
+          translatedTitle: data.translatedTitle,
+          duration: data.duration,
+          hasError: data.hasError,
+          error: data.error
+        }
         };
         console.log('[ChapterList] 📊 Results mới:', newResults);
         return newResults;
@@ -1181,20 +1212,20 @@ const ChapterList = ({
   // }, [storyId]);
  
 
-
+ 
   // Progress bar component tối ưu hóa bằng React.memo
   const ChapterProgressBar = React.memo(({ progress }) => {
     console.log(`[PROGRESS-BAR] 🎨 Render progress bar với progress: ${progress}%`);
     
     return (
-      <div className="chapter-progress-bar-container">
-        <div className="chapter-progress-bar" style={{ width: `${progress}%` }}></div>
-        <div className="progress-info">
-          <small className="progress-text">
-            Đang dịch... {progress.toFixed(0)}%
-          </small>
-        </div>
+    <div className="chapter-progress-bar-container">
+      <div className="chapter-progress-bar" style={{ width: `${progress}%` }}></div>
+      <div className="progress-info">
+        <small className="progress-text">
+          Đang dịch... {progress.toFixed(0)}%
+        </small>
       </div>
+    </div>
     );
   });
 

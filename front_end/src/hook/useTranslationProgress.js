@@ -98,12 +98,17 @@ const useTranslationProgress = (storyId, defaultTime = 30) => {
 
     console.log(`[STORY-HISTORY] Bắt đầu dịch, ước tính ${expectedDuration.toFixed(1)}s`);
 
-    // Cập nhật tiến độ mỗi 100ms
+    // Cập nhật tiến độ mượt mà với easing mỗi 100ms
+    const tickInterval = 100; // ms
+    const easingPower = 3; // ease-out (càng cao càng chậm về cuối)
     intervalRef.current = setInterval(() => {
       const elapsedTime = (Date.now() - startTime.current) / 1000;
-      const newProgress = Math.min((elapsedTime / expectedDuration) * 100, 99);
-      setProgress(newProgress);
-    }, 100);
+      const t = Math.min(elapsedTime / expectedDuration, 1); // 0 → 1
+      const eased = 1 - Math.pow(1 - t, easingPower); // ease-out
+      const next = Math.min(eased * 100, 99);
+      // Đảm bảo không bị tụt tiến độ
+      setProgress((prev) => (next < prev ? prev : next));
+    }, tickInterval);
   };
 
   const stopProgress = () => {
