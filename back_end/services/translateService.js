@@ -154,15 +154,18 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
 
       ---
 
-      📚 THƯ VIỆN TỪ MỚI:
-      ⚠️ LƯU Ý: Phần "THƯ VIỆN TỪ MỚI" này chỉ dùng để tạo thư viện từ mới, KHÔNG được xuất ra file cuối cùng.
-      
-      BẮT BUỘC: Sau khi dịch xong, PHẢI luôn có phần này, phần này nằm sau cùng của nội dung dịch, ngay cả khi không có từ mới.
-      
-      Nếu có tên riêng mới phát hiện trong đoạn văn này, hãy liệt kê theo format:
+      Ở CUỐI CÙNG, BẮT BUỘC IN RA PHẦN SAU (KHÔNG ĐƯỢC THIẾU):
+
+      THƯ VIỆN TỪ MỚI:
+      - CHỈ in các dòng theo đúng định dạng: Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
+      - KHÔNG giải thích, KHÔNG tiêu đề phụ, KHÔNG markdown/code block
+      - Nếu KHÔNG có tên riêng mới, in CHÍNH XÁC: Không có từ mới
+      - [Loại] PHẢI thuộc một trong: Nhân vật, Địa danh, Tổ chức, Vật phẩm, Chiêu thức, Công pháp
+      - [Ngôn ngữ] PHẢI thuộc một trong: Trung, Nhật, Hàn, Anh (KHÔNG được ghi "Tiếng Việt")
+      - KHÔNG dùng ngoặc vuông trong tên; KHÔNG thêm ký tự lạ quanh tên
+
+      Nếu có tên riêng mới phát hiện, hãy liệt kê theo format:
       Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
-      
-      Nếu KHÔNG có tên riêng mới nào, hãy ghi: "Không có từ mới"
       
       QUY TẮC LIỆT KÊ CHÍNH XÁC:
       1. CHỈ liệt kê các DANH TỪ RIÊNG (Proper Nouns):
@@ -208,14 +211,14 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     const startTime = Date.now();
     const result = await model.generateContent(prompt);
     const response = result.response;
-    const translated = response.text();
+    let translated = response.text();
     const duration = parseFloat(((Date.now() - startTime) / 1000).toFixed(2)); // Chuyển thành number
 
     console.log("📤 [TRANSLATE] Response từ API:", translated.substring(0, 100) + "...");
     console.log("📏 [TRANSLATE] Độ dài text gốc:", text.length);
     console.log("📏 [TRANSLATE] Độ dài text dịch:", translated.length);
     console.log("⏱️ [TRANSLATE] Thời gian dịch:", duration + "s");
-
+    console.log("📚 [TRANSLATE] Response từ API:", translated);
     const isUnchanged = translated.trim() === text.trim();
 
     if (isUnchanged) {
@@ -242,10 +245,13 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     if (storyId && type !== "title") {
       try {
         console.log("[TRANSLATE] 📚 Xử lý glossary...");
-        // Tìm và trích xuất glossary từ response
-        const glossaryMatch = translated.match(/📚 THƯ VIỆN TỪ MỚI:\n([\s\S]*?)(?=\n---|$)/);
+        // Tìm và trích xuất glossary từ response (hỗ trợ có/không emoji, CRLF)
+        const glossaryMatch = translated.match(/(?:📚\s*)?THƯ VIỆN TỪ MỚI:\s*[\r\n]+([\s\S]*?)(?=(?:\r?\n)---|$)/i);
         if (glossaryMatch) {
           const glossaryText = glossaryMatch[1].trim();
+          const glossaryLines = glossaryText.split('\n').filter(l => l.trim());
+          console.log(`[TRANSLATE] 🔎 Glossary block được phát hiện: ${glossaryLines.length} dòng`);
+          console.log(`[TRANSLATE] 🧩 Glossary preview:`, glossaryLines.slice(0, 5));
           
           // Kiểm tra xem có từ mới thực sự không (không phải "Không có từ mới")
           if (glossaryText && glossaryText !== "Không có từ mới" && !glossaryText.includes("Không có từ mới")) {
@@ -255,10 +261,41 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
             console.log("[TRANSLATE] 📚 Không có từ mới để lưu vào glossary");
           }
           
-          // Loại bỏ phần glossary khỏi text dịch cuối cùng
-          translated = translated.replace(/📚 THƯ VIỆN TỪ MỚI:\n[\s\S]*?(?=\n---|$)/, '').trim();
+          // Loại bỏ phần glossary khỏi text dịch cuối cùng (hỗ trợ có/không emoji, CRLF)
+          translated = translated.replace(/(?:📚\s*)?THƯ VIỆN TỪ MỚI:\s*[\r\n]+[\s\S]*?(?=(?:\r?\n)---|$)/i, '').trim();
+          console.log('[TRANSLATE] 🧼 Đã loại bỏ block THƯ VIỆN TỪ MỚI khỏi nội dung dịch trả về');
         } else {
-          console.warn("[TRANSLATE] ⚠️ Không tìm thấy phần '📚 THƯ VIỆN TỪ MỚI:' trong response");
+          console.warn("[TRANSLATE] ⚠️ Không tìm thấy phần 'THƯ VIỆN TỪ MỚI' trong response");
+          const hasKeyword = /THƯ VIỆN TỪ MỚI/i.test(translated);
+          const hasEmoji = /📚/.test(translated);
+          console.log(`[TRANSLATE] 🔍 Chẩn đoán: hasKeyword=${hasKeyword}, hasEmoji=${hasEmoji}, length=${translated.length}`);
+          console.log('[TRANSLATE] 🔍 200 ký tự đầu của response:', translated.substring(0, 200).replace(/\n/g, ' \\n '));
+
+          // Fallback: thử trích các dòng glossary theo format dù không có header
+          try {
+            // Loại bỏ code fences nếu có
+            const cleanedForScan = translated.replace(/```[\s\S]*?```/g, '');
+            const lineRegex = /^\s*(.+?)\s*=\s*(.+?)\s*\[(.+?)\]\s*\[(.+?)\]\s*$/gim;
+            const matches = [];
+            let m;
+            while ((m = lineRegex.exec(cleanedForScan)) !== null) {
+              const line = `${m[1].trim()} = ${m[2].trim()} [${m[3].trim()}] [${m[4].trim()}]`;
+              matches.push(line);
+            }
+            console.log(`[TRANSLATE] 🔎 Fallback scan tìm thấy ${matches.length} dòng glossary dạng "a = b [type] [lang]"`);
+            if (matches.length > 0) {
+              const glossaryText = matches.join('\n');
+              await extractAndSaveGlossary(storyId, glossaryText);
+              console.log(`[TRANSLATE] 📚 Fallback đã lưu ${matches.length} dòng glossary`);
+              // Loại bỏ các dòng đã match khỏi nội dung dịch để tránh lẫn vào bản dịch
+              matches.forEach(line => {
+                const esc = line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                translated = translated.replace(new RegExp(`^.*${esc}.*$`, 'gim'), '').trim();
+              });
+            }
+          } catch (fallbackErr) {
+            console.error('[TRANSLATE] ⚠️ Lỗi fallback scan glossary:', fallbackErr);
+          }
         }
       } catch (error) {
         console.error("[TRANSLATE] ⚠️ Lỗi khi lưu glossary:", error);
