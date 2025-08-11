@@ -108,20 +108,38 @@ export const translateSingleChapter = async ({
     });
 
     // Xử lý kết quả dịch từ response
-    if (res.data.success && res.data.chapters && res.data.chapters.length > 0) {
+    if (res.data.chapters && res.data.chapters.length > 0) {
       const chapterData = res.data.chapters[0];
       const translated = chapterData.translatedContent || "";
       const translatedTitle = chapterData.translatedTitle || "";
-      const duration = parseFloat(chapterData.timeTranslation || 0); // Đảm bảo là number
+      const duration = parseFloat(chapterData.timeTranslation || 0);
+      const hasError = chapterData.hasError || false;
+      const errorMessage = chapterData.error || "";
       
-      console.log("[FE] ✅ Nhận được kết quả dịch:", {
+      console.log("[FE] 📥 Nhận được response:", {
+        success: res.data.success,
+        hasError: hasError,
+        errorMessage: errorMessage,
         hasTranslatedTitle: !!translatedTitle,
         hasTranslatedContent: !!translated,
         titleLength: translatedTitle?.length || 0,
         contentLength: translated?.length || 0,
-        duration: duration,
-        durationType: typeof duration
+        duration: duration
       });
+
+      // Kiểm tra lỗi từ backend
+      if (hasError || !res.data.success) {
+        console.error("[FE] ❌ Backend báo lỗi:", errorMessage);
+        setErrorMessages((prev) => ({
+          ...prev,
+          [index]: `❌ Lỗi dịch: ${errorMessage}`,
+        }));
+        onComplete?.(duration, new Error(errorMessage));
+        toast.error(`Lỗi dịch chương ${index + 1}: ${errorMessage}`);
+        return null;
+      }
+
+      // Nếu thành công, xử lý kết quả dịch
       const titlePreview = (translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
       const contentPreview = (translated || '').replace(/\s+/g, ' ').slice(0, 250);
       console.log(`[FE] 🧩 Preview chương ${chapters[index]?.chapterNumber}:`);
@@ -148,7 +166,13 @@ export const translateSingleChapter = async ({
       console.log("[FE] ✅ Đã cập nhật kết quả dịch thành công");
     } else {
       console.warn("[FE] ⚠️ Không có kết quả dịch trong response");
-      onComplete?.(0, new Error("Không có kết quả dịch"));
+      const errorMsg = "Không có kết quả dịch từ server";
+      setErrorMessages((prev) => ({
+        ...prev,
+        [index]: `❌ ${errorMsg}`,
+      }));
+      onComplete?.(0, new Error(errorMsg));
+      toast.error(errorMsg);
     }
 
     console.log("📖 [FE] ===== HOÀN THÀNH GỬI REQUEST =====");

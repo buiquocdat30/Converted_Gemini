@@ -184,35 +184,49 @@ class ErrorHandlerService {
    */
   analyzeErrorDetails(message, errorInfo) {
     try {
-      // Tìm JSON trong message
-      const jsonMatch = message.match(/\[({.*})\]|({.*})/);
+      // Tìm JSON trong message - cải thiện regex để bắt chính xác hơn
+      const jsonMatch = message.match(/\[([^\]]*{.*?}[^\]]*)\]|({.*?})/);
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[2];
-        const errorDetails = JSON.parse(jsonStr);
         
-        errorInfo.details = errorDetails;
+        // Clean up JSON string trước khi parse
+        const cleanedJson = jsonStr
+          .replace(/\\"/g, '"')  // Unescape quotes
+          .replace(/\\n/g, '')   // Remove newlines
+          .replace(/\\t/g, '')   // Remove tabs
+          .trim();
+        
+        try {
+          const errorDetails = JSON.parse(cleanedJson);
+          errorInfo.details = errorDetails;
 
-        // Phân tích violations nếu có
-        if (errorDetails.violations) {
-          errorInfo.details.violations = errorDetails.violations.map(violation => ({
-            metric: violation.quotaMetric,
-            quotaId: violation.quotaId,
-            dimensions: violation.quotaDimensions
-          }));
-        }
+          // Phân tích violations nếu có
+          if (errorDetails.violations) {
+            errorInfo.details.violations = errorDetails.violations.map(violation => ({
+              metric: violation.quotaMetric,
+              quotaId: violation.quotaId,
+              dimensions: violation.quotaDimensions
+            }));
+          }
 
-        // Phân tích retry info nếu có
-        if (errorDetails.retryDelay) {
-          errorInfo.details.retryDelay = errorDetails.retryDelay;
-        }
+          // Phân tích retry info nếu có
+          if (errorDetails.retryDelay) {
+            errorInfo.details.retryDelay = errorDetails.retryDelay;
+          }
 
-        // Phân tích help links nếu có
-        if (errorDetails.links) {
-          errorInfo.details.helpLinks = errorDetails.links;
+          // Phân tích help links nếu có
+          if (errorDetails.links) {
+            errorInfo.details.helpLinks = errorDetails.links;
+          }
+        } catch (innerParseError) {
+          console.warn("⚠️ Không thể parse JSON sau khi clean:", innerParseError);
+          console.log("🔍 JSON string gốc:", jsonStr);
+          console.log("🔍 JSON string đã clean:", cleanedJson);
         }
       }
     } catch (parseError) {
       console.warn("⚠️ Không thể parse JSON error details:", parseError);
+      console.log("🔍 Message gốc:", message);
     }
   }
 
@@ -231,6 +245,12 @@ class ErrorHandlerService {
         errorInfo.retryable = true;
         errorInfo.userMessage = 'Đã vượt quá giới hạn request/phút. Vui lòng chờ 30 giây và thử lại.';
         errorInfo.solution = 'Chờ 30 giây trước khi thử lại';
+        break;
+
+      case this.ERROR_TYPES.QUOTA_EXCEEDED:
+        errorInfo.retryable = false;
+        errorInfo.userMessage = 'Đã vượt quá giới hạn sử dụng API. Vui lòng nâng cấp gói hoặc chờ đến ngày mai.';
+        errorInfo.solution = 'Kiểm tra quota và billing tại Google AI Studio';
         break;
 
       case this.ERROR_TYPES.DAILY_LIMIT:

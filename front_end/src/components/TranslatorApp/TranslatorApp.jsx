@@ -748,7 +748,7 @@ const TranslatorApp = ({
       setCurrentIndex(index);
 
       // Thông báo thành công
-      toast.success(`Đã dịch xong chương ${chapter.chapterNumber}`);
+      //toast.success(`Đã dịch xong chương ${chapter.chapterNumber}`);
     } catch (error) {
       console.error("❌ Lỗi khi lưu kết quả dịch:", error);
       toast.error("Lỗi khi lưu kết quả dịch: " + error.message);
