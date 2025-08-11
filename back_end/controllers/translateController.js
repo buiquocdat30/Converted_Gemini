@@ -204,14 +204,31 @@ exports.translateText = async (req, res) => {
   }
 
   console.log(`[API] ✅ Đã dịch xong ${results.length} chương`);
+  
+  // Kiểm tra xem có lỗi nào không
+  const hasAnyError = results.some(result => result.hasError);
+  const errorCount = results.filter(result => result.hasError).length;
+  const successCount = results.filter(result => !result.hasError).length;
+  
+  console.log("[API] 📊 Thống kê kết quả:", {
+    total: results.length,
+    success: successCount,
+    errors: errorCount,
+    hasAnyError: hasAnyError
+  });
+  
   console.log("[API] 📤 Trả về response cho FE");
   console.log("🚀 [API] ===== HOÀN THÀNH DỊCH =====");
 
-  // Trả về kết quả dịch
+  // Trả về kết quả dịch với thông tin lỗi
   res.json({ 
-    success: true, 
-    message: `Đã dịch xong ${results.length} chương`,
-    chapters: results
+    success: !hasAnyError, // Chỉ success khi không có lỗi nào
+    message: hasAnyError 
+      ? `Dịch hoàn thành với ${errorCount} lỗi` 
+      : `Đã dịch xong ${results.length} chương thành công`,
+    chapters: results,
+    errorCount: errorCount,
+    successCount: successCount
   });
 };
 

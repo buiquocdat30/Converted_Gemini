@@ -370,7 +370,8 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       hasError: true, // Flag để controller biết có lỗi
       retryable: errorInfo.retryable, // Có thể retry hay không
       errorType: errorInfo.type, // Loại lỗi
-      solution: errorInfo.solution // Giải pháp cho user
+      solution: errorInfo.solution, // Giải pháp cho user
+      duration: 0 // Thời gian dịch = 0 vì lỗi
     };
   }
   }
@@ -394,7 +395,8 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
     hasError: true,
     retryable: false, // Hết retry rồi
     errorType: finalErrorInfo.type,
-    solution: finalErrorInfo.solution
+    solution: finalErrorInfo.solution,
+    duration: 0 // Thời gian dịch = 0 vì lỗi
   };
 };
 

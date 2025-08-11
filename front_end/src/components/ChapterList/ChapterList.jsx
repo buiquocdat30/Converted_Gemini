@@ -672,15 +672,21 @@ const ChapterList = ({
           setTotalProgress: () => {}, // Không cần total progress cho single chapter
           onTranslationResult,
         onSelectChapter,
-          onComplete: (duration) => {
+          onComplete: (duration, error) => {
             // Khi hoàn thành, dừng progress và cập nhật trạng thái
-            console.log(`[CHAPTER ${index}] ✅ Hoàn thành dịch trong ${duration}s`);
-            console.log(`[CHAPTER ${index}] 📊 estimatedDuration đã sử dụng:`, estimatedDuration);
+            if (error) {
+              console.error(`[CHAPTER ${index}] ❌ Lỗi dịch:`, error.message);
+              setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
+              setErrorMessages((prev) => ({ ...prev, [index]: error.message }));
+              toast.error(`Lỗi dịch chương ${index + 1}: ${error.message}`);
+            } else {
+              console.log(`[CHAPTER ${index}] ✅ Hoàn thành dịch trong ${duration}s`);
+              console.log(`[CHAPTER ${index}] 📊 estimatedDuration đã sử dụng:`, estimatedDuration);
+              setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
+              setTranslatedCount((prev) => prev + 1);
+              toast.success(`Đã dịch xong chương ${index + 1}`);
+            }
             chapterHook.stopProgress();
-            setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
-            setTranslatedCount((prev) => prev + 1);
-            console.log(`[CHAPTER ${index}] Hoàn thành dịch trong ${duration}s`);
-            toast.success(`Đã dịch xong chương ${index + 1}`);
           },
         });
         
