@@ -72,12 +72,15 @@ async function extractAndSaveGlossary(storyId, glossaryText) {
   let skippedCount = 0;
 
   for (const line of lines) {
-    // Regex để match format: "张伟 = Trương Vĩ [Nhân vật] [Trung]"
-    const match = line.match(/^(.+?) = (.+?) \[(.+?)\] \[(.+?)\]$/);
+    console.log(`[GLOSSARY] 🔎 Đang xử lý dòng: "${line}"`);
+    // Regex để match format đầy đủ: "张伟 = Trương Vĩ [Nhân vật] [Trung]"
+    let match = line.match(/^(.+?)\s*=\s*(.+?)\s*\[(.+?)\]\s*\[(.+?)\]$/);
+    let original, translated, type, lang;
     if (match) {
-      const [, original, translated, type, lang] = match;
+      [, original, translated, type, lang] = match;
       const originalTrim = original.trim();
       const translatedTrim = translated.trim();
+      console.log(`[GLOSSARY] 🧩 Parsed: original="${originalTrim}", translated="${translatedTrim}", type="${type}", lang="${lang}"`);
       
       // Kiểm tra xem original có phải là tiếng nước ngoài không
       if (!isForeignLanguage(originalTrim)) {
@@ -94,16 +97,18 @@ async function extractAndSaveGlossary(storyId, glossaryText) {
       }
 
       // Kiểm tra xem có phải là tên chương dài không (chứa từ khóa chương)
-      if (originalTrim.includes('章') || originalTrim.includes('第') || originalTrim.includes('chapter') || 
-          originalTrim.includes('Chapter') || originalTrim.length > 20) {
+      if (originalTrim.includes('章') || originalTrim.includes('第') || originalTrim.toLowerCase().includes('chapter') || 
+          originalTrim.length > 30) {
         console.log(`⚠️ Bỏ qua tên chương dài: "${originalTrim}"`);
         skippedCount++;
         continue;
       }
 
-      // Kiểm tra xem có phải là câu hoặc cụm từ dài không
-      if (originalTrim.split('').length > 15 || originalTrim.includes(' ') || originalTrim.includes('：')) {
-        console.log(`⚠️ Bỏ qua câu/cụm từ dài: "${originalTrim}"`);
+      // Kiểm tra xem có phải là câu hoặc cụm từ quá dài không
+      // Cho phép có khoảng trắng (ví dụ tên tiếng Nhật/Anh 2 từ), nhưng giới hạn độ dài/từ
+      const wordCount = originalTrim.trim().split(/\s+/).length;
+      if (originalTrim.length > 30 || wordCount > 3 || originalTrim.includes('：')) {
+        console.log(`⚠️ Bỏ qua cụm quá dài: "${originalTrim}" (len=${originalTrim.length}, words=${wordCount})`);
         skippedCount++;
         continue;
       }
@@ -156,6 +161,26 @@ async function extractAndSaveGlossary(storyId, glossaryText) {
       } catch (error) {
         console.error("❌ Lỗi khi lưu glossary item:", error);
       }
+    } else {
+      // Fallback: chỉ có "gốc = dịch" không kèm [type][lang]
+      const matchSimple = line.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
+      if (!matchSimple) {
+        continue;
+      }
+      [, original, translated] = matchSimple;
+      type = 'Danh từ riêng';
+      // Tự động đoán ngôn ngữ gốc
+      if (containsChineseChars(original)) lang = 'Trung';
+      else if (containsJapaneseChars(original)) lang = 'Nhật';
+      else if (containsKoreanChars(original)) lang = 'Hàn';
+      else lang = 'Anh';
+      const originalTrim = original.trim();
+      const translatedTrim = translated.trim();
+      console.log(`[GLOSSARY] 🧩 Parsed(simple): original="${originalTrim}", translated="${translatedTrim}", type="${type}", lang="${lang}"`);
+      // Tiếp tục xuống quy trình validate/lưu ở dưới bằng cách set biến cục bộ
+      original = originalTrim;
+      translated = translatedTrim;
+      // Rơi xuống tiếp quy trình chung, nên replicate đoạn dưới
     }
   }
 

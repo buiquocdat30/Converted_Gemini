@@ -903,6 +903,12 @@ const ChapterList = ({
   const handleSocketChapterTranslated = useCallback((data) => {
     console.log('🎯 [ChapterList] ===== CALLBACK ĐƯỢC GỌI ====');
     console.log('[ChapterList] 📥 Data nhận được trong callback:', data);
+    // Log kiểm tra glossary nếu có trả về qua socket
+    if (data && typeof data.translatedContent === 'string') {
+      const hasGlossaryKeyword = /THƯ VIỆN TỪ MỚI/i.test(data.translatedContent);
+      const hasGlossaryEmoji = /📚/.test(data.translatedContent);
+      console.log(`[ChapterList] 🔎 Socket content: hasGlossaryKeyword=${hasGlossaryKeyword}, hasGlossaryEmoji=${hasGlossaryEmoji}`);
+    }
     console.log('[ChapterList] 🔍 Kiểm tra callback có tồn tại:', !!handleSocketChapterTranslated);
     console.log('[ChapterList] 🔍 Callback function type:', typeof handleSocketChapterTranslated);
     console.log('[ChapterList] 🔍 Callback function name:', handleSocketChapterTranslated?.name || 'anonymous');
@@ -934,6 +940,16 @@ const ChapterList = ({
         titleLength: data.translatedTitle?.length || 0,
         contentLength: data.translatedContent?.length || 0
       });
+      // Trích preview glossary nếu backend chưa loại bỏ
+      if (data.translatedContent) {
+        const match = data.translatedContent.match(/(?:📚\s*)?THƯ VIỆN TỪ MỚI:\s*[\r\n]+([\s\S]*?)$/i);
+        if (match) {
+          const glPreview = match[1].split('\n').slice(0, 5);
+          console.log('[ChapterList] 📚 Glossary preview (socket content):', glPreview);
+        } else {
+          console.log('[ChapterList] 📚 Không thấy block THƯ VIỆN TỪ MỚI trong socket content (đã bị BE loại bỏ là đúng)');
+        }
+      }
       const titlePreview = (data.translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
       const contentPreview = (data.translatedContent || '').replace(/\s+/g, ' ').slice(0, 250);
       console.log(`[ChapterList] 🧩 Preview chương ${data.chapterNumber}:`);
