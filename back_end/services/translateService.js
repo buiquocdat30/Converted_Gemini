@@ -80,128 +80,201 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       }
 
       // Cải thiện prompt để dịch hiệu quả hơn với glossary
-      const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
-      ---
+    //   const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
+    //   ---
 
-      🎯 MỤC TIÊU
-      - Dịch toàn bộ văn bản truyện sang tiếng Việt.
-      - Đồng thời xác định, phân loại và chuyển đổi đúng tên gọi theo quy tắc dưới đây, đảm bảo:
-        - Dịch tên gọi đúng ngữ cảnh, thể loại
-        - Giữ nhất quán trong toàn bộ văn bản
-        - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
-        - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào
+    //   🎯 MỤC TIÊU
+    //   - Dịch toàn bộ văn bản truyện sang tiếng Việt.
+    //   - Đồng thời xác định, phân loại và chuyển đổi đúng tên gọi theo quy tắc dưới đây, đảm bảo:
+    //     - Dịch tên gọi đúng ngữ cảnh, thể loại
+    //     - Giữ nhất quán trong toàn bộ văn bản
+    //     - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
+    //     - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào
 
-      ---
+    //   ---
 
-      📘 QUY TẮC CHUYỂN ĐỔI TÊN GỌI
+    //   📘 QUY TẮC CHUYỂN ĐỔI TÊN GỌI
 
-      1. Đối tượng bắt buộc xử lý:
-        - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
-        - Không xử lý các từ chung (VD: "ma vương", "học viện", "giám đốc" nếu không kèm tên cụ thể).
+    //   1. Đối tượng bắt buộc xử lý:
+    //     - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
+    //     - Không xử lý các từ chung (VD: "ma vương", "học viện", "giám đốc" nếu không kèm tên cụ thể).
 
-      2. Tính nhất quán:
-        - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
-        - Phát hiện biến thể và hợp nhất về cùng tên (VD: 灰倉真紅 = Haikura Shinku).
-        - Xử lý tên viết tắt và tên đầy đủ đúng cách (VD: J. Smith = John Smith).
+    //   2. Tính nhất quán:
+    //     - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
+    //     - Phát hiện biến thể và hợp nhất về cùng tên (VD: 灰倉真紅 = Haikura Shinku).
+    //     - Xử lý tên viết tắt và tên đầy đủ đúng cách (VD: J. Smith = John Smith).
 
-      3. Quy tắc chuyển đổi cụ thể:
+    //   3. Quy tắc chuyển đổi cụ thể:
 
-      | Ngôn ngữ | Thể loại | Quy tắc |
-      |---------|----------|--------|
-      | Trung | Tiên Hiệp, Huyền Huyễn | Hán Việt, biệt danh dịch nghĩa |
-      |          | Võng Du, Đô Thị, Khoa Huyễn | Hán Việt cho tên thật, giữ IGN nếu cần |
-      | Nhật | Light Novel, Võng Du | Romaji chuẩn, biệt danh dịch nghĩa |
-      | Hàn | Light Novel, Đô Thị | Romanized, biệt danh dịch nghĩa hoặc giữ nguyên nếu phổ biến |
-      | Anh | Mọi thể loại | Giữ nguyên tên phương Tây, biệt danh dịch nghĩa |
-      | Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
+    //   | Ngôn ngữ | Thể loại | Quy tắc |
+    //   |---------|----------|--------|
+    //   | Trung | Tiên Hiệp, Huyền Huyễn | Hán Việt, biệt danh dịch nghĩa |
+    //   |          | Võng Du, Đô Thị, Khoa Huyễn | Hán Việt cho tên thật, giữ IGN nếu cần |
+    //   | Nhật | Light Novel, Võng Du | Romaji chuẩn, biệt danh dịch nghĩa |
+    //   | Hàn | Light Novel, Đô Thị | Romanized, biệt danh dịch nghĩa hoặc giữ nguyên nếu phổ biến |
+    //   | Anh | Mọi thể loại | Giữ nguyên tên phương Tây, biệt danh dịch nghĩa |
+    //   | Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
 
-      4. Lỗi và chuẩn hóa:
-        - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
-        - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
+    //   4. Lỗi và chuẩn hóa:
+    //     - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
+    //     - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
 
-      5. KIỂM TRA BẮT BUỘC:
-        - Sau khi dịch xong, kiểm tra lại toàn bộ văn bản để đảm bảo KHÔNG CÒN từ tiếng nước ngoài nào chưa được dịch
-        - Đặc biệt chú ý các ký tự tiếng Trung, Nhật, Hàn còn sót lại
+    //   5. KIỂM TRA BẮT BUỘC:
+    //     - Sau khi dịch xong, kiểm tra lại toàn bộ văn bản để đảm bảo KHÔNG CÒN từ tiếng nước ngoài nào chưa được dịch
+    //     - Đặc biệt chú ý các ký tự tiếng Trung, Nhật, Hàn còn sót lại
 
-      ---
+    //   ---
 
-      📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
-      ${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
+    //   📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
+    //   ${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
 
-      ---
+    //   ---
 
-      📤 ĐẦU RA PHẢI LÀ:
-      - Văn bản dịch hoàn chỉnh tiếng Việt, có áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
-      - Không ghi chú tên riêng riêng biệt, không chèn metadata, không chú thích [loại] [ngôn ngữ].
-      - Tên đã chuyển đổi cần tự nhiên, phù hợp thể loại và bối cảnh, không có các ký tự đặc biệt trước tên, trong tên và sau tên.
-      - Khoảng cách giữa các tên riêng phải hợp lý, không để lại khoảng trắng ở giữa tên.
-      - Khoảng cách giữa các tên riêng và từ tiếp theo phải hợp lý, không để lại khoảng trắng ở giữa tên và từ tiếp theo.
-      - Chỉ sử dụng đại từ nhân xưng "ta" cho nhân vật, "ngươi" cho người đối thoại.
+    //   📤 ĐẦU RA PHẢI LÀ:
+    //   - Văn bản dịch hoàn chỉnh tiếng Việt, có áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
+    //   - Không ghi chú tên riêng riêng biệt, không chèn metadata, không chú thích [loại] [ngôn ngữ].
+    //   - Tên đã chuyển đổi cần tự nhiên, phù hợp thể loại và bối cảnh, không có các ký tự đặc biệt trước tên, trong tên và sau tên.
+    //   - Khoảng cách giữa các tên riêng phải hợp lý, không để lại khoảng trắng ở giữa tên.
+    //   - Khoảng cách giữa các tên riêng và từ tiếp theo phải hợp lý, không để lại khoảng trắng ở giữa tên và từ tiếp theo.
+    //   - Chỉ sử dụng đại từ nhân xưng "ta" cho nhân vật, "ngươi" cho người đối thoại.
 
-      ---
+    //   ---
 
-      🚫 CẤM (BẮT BUỘC TUÂN THỦ)
-      - KHÔNG giữ nguyên tên gốc nước ngoài nếu không hợp quy tắc.
-      - KHÔNG phiên âm sai quy tắc thể loại.
-      - KHÔNG thêm giải thích, chú thích, hoặc in ra danh sách tên riêng.
-      - KHÔNG dùng đại từ nhân xưng cho bản thân nhân vật. 
-      - KHÔNG dịch sai nghĩa, sai chức năng của tên gọi (VD: nhầm chiêu thức là nhân vật).
-      - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào trong văn bản.
+    //   🚫 CẤM (BẮT BUỘC TUÂN THỦ)
+    //   - KHÔNG giữ nguyên tên gốc nước ngoài nếu không hợp quy tắc.
+    //   - KHÔNG phiên âm sai quy tắc thể loại.
+    //   - KHÔNG thêm giải thích, chú thích, hoặc in ra danh sách tên riêng.
+    //   - KHÔNG dùng đại từ nhân xưng cho bản thân nhân vật. 
+    //   - KHÔNG dịch sai nghĩa, sai chức năng của tên gọi (VD: nhầm chiêu thức là nhân vật).
+    //   - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào trong văn bản.
 
-      ---
+    //   ---
 
-      📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:
+    //   📥 Bắt đầu dịch đoạn truyện sau sang tiếng Việt:\n\n${text}, áp dụng đúng các quy tắc trên:
 
-      ---
+    //   ---
 
-      Ở CUỐI CÙNG, BẮT BUỘC IN RA PHẦN SAU (KHÔNG ĐƯỢC THIẾU):
+    //   Ở CUỐI CÙNG, BẮT BUỘC IN RA PHẦN SAU (KHÔNG ĐƯỢC THIẾU):
 
-      THƯ VIỆN TỪ MỚI:
-      - CHỈ in các dòng theo đúng định dạng: Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
-      - KHÔNG giải thích, KHÔNG tiêu đề phụ, KHÔNG markdown/code block
-      - Nếu KHÔNG có tên riêng mới, in CHÍNH XÁC: Không có từ mới
-      - [Loại] PHẢI thuộc một trong: Nhân vật, Địa danh, Tổ chức, Vật phẩm, Chiêu thức, Công pháp
-      - [Ngôn ngữ] PHẢI thuộc một trong: Trung, Nhật, Hàn, Anh (KHÔNG được ghi "Tiếng Việt")
-      - KHÔNG dùng ngoặc vuông trong tên; KHÔNG thêm ký tự lạ quanh tên
+    //   THƯ VIỆN TỪ MỚI:
+    //   - CHỈ in các dòng theo đúng định dạng: Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
+    //   - KHÔNG giải thích, KHÔNG tiêu đề phụ, KHÔNG markdown/code block
+    //   - Nếu KHÔNG có tên riêng mới, in CHÍNH XÁC: Không có từ mới
+    //   - [Loại] PHẢI thuộc một trong: Nhân vật, Địa danh, Tổ chức, Vật phẩm, Chiêu thức, Công pháp
+    //   - [Ngôn ngữ] PHẢI thuộc một trong: Trung, Nhật, Hàn, Anh (KHÔNG được ghi "Tiếng Việt")
+    //   - KHÔNG dùng ngoặc vuông trong tên; KHÔNG thêm ký tự lạ quanh tên
 
-      Nếu có tên riêng mới phát hiện, hãy liệt kê theo format:
-      Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
+    //   Nếu có tên riêng mới phát hiện, hãy liệt kê theo format:
+    //   Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
       
-      QUY TẮC LIỆT KÊ CHÍNH XÁC:
-      1. CHỈ liệt kê các DANH TỪ RIÊNG (Proper Nouns):
-         - Tên người: 张伟, 李美, Haikura Shinku
-         - Tên địa danh: 北京, 东京, Seoul
-         - Tên tổ chức: 清华大学, 东京大学
-         - Tên vật phẩm đặc biệt: 轩辕剑, 屠龙刀
-         - Tên chiêu thức: 降龙十八掌, 九阴真经
-         - Tên công pháp: 易筋经, 洗髓经
+    //   QUY TẮC LIỆT KÊ CHÍNH XÁC:
+    //   1. CHỈ liệt kê các DANH TỪ RIÊNG (Proper Nouns):
+    //      - Tên người: 张伟, 李美, Haikura Shinku
+    //      - Tên địa danh: 北京, 东京, Seoul
+    //      - Tên tổ chức: 清华大学, 东京大学
+    //      - Tên vật phẩm đặc biệt: 轩辕剑, 屠龙刀
+    //      - Tên chiêu thức: 降龙十八掌, 九阴真经
+    //      - Tên công pháp: 易筋经, 洗髓经
       
-      2. KHÔNG liệt kê:
-         - Các từ chung: "ma vương", "học viện", "giám đốc" (trừ khi có tên cụ thể)
-         - Các câu hoặc cụm từ dài: "第一章 距离末日还有180天" (đây là tên chương, không phải danh từ riêng)
-         - Tên tiếng Việt: "Lý Vũ", "Trần Minh"
-         - Tên đã có trong THƯ VIỆN TỪ ĐÃ CÓ ở trên
+    //   2. KHÔNG liệt kê:
+    //      - Các từ chung: "ma vương", "học viện", "giám đốc" (trừ khi có tên cụ thể)
+    //      - Các câu hoặc cụm từ dài: "第一章 距离末日还有180天" (đây là tên chương, không phải danh từ riêng)
+    //      - Tên tiếng Việt: "Lý Vũ", "Trần Minh"
+    //      - Tên đã có trong THƯ VIỆN TỪ ĐÃ CÓ ở trên
       
-      3. CHỈ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh)
+    //   3. CHỈ liệt kê những tên có gốc tiếng nước ngoài (Trung, Nhật, Hàn, Anh)
       
-      4. MỖI TỪ RIÊNG PHẢI LÀ MỘT ĐƠN VỊ ĐỘC LẬP:
-         - ĐÚNG: 张伟 = Trương Vĩ [Nhân vật] [Trung]
-         - SAI: 张伟李美 = Trương Vĩ Lý Mỹ [Nhân vật] [Trung] (phải tách thành 2 từ)
+    //   4. MỖI TỪ RIÊNG PHẢI LÀ MỘT ĐƠN VỊ ĐỘC LẬP:
+    //      - ĐÚNG: 张伟 = Trương Vĩ [Nhân vật] [Trung]
+    //      - SAI: 张伟李美 = Trương Vĩ Lý Mỹ [Nhân vật] [Trung] (phải tách thành 2 từ)
       
-      Ví dụ ĐÚNG:
-      张伟 = Trương Vĩ [Nhân vật] [Trung]
-      李美 = Lý Mỹ [Nhân vật] [Trung]
-      M都 = M Đô [Địa danh] [Trung]
-      Haikura Shinku = Haikura Shinku [Nhân vật] [Nhật]
-      轩辕剑 = Hiên Viên Kiếm [Vật phẩm] [Trung]
+    //   Ví dụ ĐÚNG:
+    //   张伟 = Trương Vĩ [Nhân vật] [Trung]
+    //   李美 = Lý Mỹ [Nhân vật] [Trung]
+    //   M都 = M Đô [Địa danh] [Trung]
+    //   Haikura Shinku = Haikura Shinku [Nhân vật] [Nhật]
+    //   轩辕剑 = Hiên Viên Kiếm [Vật phẩm] [Trung]
       
-      Ví dụ SAI (không được liệt kê):
-      "第一章 距离末日还有180天" (tên chương dài)
-      "ma vương" (từ chung)
-      "Lý Vũ" (tên tiếng Việt)
+    //   Ví dụ SAI (không được liệt kê):
+    //   "第一章 距离末日还有180天" (tên chương dài)
+    //   "ma vương" (từ chung)
+    //   "Lý Vũ" (tên tiếng Việt)
       
-      ⚠️ QUAN TRỌNG: Nếu không có tên riêng mới nào, PHẢI ghi "Không có từ mới"
-    `;
+    //   ⚠️ QUAN TRỌNG: Nếu không có tên riêng mới nào, PHẢI ghi "Không có từ mới"
+    // `; //Cái này là cái cũ
+    const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
+---
+
+🎯 MỤC TIÊU
+- Dịch toàn bộ văn bản truyện sang tiếng Việt.
+- Đồng thời xác định, phân loại và chuyển đổi đúng tên gọi theo quy tắc dưới đây, đảm bảo:
+  - Dịch tên gọi đúng ngữ cảnh, thể loại
+  - Giữ nhất quán trong toàn bộ văn bản
+  - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
+  - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào
+- **Sau khi dịch, BẮT BUỘC tạo danh sách "THƯ VIỆN TỪ MỚI" nếu phát hiện bất kỳ danh từ riêng mới nào, nếu không có thì ghi "Không có từ mới".**
+
+---
+
+📘 QUY TẮC CHUYỂN ĐỔI TÊN GỌI
+1. Đối tượng bắt buộc xử lý:
+  - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
+  - Không xử lý các từ chung (VD: "ma vương", "học viện", "giám đốc" nếu không kèm tên cụ thể).
+
+2. Tính nhất quán:
+  - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
+  - Phát hiện biến thể và hợp nhất về cùng tên (VD: 灰倉真紅 = Haikura Shinku).
+  - Xử lý tên viết tắt và tên đầy đủ đúng cách (VD: J. Smith = John Smith).
+
+3. Quy tắc chuyển đổi cụ thể:
+
+| Ngôn ngữ | Thể loại | Quy tắc |
+|---------|----------|--------|
+| Trung | Tiên Hiệp, Huyền Huyễn | Hán Việt, biệt danh dịch nghĩa |
+|        | Võng Du, Đô Thị, Khoa Huyễn | Hán Việt cho tên thật, giữ IGN nếu cần |
+| Nhật | Light Novel, Võng Du | Romaji chuẩn, biệt danh dịch nghĩa |
+| Hàn | Light Novel, Đô Thị | Romanized, biệt danh dịch nghĩa hoặc giữ nguyên nếu phổ biến |
+| Anh | Mọi thể loại | Giữ nguyên tên phương Tây, biệt danh dịch nghĩa |
+| Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
+
+4. Lỗi và chuẩn hóa:
+  - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
+  - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
+
+5. KIỂM TRA BẮT BUỘC:
+  - Sau khi dịch xong, kiểm tra lại toàn bộ văn bản để đảm bảo KHÔNG CÒN từ tiếng nước ngoài nào chưa được dịch
+  - Đặc biệt chú ý các ký tự tiếng Trung, Nhật, Hàn còn sót lại
+  - **Luôn rà soát để tìm tên riêng mới cho THƯ VIỆN TỪ MỚI**
+
+---
+
+📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
+${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
+
+---
+
+📤 ĐẦU RA PHẢI LÀ:
+1. Văn bản dịch hoàn chỉnh tiếng Việt, áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
+2. **Sau văn bản dịch, luôn in "THƯ VIỆN TỪ MỚI" theo format chuẩn.**
+3. Format THƯ VIỆN TỪ MỚI:
+  - Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
+  - Nếu không có, in chính xác: Không có từ mới
+  - [Loại] ∈ {Nhân vật, Địa danh, Tổ chức, Vật phẩm, Chiêu thức, Công pháp}
+  - [Ngôn ngữ] ∈ {Trung, Nhật, Hàn, Anh}
+  - Nếu không chắc chắn về [Loại] hoặc [Ngôn ngữ], hãy chọn khả năng hợp lý nhất.
+
+---
+
+📥 Dịch đoạn truyện sau sang tiếng Việt, áp dụng đầy đủ quy tắc và yêu cầu trên:
+${text}
+
+---
+THƯ VIỆN TỪ MỚI:
+- CHỈ liệt kê danh từ riêng gốc ngoại ngữ, mỗi tên là một đơn vị độc lập.
+- Không liệt kê từ chung, tên tiếng Việt, tên đã có trong thư viện.
+- Nếu không phát hiện tên mới, ghi "Không có từ mới".
+`;
+
       prompt = promptContent;
     }
 

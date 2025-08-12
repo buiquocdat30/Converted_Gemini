@@ -1378,7 +1378,7 @@ const ChapterList = ({
                     )}
               {chapterStatus === "COMPLETE" && (
                       <span className="translated-label">
-                        ✅ Đã hoàn thành dịch trong: {duration ? `(${duration.toFixed(1)}s)` : ""}
+                        ✅ Đã hoàn thành dịch
                       </span>
                     )}
               {chapterStatus === "FAILED" && (
