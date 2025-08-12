@@ -2,115 +2,111 @@ import React from 'react';
 import './UserModelModals.css';
 
 const UserModelModals = ({ keyData, onClose }) => {
-  // Hàm helper để lấy màu trạng thái
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return "status-active";
-      case "COOLDOWN":
-        return "status-cooldown";
-      case "EXHAUSTED":
-        return "status-exhausted";
-      default:
-        return "";
-    }
-  };
-
-  // Hàm helper để hiển thị text trạng thái
-  const getStatusText = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return "🟢 Hoạt động";
-      case "COOLDOWN":
-        return "🟡 Đang nghỉ";
-      case "EXHAUSTED":
-        return "🔴 Đã hết quota";
-      default:
-        return "⚪ Không xác định";
-    }
-  };
+  if (!keyData) return null;
 
   return (
-    <div className="model-modal-overlay" onClick={onClose}>
-      <div className="model-modal-content" onClick={e => e.stopPropagation()}>
+    <div className="UMM-modal-overlay" onClick={onClose}>
+      <div className="UMM-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="UMM-modal-header">
-          <h3>Chi tiết Key: {keyData.key?.length > 32 ? keyData.key.slice(0, 32) + '...' : keyData.key}</h3>
-          <button className="close-button" onClick={onClose}>×</button>
+          <h3>Chi tiết API Key</h3>
+          <button className="UMM-close-btn" onClick={onClose}>×</button>
         </div>
-
+        
         <div className="UMM-modal-body">
-          <div className="key-info">
-            <p><strong>Label:</strong> {keyData.label || "Không có nhãn"}</p>
-            <p><strong>Trạng thái tổng thể:</strong> {getStatusText(keyData.status)}</p>
-            <p><strong>Số lần sử dụng:</strong> {keyData.usageCount || 0}</p>
-            <p><strong>Lần sử dụng cuối:</strong> {
-              keyData.lastUsedAt 
-                ? new Date(keyData.lastUsedAt).toLocaleString()
-                : "Chưa sử dụng"
-            }</p>
-          </div>
-
-          <div className="models-section">
-            <h4>Chi tiết trạng thái theo model:</h4>
-            <div className="models-grid">
-              {keyData.models?.map((model, index) => (
-                <div 
-                  key={`${keyData.id}-${model.id || index}`} 
-                  className="UMM-model-status-card"
-                >
-                  <div className="UMM-model-header">
-                    <h5>{model.label || "Model không xác định"}</h5>
-                    <span className={`status-badge ${getStatusColor(model.status)}`}>
-                      {getStatusText(model.status)}
-                    </span>
-                  </div>
-                  <div className="UMM-model-info">
-                    <p><strong>Model ID:</strong> {model.value}</p>
-                    {model.description && (
-                      <p><strong>Mô tả:</strong> {model.description}</p>
-                    )}
-                    <p><strong>Provider:</strong> {model.provider?.name || "Không xác định"}</p>
-                    
-                    {/* Thông tin giới hạn */}
-                    <div className="UMM-model-limits">
-                      <h6>Giới hạn sử dụng:</h6>
-                      <p>RPM: {model.rpm ? `${model.rpm}/phút` : "Không giới hạn"}</p>
-                      <p>TPM: {model.tpm ? `${model.tpm}/phút` : "Không giới hạn"}</p>
-                      <p>RPD: {model.rpd ? `${model.rpd}/ngày` : "Không giới hạn"}</p>
-                    </div>
-
-                    {/* Thống kê sử dụng */}
-                    <div className="UMM-model-usage">
-                      <h6>Thống kê sử dụng:</h6>
-                      <p>Số lần sử dụng: {model.usageCount || 0}</p>
-                      <p>Prompt tokens: {model.promptTokens || 0}</p>
-                      <p>Completion tokens: {model.completionTokens || 0}</p>
-                      <p>Tổng tokens: {model.totalTokens || 0}</p>
-                      <p>Lần sử dụng cuối: {
-                        model.lastUsedAt 
-                          ? new Date(model.lastUsedAt).toLocaleString()
-                          : "Chưa sử dụng"
-                      }</p>
-                    </div>
-
-                    {/* Thông báo trạng thái */}
-                    {model.status === "EXHAUSTED" && (
-                      <p className="exhausted-warning">
-                        ⚠️ Key đã hết quota cho model này. 
-                        Vui lòng thêm key mới hoặc sử dụng model khác.
-                      </p>
-                    )}
-                    {model.status === "COOLDOWN" && (
-                      <p className="cooldown-info">
-                        ℹ️ Key đang trong thời gian nghỉ. 
-                        Sẽ tự động kích hoạt lại sau một thời gian.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
+          <div className="UMM-key-info">
+            <div className="UMM-key-preview">
+              <strong>Key:</strong> {keyData.key.substring(0, 15)}...
+            </div>
+            <div className="UMM-key-label">
+              <strong>Nhãn:</strong> {keyData.label || "Không có nhãn"}
+            </div>
+            <div className="UMM-key-created">
+              <strong>Tạo lúc:</strong> {new Date(keyData.createdAt).toLocaleDateString('vi-VN')}
             </div>
           </div>
+
+          <div className="UMM-usage-section">
+            <h4>📊 Thống kê sử dụng hôm nay</h4>
+            
+            {keyData.usage && keyData.usage.length > 0 ? (
+              <div className="UMM-usage-details">
+                <div className="UMM-usage-summary">
+                  <div className="UMM-summary-item">
+                    <span className="UMM-summary-label">Tổng số lần sử dụng:</span>
+                    <span className="UMM-summary-value">
+                      {keyData.usage.reduce((total, u) => total + (u.usageCount || 0), 0)} lần
+                    </span>
+                  </div>
+                  <div className="UMM-summary-item">
+                    <span className="UMM-summary-label">Tổng tokens:</span>
+                    <span className="UMM-summary-value">
+                      {keyData.usage.reduce((total, u) => total + (u.totalTokens || 0), 0)} tokens
+                    </span>
+                  </div>
+                  <div className="UMM-summary-item">
+                    <span className="UMM-summary-label">Số models:</span>
+                    <span className="UMM-summary-value">{keyData.usage.length} models</span>
+                  </div>
+                </div>
+
+                <div className="UMM-models-list">
+                  <h5>Chi tiết theo từng model:</h5>
+                  {keyData.usage.map(u => (
+                    <div key={u.modelId} className="UMM-model-item">
+                      <div className="UMM-model-header">
+                        <span className="UMM-model-name">
+                          {u.model?.label || u.modelId}
+                        </span>
+                        <span className={`UMM-status-badge UMM-status-${u.status?.toLowerCase()}`}>
+                          {u.status === "ACTIVE" && "🟢 Hoạt động"}
+                          {u.status === "COOLDOWN" && "🟡 Đang nghỉ"}
+                          {u.status === "EXHAUSTED" && "🔴 Hết quota"}
+                        </span>
+                      </div>
+                      
+                      <div className="UMM-model-stats">
+                        <div className="UMM-stat-item">
+                          <span className="UMM-stat-label">Số lần sử dụng:</span>
+                          <span className="UMM-stat-value">{u.usageCount || 0} lần</span>
+                        </div>
+                        <div className="UMM-stat-item">
+                          <span className="UMM-stat-label">Prompt tokens:</span>
+                          <span className="UMM-stat-value">{u.promptTokens || 0}</span>
+                        </div>
+                        <div className="UMM-stat-item">
+                          <span className="UMM-stat-label">Completion tokens:</span>
+                          <span className="UMM-stat-value">{u.completionTokens || 0}</span>
+                        </div>
+                        <div className="UMM-stat-item">
+                          <span className="UMM-stat-label">Tổng tokens:</span>
+                          <span className="UMM-stat-value">{u.totalTokens || 0}</span>
+                        </div>
+                        {u.lastUsedAt && (
+                          <div className="UMM-stat-item">
+                            <span className="UMM-stat-label">Lần cuối sử dụng:</span>
+                            <span className="UMM-stat-value">
+                              {new Date(u.lastUsedAt).toLocaleString('vi-VN')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="UMM-no-usage">
+                <p>⚠️ Không có dữ liệu sử dụng hôm nay</p>
+                <p>Key này chưa được sử dụng hoặc chưa có thống kê cho ngày hôm nay.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="UMM-modal-footer">
+          <button className="UMM-close-button" onClick={onClose}>
+            Đóng
+          </button>
         </div>
       </div>
     </div>

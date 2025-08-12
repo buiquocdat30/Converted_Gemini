@@ -1122,3 +1122,101 @@ input[type="file"] {
   border-color: #444;
   color: #e0e0e0;
 }
+
+/* Key Management Status Styles */
+.key-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.key-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.model-count {
+  font-size: 0.85em;
+  color: #666;
+  font-weight: 500;
+}
+
+.today-usage-count {
+  font-size: 0.85em;
+  color: #32744f;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-align: center;
+  min-width: 80px;
+}
+
+.status-active {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-cooldown {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-exhausted {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.warning-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.75em;
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+  margin-top: 4px;
+}
+
+/* Dark mode for key status */
+.dark .model-count {
+  color: #aaa;
+}
+
+.dark .today-usage-count {
+  color: #4caf50;
+}
+
+.dark .status-active {
+  background-color: #1e4d2b;
+  color: #4caf50;
+  border-color: #2d5a3a;
+}
+
+.dark .status-cooldown {
+  background-color: #4a3f1a;
+  color: #ffc107;
+  border-color: #5a4f2a;
+}
+
+.dark .status-exhausted {
+  background-color: #4a1a1a;
+  color: #f44336;
+  border-color: #5a2a2a;
+}
+
+.dark .warning-badge {
+  background-color: #4a3f1a;
+  color: #ffc107;
+  border-color: #5a4f2a;
+}

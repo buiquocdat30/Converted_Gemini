@@ -120,7 +120,9 @@ const userApiKeyController = {
             const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
             const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-            // Lấy tất cả key của user
+            console.log(`🔍 Lấy thống kê usage cho user ${userId} từ ${startOfDay.toISOString()} đến ${endOfDay.toISOString()}`);
+
+            // Lấy tất cả key của user với tất cả usage records
             const keys = await prisma.userApiKey.findMany({
                 where: { userId },
                 select: {
@@ -130,12 +132,6 @@ const userApiKeyController = {
                     createdAt: true,
                     updatedAt: true,
                     usage: {
-                        where: {
-                            lastUsedAt: {
-                                gte: startOfDay,
-                                lte: endOfDay
-                            }
-                        },
                         select: {
                             id: true,
                             modelId: true,
@@ -157,26 +153,40 @@ const userApiKeyController = {
                 }
             });
 
-            // Format lại cho FE: mỗi key có mảng usage theo model trong ngày
-            const result = keys.map(key => ({
-                id: key.id,
-                key: key.key,
-                label: key.label,
-                createdAt: key.createdAt,
-                updatedAt: key.updatedAt,
-                usage: key.usage.map(u => ({
-                    id: u.id,
-                    modelId: u.modelId,
-                    model: u.model,
-                    status: u.status,
-                    usageCount: u.usageCount,
-                    promptTokens: u.promptTokens,
-                    completionTokens: u.completionTokens,
-                    totalTokens: u.totalTokens,
-                    lastUsedAt: u.lastUsedAt
-                }))
-            }));
+            console.log(`📊 Tìm thấy ${keys.length} keys cho user`);
 
+            // Format lại cho FE: mỗi key có mảng usage theo model trong ngày
+            const result = keys.map(key => {
+                // Lọc usage records có lastUsedAt trong ngày hôm nay
+                const todayUsage = key.usage.filter(u => {
+                    if (!u.lastUsedAt) return false;
+                    const lastUsedAt = new Date(u.lastUsedAt);
+                    return lastUsedAt >= startOfDay && lastUsedAt <= endOfDay;
+                });
+
+                console.log(`Key ${key.key.substring(0, 10)}... có ${todayUsage.length}/${key.usage.length} usage records hôm nay`);
+
+                return {
+                    id: key.id,
+                    key: key.key,
+                    label: key.label,
+                    createdAt: key.createdAt,
+                    updatedAt: key.updatedAt,
+                    usage: todayUsage.map(u => ({
+                        id: u.id,
+                        modelId: u.modelId,
+                        model: u.model,
+                        status: u.status,
+                        usageCount: u.usageCount,
+                        promptTokens: u.promptTokens,
+                        completionTokens: u.completionTokens,
+                        totalTokens: u.totalTokens,
+                        lastUsedAt: u.lastUsedAt
+                    }))
+                };
+            });
+
+            console.log(`✅ Trả về ${result.length} keys có usage hôm nay`);
             res.json(result);
         } catch (error) {
             console.error('Error getting today usage stats:', error);

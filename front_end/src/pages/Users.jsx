@@ -793,14 +793,14 @@ const KeyManagement = () => {
                 <td>
                   <div className="key-status">
                     {/* Hiển thị trạng thái tổng thể của key */}
-                    {key.models && key.models.length > 0 ? (
+                    {key.usage && key.usage.length > 0 ? (
                       <>
                         {/* Kiểm tra xem có model nào đang hoạt động không */}
-                        {key.models.some(m => m.status === "ACTIVE") ? (
+                        {key.usage.some(u => u.status === "ACTIVE") ? (
                           <span className="status-badge status-active">
                             🟢 Hoạt động
                           </span>
-                        ) : key.models.some(m => m.status === "COOLDOWN") ? (
+                        ) : key.usage.some(u => u.status === "COOLDOWN") ? (
                           <span className="status-badge status-cooldown">
                             🟡 Đang nghỉ
                           </span>
@@ -811,31 +811,23 @@ const KeyManagement = () => {
                         )}
                         
                         {/* Hiển thị cảnh báo nếu có model hết quota */}
-                        {key.models.some(m => m.status === "EXHAUSTED") && 
+                        {key.usage.some(u => u.status === "EXHAUSTED") && 
                           <span className="warning-badge">⚠️ Có model đã hết quota</span>
                         }
                         
-                        {/* Hiển thị số lượng models */}
-                        <div className="model-count">
-                          {key.models.length} models
-                        </div>
-                        {/* Hiển thị usage trong ngày nếu có */}
-                        {key.usage && key.usage.length > 0 && (
-                          <div className="today-usage">
-                            <strong>Usage hôm nay:</strong>
-                            <ul>
-                              {key.usage.map(u => (
-                                <li key={u.modelId}>
-                                  {u.model?.label || u.modelId}: {u.usageCount} lần, {u.totalTokens} tokens
-                                </li>
-                              ))}
-                            </ul>
+                        {/* Hiển thị số lượng models và tổng usage */}
+                        <div className="key-summary">
+                          <div className="model-count">
+                            {key.usage.length} models
                           </div>
-                        )}
+                          <div className="today-usage-count">
+                            {key.usage.reduce((total, u) => total + (u.usageCount || 0), 0)} lần hôm nay
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <span className="status-badge">
-                        ⚪ Không có model
+                        ⚪ Không có usage hôm nay
                       </span>
                     )}
                   </div>
