@@ -1,187 +1,150 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-/**
- * Kiểm tra xem text có chứa ký tự tiếng Việt hay không
- */
+const RE_HIRAGANA = /[\u3040-\u309f]/;
+const RE_KATAKANA = /[\u30a0-\u30ff]/;
+const RE_CJK = /[\u4e00-\u9fff]/;
+const RE_HANGUL = /[\uac00-\ud7af]/;
+const RE_VIETNAMESE = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+
+// cải tiến: xác định ngôn ngữ từ chuỗi
+function guessLanguage(original) {
+  if (RE_HIRAGANA.test(original) || RE_KATAKANA.test(original)) return 'Nhật';
+  if (RE_HANGUL.test(original)) return 'Hàn';
+  if (RE_CJK.test(original)) return 'Trung';
+  // Latin-only (ko dấu) -> Anh (Romanized)
+  if (/^[A-Za-z0-9'’\-\s]+$/.test(original)) return 'Anh';
+  return 'Anh';
+}
+
 function containsVietnameseChars(text) {
-  // Regex để kiểm tra ký tự tiếng Việt (có dấu)
-  const vietnameseRegex = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
-  return vietnameseRegex.test(text);
+  return RE_VIETNAMESE.test(text);
 }
-
-/**
- * Kiểm tra xem text có chứa ký tự tiếng Trung hay không
- */
 function containsChineseChars(text) {
-  // Regex để kiểm tra ký tự tiếng Trung (Unicode range)
-  const chineseRegex = /[\u4e00-\u9fff]/;
-  return chineseRegex.test(text);
+  return RE_CJK.test(text);
 }
-
-/**
- * Kiểm tra xem text có chứa ký tự tiếng Nhật hay không
- */
 function containsJapaneseChars(text) {
-  // Regex để kiểm tra ký tự tiếng Nhật (Hiragana, Katakana, Kanji)
-  const japaneseRegex = /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/;
-  return japaneseRegex.test(text);
+  // chỉ coi là Nhật nếu có kana (Hiragana/Katakana) — tránh nhầm với Kanji
+  return RE_HIRAGANA.test(text) || RE_KATAKANA.test(text);
 }
-
-/**
- * Kiểm tra xem text có chứa ký tự tiếng Hàn hay không
- */
 function containsKoreanChars(text) {
-  // Regex để kiểm tra ký tự tiếng Hàn (Hangul)
-  const koreanRegex = /[\uac00-\ud7af]/;
-  return koreanRegex.test(text);
+  return RE_HANGUL.test(text);
 }
-
-/**
- * Kiểm tra xem text có phải là tiếng nước ngoài hay không
- * Loại bỏ các từ tiếng Việt có dấu
- */
 function isForeignLanguage(text) {
-  // Nếu có ký tự tiếng Việt có dấu, thì không phải tiếng nước ngoài
-  if (containsVietnameseChars(text)) {
-    return false;
-  }
-  
-  // Kiểm tra các ký tự tiếng nước ngoài
-  return containsChineseChars(text) || 
-         containsJapaneseChars(text) || 
-         containsKoreanChars(text) ||
-         // Chỉ chấp nhận ký tự Latin nếu không có dấu tiếng Việt
-         (/[a-zA-Z]/.test(text) && !containsVietnameseChars(text));
+  if (!text) return false;
+  if (containsVietnameseChars(text)) return false;
+  return containsChineseChars(text) || containsJapaneseChars(text) || containsKoreanChars(text) || /[A-Za-z]/.test(text);
 }
 
-/**
- * Trích và lưu glossary từ văn bản định dạng:
- * "张伟 = Trương Vĩ [Nhân vật] [Trung]"
- * Chỉ lưu những từ có gốc tiếng nước ngoài
- */
+// helper lưu / cập nhật 1 dòng
+async function saveGlossaryItem(storyId, original, translated, type, lang) {
+  original = original.trim();
+  translated = translated.trim();
+  type = (type || 'Nhân vật').trim();
+  lang = (lang || guessLanguage(original)).trim();
+
+  // clean quotes
+  original = original.replace(/^["'""'']+|["'""'']+$/g, '').trim();
+  translated = translated.replace(/^["'""'']+|["'""'']+$/g, '').trim();
+
+  if (!isForeignLanguage(original)) {
+    console.log(`⚠️ Bỏ qua vì không phải ngôn ngữ nước ngoài: "${original}"`);
+    return { skipped: 1, saved: 0, updated: 0 };
+  }
+
+  // loại những cụm quá dài
+  const wordCount = original.split(/\s+/).filter(Boolean).length;
+  if (original.length > 80 || wordCount > 6 || original.includes('：')) { // cho ngưỡng mềm hơn
+    console.log(`⚠️ Bỏ qua cụm quá dài: "${original}" (len=${original.length}, words=${wordCount})`);
+    return { skipped: 1, saved: 0, updated: 0 };
+  }
+
+  // kiểm tra tồn tại (so sánh chính xác)
+  const exists = await prisma.glossaryItem.findFirst({
+    where: { storyId, original }
+  });
+
+  if (!exists) {
+    await prisma.glossaryItem.create({
+      data: {
+        storyId,
+        original,
+        translated,
+        type,
+        lang
+      }
+    });
+    console.log(`✅ Đã lưu: ${original} = ${translated} [${type}] [${lang}]`);
+    return { skipped: 0, saved: 1, updated: 0 };
+  } else {
+    await prisma.glossaryItem.update({
+      where: { id: exists.id },
+      data: {
+        frequency: (exists.frequency || 0) + 1,
+        updatedAt: new Date()
+      }
+    });
+    console.log(`🔄 Đã cập nhật: "${original}"`);
+    return { skipped: 0, saved: 0, updated: 1 };
+  }
+}
+
+// hàm chính (refactor)
 async function extractAndSaveGlossary(storyId, glossaryText) {
   if (!glossaryText || !storyId) {
     console.log("⚠️ Không có glossary text hoặc storyId để lưu");
     return;
   }
 
-  const lines = glossaryText.trim().split("\n");
+  const lines = glossaryText
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean);
+
   let savedCount = 0;
   let updatedCount = 0;
   let skippedCount = 0;
 
-  for (const line of lines) {
-    console.log(`[GLOSSARY] 🔎 Đang xử lý dòng: "${line}"`);
-    // Regex để match format đầy đủ: "张伟 = Trương Vĩ [Nhân vật] [Trung]"
-    let match = line.match(/^(.+?)\s*=\s*(.+?)\s*\[(.+?)\]\s*\[(.+?)\]$/);
-    let original, translated, type, lang;
-    if (match) {
-      [, original, translated, type, lang] = match;
-      const originalTrim = original.trim();
-      const translatedTrim = translated.trim();
-      console.log(`[GLOSSARY] 🧩 Parsed: original="${originalTrim}", translated="${translatedTrim}", type="${type}", lang="${lang}"`);
-      
-      // Kiểm tra xem original có phải là tiếng nước ngoài không
-      if (!isForeignLanguage(originalTrim)) {
-        console.log(`⚠️ Bỏ qua từ tiếng Việt: "${originalTrim}"`);
-        skippedCount++;
+  const fullRe = /^(.+?)\s*=\s*(.+?)\s*\[(.+?)\]\s*\[(.+?)\]\s*$/;
+  const simpleRe = /^\s*["'""'']?(.+?)["'""'']?\s*=\s*["'""'']?(.*?)["'""'']?\s*$/;
+
+  for (const raw of lines) {
+    console.log(`[GLOSSARY] 🔎 Xử lý: "${raw}"`);
+    // remove bullet/number prefix
+    const line = raw.replace(/^[\-\*\•\d\.\)\s]+/, '').trim();
+
+    let m = line.match(fullRe);
+    if (m) {
+      const [, original, translated, type, lang] = m;
+      const r = await saveGlossaryItem(storyId, original, translated, type, lang);
+      savedCount += r.saved; updatedCount += r.updated; skippedCount += r.skipped;
         continue;
       }
 
-      // Kiểm tra xem có phải là từ trùng lặp không (original = translated)
-      if (originalTrim === translatedTrim) {
-        console.log(`⚠️ Bỏ qua từ trùng lặp: "${originalTrim}"`);
-        skippedCount++;
+    m = line.match(simpleRe);
+    if (m) {
+      const [, original, translated] = m;
+      // tự suy đoán type/lang; không skip chỉ vì thiếu [] []
+      const guessedLang = guessLanguage(original);
+      const guessedType = 'Nhân vật';
+      const r = await saveGlossaryItem(storyId, original, translated, guessedType, guessedLang);
+      savedCount += r.saved; updatedCount += r.updated; skippedCount += r.skipped;
         continue;
       }
 
-      // Kiểm tra xem có phải là tên chương dài không (chứa từ khóa chương)
-      if (originalTrim.includes('章') || originalTrim.includes('第') || originalTrim.toLowerCase().includes('chapter') || 
-          originalTrim.length > 30) {
-        console.log(`⚠️ Bỏ qua tên chương dài: "${originalTrim}"`);
-        skippedCount++;
+    // nếu không khớp 2 định dạng trên, thử parse với bracket tách rời vd: "张伟 = Trương Vĩ [Nhân vật] [Trung]" style with extra spaces
+    const bracketRe = /^(.+?)\s*=\s*(.+?)\s*\[(.+?)\]\s*\[(.+?)\]/;
+    m = line.match(bracketRe);
+    if (m) {
+      const [, original, translated, type, lang] = m;
+      const r = await saveGlossaryItem(storyId, original, translated, type, lang);
+      savedCount += r.saved; updatedCount += r.updated; skippedCount += r.skipped;
         continue;
       }
 
-      // Kiểm tra xem có phải là câu hoặc cụm từ quá dài không
-      // Cho phép có khoảng trắng (ví dụ tên tiếng Nhật/Anh 2 từ), nhưng giới hạn độ dài/từ
-      const wordCount = originalTrim.trim().split(/\s+/).length;
-      if (originalTrim.length > 30 || wordCount > 3 || originalTrim.includes('：')) {
-        console.log(`⚠️ Bỏ qua cụm quá dài: "${originalTrim}" (len=${originalTrim.length}, words=${wordCount})`);
+    console.log(`⚠️ Không parse được dòng glossary: "${line}" — bỏ qua`);
         skippedCount++;
-        continue;
-      }
-
-      // Kiểm tra xem có phải là từ chung không (không phải danh từ riêng)
-      const commonWords = ['ma', 'vương', 'học', 'viện', 'giám', 'đốc', 'công', 'ty', 'trường', 'đại', 'học'];
-      const isCommonWord = commonWords.some(word => 
-        originalTrim.toLowerCase().includes(word) || translatedTrim.toLowerCase().includes(word)
-      );
-      if (isCommonWord && !isForeignLanguage(originalTrim)) {
-        console.log(`⚠️ Bỏ qua từ chung: "${originalTrim}"`);
-        skippedCount++;
-        continue;
-      }
-      
-      try {
-        // Kiểm tra xem đã tồn tại chưa
-        const exists = await prisma.glossaryItem.findFirst({
-          where: { 
-            storyId, 
-            original: originalTrim 
-          }
-        });
-
-        if (!exists) {
-          // Tạo mới
-          await prisma.glossaryItem.create({
-            data: { 
-              storyId, 
-              original: originalTrim, 
-              translated: translatedTrim, 
-              type: type.trim(), 
-              lang: lang.trim() 
-            }
-          });
-          savedCount++;
-          console.log(`✅ Đã lưu: "${originalTrim}" = "${translatedTrim}"`);
-        } else {
-          // Cập nhật frequency nếu đã tồn tại
-          await prisma.glossaryItem.update({
-            where: { id: exists.id },
-            data: { 
-              frequency: exists.frequency + 1,
-              updatedAt: new Date()
-            }
-          });
-          updatedCount++;
-          console.log(`🔄 Đã cập nhật: "${originalTrim}"`);
-        }
-      } catch (error) {
-        console.error("❌ Lỗi khi lưu glossary item:", error);
-      }
-    } else {
-      // Fallback: chỉ có "gốc = dịch" không kèm [type][lang]
-      const matchSimple = line.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
-      if (!matchSimple) {
-        continue;
-      }
-      [, original, translated] = matchSimple;
-      type = 'Danh từ riêng';
-      // Tự động đoán ngôn ngữ gốc
-      if (containsChineseChars(original)) lang = 'Trung';
-      else if (containsJapaneseChars(original)) lang = 'Nhật';
-      else if (containsKoreanChars(original)) lang = 'Hàn';
-      else lang = 'Anh';
-      const originalTrim = original.trim();
-      const translatedTrim = translated.trim();
-      console.log(`[GLOSSARY] 🧩 Parsed(simple): original="${originalTrim}", translated="${translatedTrim}", type="${type}", lang="${lang}"`);
-      // Tiếp tục xuống quy trình validate/lưu ở dưới bằng cách set biến cục bộ
-      original = originalTrim;
-      translated = translatedTrim;
-      // Rơi xuống tiếp quy trình chung, nên replicate đoạn dưới
-    }
   }
 
   console.log(`📚 Kết quả lưu glossary: ${savedCount} mới, ${updatedCount} cập nhật, ${skippedCount} bỏ qua`);
