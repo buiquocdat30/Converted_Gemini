@@ -202,58 +202,58 @@ const translateText = async (text, keyInfo, modelAI, type = "content", storyId =
       
     //   ⚠️ QUAN TRỌNG: Nếu không có tên riêng mới nào, PHẢI ghi "Không có từ mới"
     // `; //Cái này là cái cũ
-    const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
----
+      const promptContent = `Bạn là "Tên Gọi Chuyên Gia" – một công cụ AI chuyên dịch truyện từ tiếng Trung, Nhật, Hàn hoặc Anh sang tiếng Việt, và chuyển đổi chính xác toàn bộ tên gọi (nhân vật, địa danh, tổ chức, biệt danh, thực thể đặc biệt) theo quy tắc sau:
+      ---
 
-🎯 MỤC TIÊU
-- Dịch toàn bộ văn bản truyện sang tiếng Việt.
-- Đồng thời xác định, phân loại và chuyển đổi đúng tên gọi theo quy tắc dưới đây, đảm bảo:
-  - Dịch tên gọi đúng ngữ cảnh, thể loại
-  - Giữ nhất quán trong toàn bộ văn bản
-  - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
-  - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào
+      🎯 MỤC TIÊU
+      - Dịch toàn bộ văn bản truyện sang tiếng Việt.
+      - Đồng thời xác định, phân loại và chuyển đổi đúng tên gọi theo quy tắc dưới đây, đảm bảo:
+        - Dịch tên gọi đúng ngữ cảnh, thể loại
+        - Giữ nhất quán trong toàn bộ văn bản
+        - Không giữ nguyên tên nước ngoài một cách tuỳ tiện
+        - KHÔNG ĐƯỢC BỎ SÓT bất kỳ từ tiếng nước ngoài nào
 - **Sau khi dịch, BẮT BUỘC tạo danh sách "THƯ VIỆN TỪ MỚI" nếu phát hiện bất kỳ danh từ riêng mới nào, nếu không có thì ghi "Không có từ mới".**
 
----
+      ---
 
-📘 QUY TẮC CHUYỂN ĐỔI TÊN GỌI
-1. Đối tượng bắt buộc xử lý:
-  - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
-  - Không xử lý các từ chung (VD: "ma vương", "học viện", "giám đốc" nếu không kèm tên cụ thể).
+      📘 QUY TẮC CHUYỂN ĐỔI TÊN GỌI
+      1. Đối tượng bắt buộc xử lý:
+        - Nhân vật, địa danh, tổ chức, biệt danh, chiêu thức, công pháp, vật phẩm đặc biệt.
+        - Không xử lý các từ chung (VD: "ma vương", "học viện", "giám đốc" nếu không kèm tên cụ thể).
 
-2. Tính nhất quán:
-  - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
-  - Phát hiện biến thể và hợp nhất về cùng tên (VD: 灰倉真紅 = Haikura Shinku).
-  - Xử lý tên viết tắt và tên đầy đủ đúng cách (VD: J. Smith = John Smith).
+      2. Tính nhất quán:
+        - Mỗi tên gốc chỉ có một bản dịch duy nhất xuyên suốt văn bản.
+        - Phát hiện biến thể và hợp nhất về cùng tên (VD: 灰倉真紅 = Haikura Shinku).
+        - Xử lý tên viết tắt và tên đầy đủ đúng cách (VD: J. Smith = John Smith).
 
-3. Quy tắc chuyển đổi cụ thể:
+      3. Quy tắc chuyển đổi cụ thể:
 
-| Ngôn ngữ | Thể loại | Quy tắc |
-|---------|----------|--------|
-| Trung | Tiên Hiệp, Huyền Huyễn | Hán Việt, biệt danh dịch nghĩa |
+      | Ngôn ngữ | Thể loại | Quy tắc |
+      |---------|----------|--------|
+      | Trung | Tiên Hiệp, Huyền Huyễn | Hán Việt, biệt danh dịch nghĩa |
 |        | Võng Du, Đô Thị, Khoa Huyễn | Hán Việt cho tên thật, giữ IGN nếu cần |
-| Nhật | Light Novel, Võng Du | Romaji chuẩn, biệt danh dịch nghĩa |
-| Hàn | Light Novel, Đô Thị | Romanized, biệt danh dịch nghĩa hoặc giữ nguyên nếu phổ biến |
-| Anh | Mọi thể loại | Giữ nguyên tên phương Tây, biệt danh dịch nghĩa |
-| Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
+      | Nhật | Light Novel, Võng Du | Romaji chuẩn, biệt danh dịch nghĩa |
+      | Hàn | Light Novel, Đô Thị | Romanized, biệt danh dịch nghĩa hoặc giữ nguyên nếu phổ biến |
+      | Anh | Mọi thể loại | Giữ nguyên tên phương Tây, biệt danh dịch nghĩa |
+      | Đa ngôn ngữ | Tất cả | Ưu tiên dạng phổ biến nhất trong ngữ cảnh |
 
-4. Lỗi và chuẩn hóa:
-  - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
-  - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
+      4. Lỗi và chuẩn hóa:
+        - Sửa lỗi dính chữ: "HọcviệnOnmyou" → "Học viện Onmyou"
+        - Chuẩn hóa chính tả: dấu cách, dấu thanh, hoa thường
 
-5. KIỂM TRA BẮT BUỘC:
-  - Sau khi dịch xong, kiểm tra lại toàn bộ văn bản để đảm bảo KHÔNG CÒN từ tiếng nước ngoài nào chưa được dịch
-  - Đặc biệt chú ý các ký tự tiếng Trung, Nhật, Hàn còn sót lại
+      5. KIỂM TRA BẮT BUỘC:
+        - Sau khi dịch xong, kiểm tra lại toàn bộ văn bản để đảm bảo KHÔNG CÒN từ tiếng nước ngoài nào chưa được dịch
+        - Đặc biệt chú ý các ký tự tiếng Trung, Nhật, Hàn còn sót lại
   - **Luôn rà soát để tìm tên riêng mới cho THƯ VIỆN TỪ MỚI**
 
----
+      ---
 
-📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
-${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
+      📚 THƯ VIỆN TỪ ĐÃ CÓ (BẮT BUỘC SỬ DỤNG):
+      ${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
 
----
+      ---
 
-📤 ĐẦU RA PHẢI LÀ:
+      📤 ĐẦU RA PHẢI LÀ:
 1. Văn bản dịch hoàn chỉnh tiếng Việt, áp dụng đúng chuyển đổi tên riêng theo quy tắc trên.
 2. **Sau văn bản dịch, luôn in "THƯ VIỆN TỪ MỚI" theo format chuẩn.**
 3. Format THƯ VIỆN TỪ MỚI:
@@ -261,6 +261,7 @@ ${glossaryText ? glossaryText : "Chưa có thư viện từ nào."}
   - Nếu không có, in chính xác: Không có từ mới
   - [Loại] ∈ {Nhân vật, Địa danh, Tổ chức, Vật phẩm, Chiêu thức, Công pháp}
   - [Ngôn ngữ] ∈ {Trung, Nhật, Hàn, Anh}
+  - **QUAN TRỌNG: Tên dịch PHẢI là tiếng Việt (Hán-Việt cho tên Trung, Romaji cho tên Nhật, v.v.), KHÔNG được giữ nguyên Pinyin**
   - Nếu không chắc chắn về [Loại] hoặc [Ngôn ngữ], hãy chọn khả năng hợp lý nhất.
 
 ---
@@ -272,6 +273,7 @@ ${text}
 THƯ VIỆN TỪ MỚI:
 - CHỈ liệt kê danh từ riêng gốc ngoại ngữ, mỗi tên là một đơn vị độc lập.
 - Không liệt kê từ chung, tên tiếng Việt, tên đã có trong thư viện.
+- **Tên dịch PHẢI là tiếng Việt, không phải Pinyin**
 - Nếu không phát hiện tên mới, ghi "Không có từ mới".
 `;
 
@@ -284,7 +286,7 @@ THƯ VIỆN TỪ MỚI:
     const startTime = Date.now();
     const result = await model.generateContent(prompt);
     const response = result.response;
-    let translated = response.text();
+    let translated = await response.text(); // Bắt buộc await
     const duration = parseFloat(((Date.now() - startTime) / 1000).toFixed(2)); // Chuyển thành number
 
     console.log("📤 [TRANSLATE] Response từ API:", translated.substring(0, 100) + "...");
@@ -318,8 +320,10 @@ THƯ VIỆN TỪ MỚI:
     if (storyId && type !== "title") {
       try {
         console.log("[TRANSLATE] 📚 Xử lý glossary...");
-        // Tìm và trích xuất glossary từ response (hỗ trợ có/không emoji, CRLF)
-        const glossaryMatch = translated.match(/(?:📚\s*)?THƯ VIỆN TỪ MỚI:\s*[\r\n]+([\s\S]*?)(?=(?:\r?\n)---|$)/i);
+        // Normalize newline và tìm glossary block
+        let cleanedTranslated = translated.replace(/\r\n/g, '\n');
+        const glossaryMatch = cleanedTranslated.match(/(?:📚\s*)?THƯ VIỆN TỪ MỚI:\s*\n([\s\S]*?)(?=\n---|$)/i) || 
+                              cleanedTranslated.match(/---GLOSSARY-START---\s*\n(?:📚\s*)?THƯ VIỆN TỪ MỚI:\s*\n([\s\S]*?)\n---GLOSSARY-END---/i);
         if (glossaryMatch) {
           const glossaryText = glossaryMatch[1].trim();
           const glossaryLines = glossaryText.split('\n').filter(l => l.trim());
@@ -368,6 +372,41 @@ THƯ VIỆN TỪ MỚI:
             }
           } catch (fallbackErr) {
             console.error('[TRANSLATE] ⚠️ Lỗi fallback scan glossary:', fallbackErr);
+          }
+
+          // Last resort: gọi AI để TRÍCH RIÊNG glossary theo định dạng yêu cầu
+          try {
+            console.log('[TRANSLATE] 🛠️ Gọi AI extract glossary fallback (separate call)');
+                         const glossaryOnlyPrompt = `CHỈ TRÍCH XUẤT tên riêng nước ngoài từ đoạn văn sau.
+
+YÊU CẦU:
+- Chỉ in danh sách tên riêng
+- Format: Tên gốc = Tên dịch [Loại] [Ngôn ngữ]
+- **Tên dịch PHẢI là tiếng Việt (Hán-Việt cho tên Trung, Romaji cho tên Nhật), KHÔNG được giữ nguyên Pinyin**
+- Nếu không có tên nước ngoài: in "Không có từ mới"
+- KHÔNG giải thích
+
+ĐOẠN VĂN:
+${text}
+
+DANH SÁCH TÊN RIÊNG:`;
+            const glossaryOnlyResult = await model.generateContent(glossaryOnlyPrompt);
+            const glossaryOnlyResponse = await glossaryOnlyResult.response.text();
+            console.log('[TRANSLATE] 🛠️ Fallback response:', glossaryOnlyResponse);
+            
+            // Trích các dòng glossary từ response fallback
+            const fallbackLines = glossaryOnlyResponse.split('\n').filter(line => 
+              line.includes('=') && line.includes('[') && line.includes(']')
+            );
+            console.log(`[TRANSLATE] 🛠️ Fallback tìm thấy ${fallbackLines.length} dòng glossary`);
+            
+            if (fallbackLines.length > 0) {
+              const fallbackGlossaryText = fallbackLines.join('\n');
+              await extractAndSaveGlossary(storyId, fallbackGlossaryText);
+              console.log(`[TRANSLATE] 📚 Fallback đã lưu ${fallbackLines.length} dòng glossary`);
+            }
+          } catch (fallbackErr) {
+            console.error('[TRANSLATE] ⚠️ Lỗi fallback extract glossary:', fallbackErr);
           }
         }
       } catch (error) {
