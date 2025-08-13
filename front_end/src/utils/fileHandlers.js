@@ -164,7 +164,12 @@ const handleEpubFile = async (
 ) => {
   console.log("🚀 [handleEpubFile] Bắt đầu xử lý file EPUB.");
   try {
-    const book = ePub(readerResult);
+    // Đảm bảo nguồn dữ liệu cho epubjs là Blob/File hoặc ArrayBuffer hợp lệ
+    let epubSource = readerResult;
+    if (readerResult instanceof ArrayBuffer) {
+      epubSource = new Blob([readerResult], { type: "application/epub+zip" });
+    }
+    const book = ePub(epubSource);
     await book.ready;
 
     let fullText = "";
