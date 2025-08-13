@@ -101,25 +101,75 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Kiểm tra định dạng file
+    const allowedTypes = ["application/epub+zip", "text/plain"];
+    const allowedExtensions = [".epub", ".txt"];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      alert("❗ Chỉ chấp nhận file .epub hoặc .txt");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setSelectedFile(null);
+      setChapters([]);
+      setError("");
+      setSuccess("");
+      return;
+    }
+
     setSelectedFile(file);
     setBooks(file.name.replace(/\.[^/.]+$/, "")); // Lấy tên file không có phần mở rộng
+    
+    // Reset các state trước khi xử lý file mới
+    setChapters([]);
+    setError("");
+    setSuccess("");
+    setChapterCount(0);
+    setTotalWords(0);
+    setAverageWords(0);
 
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        if (file.name.toLowerCase().endsWith(".epub")) {
-          await handleEpubFile(
-            reader.result,
-            setChapters,
-            setError,
-            setSuccess,
-            setChapterCount,
-            setTotalWords,
-            setAverageWords,
-            setBooks,
-            setAuthor
-          );
-        } else if (file.name.toLowerCase().endsWith(".txt")) {
+        if (file.type === "application/epub+zip" || file.name.toLowerCase().endsWith(".epub")) {
+          // Xử lý EPUB trực tiếp để tránh lỗi URI malformed
+          const epub = await import("epubjs");
+          const book = epub.default(file);
+          await book.ready;
+          
+          let fullText = "";
+          const spineItems = book.spine.spineItems;
+          
+          for (const item of spineItems) {
+            try {
+              const section = await book.load(item.url);
+              const contents = section.querySelector("body");
+              if (contents) {
+                fullText += contents.innerText + "\n\n";
+              }
+              await item.unload();
+            } catch (itemError) {
+              console.warn(`⚠️ Lỗi khi xử lý item ${item.url}:`, itemError);
+              continue;
+            }
+          }
+          
+          const result = checkFileFormatFromText(fullText);
+          if (result.valid) {
+            setChapters(result.chapters);
+            setChapterCount(result.chapters.length);
+            
+            const total = result.chapters.reduce(
+              (sum, chapter) => sum + chapter.content.split(/\s+/).filter(Boolean).length,
+              0
+            );
+            setTotalWords(total);
+            setAverageWords(result.chapters.length > 0 ? Math.round(total / result.chapters.length) : 0);
+            
+            setSuccess("✅ File EPUB đã được xử lý thành công.");
+          } else {
+            throw new Error("Không tìm thấy chương nào hợp lệ trong file EPUB.");
+          }
+        } else if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
           handleTxtFile(
             reader.result,
             setChapters,
@@ -130,17 +180,23 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
             file,
             setChapterCount,
             setTotalWords,
-            setAverageWords,
-            setBooks,
-            setAuthor
+            setAverageWords
           );
+        } else {
+          throw new Error("Định dạng file không được hỗ trợ. Chỉ chấp nhận file .epub hoặc .txt");
         }
       } catch (err) {
         console.error("Lỗi khi xử lý file:", err);
         setError(err.message);
       }
     };
-    reader.readAsText(file);
+    
+    // Sử dụng readAsArrayBuffer cho EPUB, readAsText cho TXT
+    if (file.type === "application/epub+zip" || file.name.toLowerCase().endsWith(".epub")) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
   };
 
   // Cập nhật hàm handleSubmit để sử dụng tất cả các key đã chọn

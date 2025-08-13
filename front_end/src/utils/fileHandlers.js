@@ -168,13 +168,25 @@ const handleEpubFile = async (
     await book.ready;
 
     let fullText = "";
-    for (const item of book.spine.spineItems) {
-      const section = await book.load(item.url);
-      const contents = section.querySelector("body");
-      if (contents) {
-        fullText += contents.innerText + "\n\n";
+    const spineItems = book.spine.spineItems;
+    
+    console.log("📚 [handleEpubFile] Spine items:", spineItems.length);
+    console.log("📚 [handleEpubFile] First spine item:", spineItems[0]);
+    
+    // Sử dụng cách xử lý đơn giản và an toàn với epubjs
+    for (const item of spineItems) {
+      try {
+        // Sử dụng cách xử lý đơn giản nhất
+        const section = await book.load(item.url);
+        const contents = section.querySelector("body");
+        if (contents) {
+          fullText += contents.innerText + "\n\n";
+        }
+        await item.unload();
+      } catch (itemError) {
+        console.warn(`⚠️ Lỗi khi xử lý item ${item.url}:`, itemError);
+        continue;
       }
-      await item.unload();
     }
     console.log("📄 [handleEpubFile] Đã trích xuất văn bản từ EPUB. Kích thước:", fullText.length);
 

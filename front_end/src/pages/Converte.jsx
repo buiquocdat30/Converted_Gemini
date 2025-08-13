@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import ePub from "epubjs"; // nếu dùng epub.js
 import axios from "axios";
 import { saveAs } from "file-saver";
-import { cleanContentForExport } from "../utils/fileHandlers";
+import { 
+  cleanContentForExport, 
+  handleEpubFile, 
+  handleTxtFile, 
+  checkFileFormatFromText 
+} from "../utils/fileHandlers";
 import ConversionComparison from "../components/ConversionComparison/ConversionComparison";
 import TranslationInfoPanel from "../components/TranslationInfoPanel/TranslationInfoPanel";
 import "./pageCSS/Converte.css"; // Import file CSS
@@ -24,63 +28,17 @@ const Converte = () => {
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const checkFileFormatFromText = (text) => {
-    const chapterRegex =
-      /^\s*((?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*\d+[^\n]*|第[\d零〇一二三四五六七八九十百千]+章[^\n]*)$/im;
 
-    const lines = text.split(/\r?\n/).map((line) => line.trimEnd());
-
-    const chapters = [];
-    let currentTitle = null;
-    let currentContent = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (chapterRegex.test(line)) {
-        if (currentTitle !== null) {
-          chapters.push({
-            title: currentTitle,
-            content: `\n\n${currentContent.join("\n").trim()}\n`, // đảm bảo xuống dòng trước & sau
-          });
-          currentContent = [];
-        }
-        currentTitle = line;
-      } else {
-        if (currentTitle !== null) {
-          currentContent.push(line);
-        }
-      }
-    }
-
-    if (currentTitle !== null) {
-      chapters.push({
-        title: currentTitle,
-        content: `\n\n${currentContent.join("\n").trim()}\n`,
-      });
-    }
-
-    const valid =
-      chapters.length > 0 &&
-      chapters.every(
-        (ch) => ch.title && ch.content && ch.content.trim().length > 0
-      );
-
-    setError(valid ? "✅ Đúng định dạng chương!" : "❌ Sai định dạng chương!");
-
-    return {
-      valid,
-      chapters,
-      total: chapters.length,
-    };
-  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
   
     const allowedTypes = ["application/epub+zip", "text/plain"];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedExtensions = [".epub", ".txt"];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
       alert("❗ Chỉ chấp nhận file .epub hoặc .txt");
       if (fileInputRef.current) fileInputRef.current.value = "";
       setSelectedFile(null);
@@ -104,36 +62,30 @@ const Converte = () => {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        let text = "";
-  
-        if (file.type === "application/epub+zip") {
-          const epub = await import("epubjs");
-          const book = epub.default(file);
-          await book.ready;
-          const spineItems = book.spine.spineItems;
-          const chapters = await Promise.all(
-            spineItems.map((item) => item.load(book.load.bind(book)).then(() => item.getTextContent()))
+        if (file.type === "application/epub+zip" || file.name.toLowerCase().endsWith(".epub")) {
+          const chapters = await handleEpubFile(
+            reader.result,
+            setRawChapters,
+            setError,
+            setSuccess,
+            setChapterCount,
+            setTotalWords,
+            setAverageWords
           );
-          text = chapters.join("\n\n");
-        } else {
-          text = reader.result;
+        } else if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
+          const chapters = handleTxtFile(
+            reader.result,
+            setRawChapters,
+            setError,
+            setSuccess,
+            fileInputRef,
+            setSelectedFile,
+            file,
+            setChapterCount,
+            setTotalWords,
+            setAverageWords
+          );
         }
-  
-        const { valid, chapters } = checkFileFormatFromText(text); // <- gọi hàm check format
-  
-        console.log('đây là valid:',valid)
-        console.log('đây là chapters:',chapters)
-        setRawChapters(chapters);
-        setChapterCount(chapters.length);
-
-        
-  
-        const total = chapters.reduce(
-          (sum, chapter) => sum + chapter.content.split(/\s+/).filter(Boolean).length,
-          0
-        );
-        setTotalWords(total);
-        setAverageWords(chapters.length > 0 ? Math.round(total / chapters.length) : 0);
   
         setCurrentIndex(0);
         setConvertedChapters([]); // vẫn để trống ban đầu
@@ -145,7 +97,7 @@ const Converte = () => {
       }
     };
   
-    if (file.type === "application/epub+zip") {
+    if (file.type === "application/epub+zip" || file.name.toLowerCase().endsWith(".epub")) {
       reader.readAsArrayBuffer(file);
     } else {
       reader.readAsText(file);
@@ -157,12 +109,32 @@ const Converte = () => {
     if (selectedFile) {
       const reader = new FileReader();
       reader.onload = async () => {
-        const text = reader.result;
-        checkFileFormatFromText(text);
+        try {
+          let text = reader.result;
+          
+          // Nếu là file EPUB, cần xử lý khác
+          if (selectedFile.type === "application/epub+zip" || selectedFile.name.toLowerCase().endsWith(".epub")) {
+            // Không xử lý EPUB trong useEffect này vì đã được xử lý trong handleFileSelect
+            return;
+          }
+          
+          const result = checkFileFormatFromText(text);
+          if (result.valid) {
+            setError("✅ Đúng định dạng chương!");
+          } else {
+            setError("❌ Sai định dạng chương!");
+          }
+        } catch (err) {
+          console.error("Lỗi trong useEffect:", err);
+        }
       };
-      reader.readAsText(selectedFile);
+      
+      if (selectedFile.type === "application/epub+zip" || selectedFile.name.toLowerCase().endsWith(".epub")) {
+        reader.readAsArrayBuffer(selectedFile);
+      } else {
+        reader.readAsText(selectedFile);
+      }
     }
-
   }, [selectedFile]);
 
   const handleCheckFileFormat = () => {
@@ -268,7 +240,7 @@ const Converte = () => {
         className="translation-info"
       />
 
-        {    console.log('đây là rawChapters:',rawChapters)}
+
       <ConversionComparison
         rawChapters={rawChapters}
         convertedChapters={convertedChapters}
