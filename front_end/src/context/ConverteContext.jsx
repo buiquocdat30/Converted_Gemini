@@ -482,12 +482,17 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Không tìm thấy token xác thực");
       }
 
-      // Đọc file bằng FileReader
+      // Đọc file bằng FileReader (EPUB phải đọc dạng ArrayBuffer, TXT đọc dạng text)
       const reader = new FileReader();
+      const fileExt = file.name.split('.').pop().toLowerCase();
       const fileContent = await new Promise((resolve, reject) => {
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
-        reader.readAsText(file);
+        if (fileExt === 'epub') {
+          reader.readAsArrayBuffer(file);
+        } else {
+          reader.readAsText(file);
+        }
       });
 
       let chapters = [];
@@ -496,7 +501,6 @@ export const AuthProvider = ({ children }) => {
       };
 
       // Xử lý file dựa vào định dạng
-      const fileExt = file.name.split('.').pop().toLowerCase();
       if (fileExt === 'epub') {
         await handleEpubFile(
           fileContent,
@@ -506,8 +510,6 @@ export const AuthProvider = ({ children }) => {
           () => {}, // setChapterCount
           () => {}, // setTotalWords
           () => {}, // setAverageWords
-          () => {}, // setBooks
-          () => {}  // setAuthor
         );
       } else if (fileExt === 'txt') {
         handleTxtFile(
@@ -743,6 +745,7 @@ export const AuthProvider = ({ children }) => {
         menu,
         loading,
         error,
+        setError,
         userData,
         stories,
         userApiKey,

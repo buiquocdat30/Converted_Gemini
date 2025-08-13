@@ -214,9 +214,10 @@ const UploadForm = ({ onFileParsed, isDarkMode }) => {
 
     if (isLoggedIn) {
       console.log("👤 Người dùng đã đăng nhập, chuẩn bị tạo truyện mới");
+      // Lấy giá trị từ TranslationInfoPanel (books/author) làm mặc định cho modal
       const defaultStoryInfo = {
-        name: `Truyện mới - ${new Date().toLocaleString("vi-VN")}`,
-        author: "Không biết",
+        name: (books && books.trim()) ? books.trim() : `Truyện mới - ${new Date().toLocaleString("vi-VN")}`,
+        author: (author && author.trim()) ? author.trim() : "Không biết",
         storyAvatar: "/default-avatar.jpg",
       };
       console.log("📝 Thông tin truyện mặc định:", defaultStoryInfo);
