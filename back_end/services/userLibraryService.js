@@ -156,6 +156,17 @@ const userLibraryService = {
           "📚 Tiêu đề các chương sau khi tạo:",
           createdChapters.map((c) => `${c.chapterNumber}. ${c.chapterName}`)
         );
+
+        // 👉 CẬP NHẬT totalChapters trong bảng UserLibraryStory
+        const totalChapters = createdChapters.length;
+        await prisma.userLibraryStory.update({
+          where: { id: story.id },
+          data: {
+            totalChapters: totalChapters,
+            updatedAt: new Date()
+          }
+        });
+        console.log(`✅ Đã cập nhật totalChapters: ${totalChapters}`);
       }
 
       // Lấy lại truyện với chapters đã được sắp xếp
@@ -336,7 +347,7 @@ const userLibraryService = {
       );
 
       // Tạo chương mới
-      return await prisma.userLibraryChapter.create({
+      const newChapter = await prisma.userLibraryChapter.create({
         data: {
           storyId: data.storyId,
           chapterNumber: data.chapterNumber,
@@ -347,6 +358,22 @@ const userLibraryService = {
           updatedAt: new Date(),
         },
       });
+
+      // 👉 Sau khi tạo chương mới, cập nhật totalChapters
+      const chapterCount = await prisma.userLibraryChapter.count({
+        where: { storyId: data.storyId }
+      });
+
+      await prisma.userLibraryStory.update({
+        where: { id: data.storyId },
+        data: {
+          totalChapters: chapterCount,
+          updatedAt: new Date()
+        }
+      });
+      console.log(`✅ Đã cập nhật totalChapters: ${chapterCount}`);
+
+      return newChapter;
     } catch (error) {
       console.error("Error in addChapter:", error);
       throw error;
@@ -408,7 +435,8 @@ const userLibraryService = {
    * @returns {Promise<Object>} Kết quả xóa chương
    */
   deleteChapter: async (storyId, chapterNumber, userId) => {
-    return await prisma.userLibraryChapter.deleteMany({
+    // Xóa chương
+    const deleteResult = await prisma.userLibraryChapter.deleteMany({
       where: {
         storyId: storyId,
         chapterNumber: parseInt(chapterNumber),
@@ -417,6 +445,22 @@ const userLibraryService = {
         },
       },
     });
+
+    // 👉 Sau khi xóa chương, cập nhật totalChapters
+    const chapterCount = await prisma.userLibraryChapter.count({
+      where: { storyId: storyId }
+    });
+
+    await prisma.userLibraryStory.update({
+      where: { id: storyId },
+      data: {
+        totalChapters: chapterCount,
+        updatedAt: new Date()
+      }
+    });
+    console.log(`✅ Đã cập nhật totalChapters sau khi xóa: ${chapterCount}`);
+
+    return deleteResult;
   },
 
   // ==============================================
