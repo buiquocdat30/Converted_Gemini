@@ -51,13 +51,35 @@ const convertChineseNumber = (chineseNum) => {
     零: 0, 〇: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 百: 100, 千: 1000,
   };
 
+  // Xử lý trường hợp đặc biệt
+  if (chineseNum.length === 1) {
+    return chineseNumbers[chineseNum] || 0;
+  }
+
+  // Xử lý trường hợp số ghép như "一七四" (174)
+  // Kiểm tra xem có phải là dãy số đơn lẻ không
+  let isSequence = true;
+  for (let i = 0; i < chineseNum.length; i++) {
+    const char = chineseNum[i];
+    if (!chineseNumbers[char] || chineseNumbers[char] > 9) {
+      isSequence = false;
+      break;
+    }
+  }
+
+  // Nếu là dãy số đơn lẻ (như "一七四"), ghép lại thành số
+  if (isSequence) {
+    let result = "";
+    for (let i = 0; i < chineseNum.length; i++) {
+      result += chineseNumbers[chineseNum[i]];
+    }
+    return parseInt(result, 10);
+  }
+
+  // Xử lý trường hợp số Hán tự truyền thống (như "十五", "二十" v.v.)
   let result = 0;
   let currentNum = 0;
   
-  if (chineseNum.length === 1 && chineseNumbers[chineseNum] !== undefined) {
-    return chineseNumbers[chineseNum];
-  }
-
   for (let i = 0; i < chineseNum.length; i++) {
     const char = chineseNum[i];
     const value = chineseNumbers[char];
@@ -73,35 +95,51 @@ const convertChineseNumber = (chineseNum) => {
     }
   }
   result += currentNum;
+  
+  // Xử lý trường hợp đặc biệt
   if (result === 0 && chineseNum.includes("十") && chineseNum.length === 1) {
     result = 10;
   }
+  
   return result;
 };
 
 
 // Hàm trích số chương từ tiêu đề (đồng bộ với backend)
 const extractChapterNumber = (title) => {
-  // Trường hợp 1: Dạng "第 [Số Ả Rập] 章" (ví dụ: "第16章")
+  console.log(`🔍 [extractChapterNumber] Đang xử lý tiêu đề: "${title}"`);
+  
+  // Trường hợp 1: Dạng "第 [Số Ả Rập] 章" (ví dụ: "第16章", "第174章")
   let match = title.match(/第(\d+)章/i);
   if (match && match[1]) {
-    return parseInt(match[1], 10);
+    const number = parseInt(match[1], 10);
+    console.log(`✅ [extractChapterNumber] Tìm thấy số Ả Rập: ${number}`);
+    return number;
   }
 
-  // Trường hợp 2: Dạng "第 [Số Hán Tự] 章" (ví dụ: "第十五章")
+  // Trường hợp 2: Dạng "第 [Số Hán Tự] 章" (ví dụ: "第十五章", "第一七四章")
   match = title.match(/第([一二三四五六七八九十百千零〇]+)章/i);
   if (match && match[1]) {
-    if (!/\d/.test(match[1])) {
-      return convertChineseNumber(match[1]);
+    const chineseNum = match[1];
+    console.log(`🔤 [extractChapterNumber] Tìm thấy số Hán tự: "${chineseNum}"`);
+    
+    // Kiểm tra xem có chứa số Ả Rập không
+    if (!/\d/.test(chineseNum)) {
+      const convertedNumber = convertChineseNumber(chineseNum);
+      console.log(`🔄 [extractChapterNumber] Chuyển đổi "${chineseNum}" thành: ${convertedNumber}`);
+      return convertedNumber;
     }
   }
 
   // Trường hợp 3: Dạng "Chương N" hoặc "Chapter N"
   match = title.match(/(?:Chương|CHƯƠNG|Chapter|CHAPTER)\s*(\d+)/i);
   if (match && match[1]) {
-    return parseInt(match[1], 10);
+    const number = parseInt(match[1], 10);
+    console.log(`✅ [extractChapterNumber] Tìm thấy tiêu đề tiếng Việt/Anh: ${number}`);
+    return number;
   }
 
+  console.log(`❌ [extractChapterNumber] Không thể trích xuất số chương từ: "${title}"`);
   return 0;
 };
 
