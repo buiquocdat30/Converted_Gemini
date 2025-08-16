@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
+const compress = require("compression");
 
 // Import routes
 const uploadRoute = require("./routes/uploadRoute");
@@ -32,6 +33,7 @@ app.use(cors({
 app.use("/data/upload", express.static(path.join(__dirname, "data/upload")));
 app.use(bodyParser.json({ limit: "100mb" }));
 app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
+app.use(compress()); // Thêm middleware nén ở đây
 
 // Route
 // Route upload file

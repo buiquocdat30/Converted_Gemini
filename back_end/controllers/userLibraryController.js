@@ -2,6 +2,7 @@ const userLibraryService = require("../services/userLibraryService");
 const { readEpub } = require("../services/epubService");
 const { readTxt } = require("../services/txtServices");
 const path = require("path");
+const redisClient = require("../redisClient");
 
 const userLibraryController = {
   // ==============================================
@@ -211,23 +212,48 @@ const userLibraryController = {
   getChapters: async (req, res) => {
     try {
       const { storyId } = req.params;
+      const { page = 1, limit = 10 } = req.query; // Thêm phân trang
       const userId = req.user.id;
       console.log("getChapters - Story ID:", storyId);
       console.log("getChapters - User ID:", userId);
+      console.log(`getChapters - Page: ${page}, Limit: ${limit}`);
 
       if (!userId) {
         return res.status(400).json({ error: "Không tìm thấy ID người dùng" });
       }
 
-      const chapters = await userLibraryService.getChapters(storyId, userId);
-      // Thêm trường hasError cho từng chương
+      const cacheKey = `chapters:${storyId}:${page}:${limit}:userId:${userId}`;
+      console.log(`[REDIS] Kiểm tra cache cho key: ${cacheKey}`);
+      const cachedChapters = await redisClient.get(cacheKey);
+
+      if (cachedChapters) {
+        console.log(`[REDIS] Cache HIT cho key: ${cacheKey}`);
+        const parsedChapters = JSON.parse(cachedChapters);
+        // Thêm trường hasError cho từng chương từ cache
+        const chaptersWithError = parsedChapters.map(chapter => ({
+          ...chapter,
+          hasError: chapter.status === 'FAILED' || !!chapter.translationError
+        }));
+        return res.json(chaptersWithError);
+      }
+
+      console.log(`[REDIS] Cache MISS cho key: ${cacheKey}. Đang lấy từ DB...`);
+      console.log("Giá trị của userLibraryService trước khi gọi: ", userLibraryService);
+      const chapters = await userLibraryService.getChapters(storyId, userId, parseInt(page), parseInt(limit));
+      
+      // Thêm trường hasError cho từng chương từ DB
       const chaptersWithError = chapters.map(chapter => ({
         ...chapter,
         hasError: chapter.status === 'FAILED' || !!chapter.translationError
       }));
+
+      // Lưu vào Redis cache với TTL (ví dụ: 1 giờ = 3600 giây)
+      await redisClient.setEx(cacheKey, 3600, JSON.stringify(chaptersWithError));
+      console.log(`[REDIS] Đã lưu vào cache cho key: ${cacheKey}`);
+      
       res.json(chaptersWithError);
     } catch (error) {
-      console.error("Error getting chapters:", error);
+      console.error("Error getting chapters in controller:", error);
       res.status(500).json({ error: "Lỗi khi lấy danh sách chương" });
     }
   },
