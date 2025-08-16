@@ -266,10 +266,15 @@ const userLibraryService = {
    * Lấy danh sách chương của truyện
    * @param {string} storyId - ID của truyện
    * @param {string} userId - ID của người dùng
+   * @param {number} page - Số trang hiện tại
+   * @param {number} limit - Số lượng chương mỗi trang
    * @returns {Promise<Array>} Danh sách chương
    */
-  getChapters: async (storyId, userId) => {
+  getChapters: async (storyId, userId, page = 1, limit = 10) => {
     try {
+      const skip = (page - 1) * limit;
+      const take = limit;
+
       const chapters = await prisma.userLibraryChapter.findMany({
         where: {
           story: {
@@ -284,6 +289,8 @@ const userLibraryService = {
         orderBy: {
           chapterNumber: "asc",
         },
+        skip: skip,
+        take: take,
       });
 
       // Chuyển đổi các trường DateTime và đảm bảo thứ tự
@@ -309,7 +316,7 @@ const userLibraryService = {
         })),
       }));
     } catch (error) {
-      console.error("Error in getChapters:", error);
+      console.error("Error in getChapters service:", error);
       throw error;
     }
   },
