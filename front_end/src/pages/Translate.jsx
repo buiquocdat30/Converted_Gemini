@@ -89,18 +89,19 @@ const Translate = () => {
       }
 
       const story = response.data;
+      // Đảm bảo story.chapters luôn là một mảng
+      const rawChapters = story.chapters && Array.isArray(story.chapters)
+        ? story.chapters
+        : [];
 
-
-      if (!story.chapters || !Array.isArray(story.chapters)) {
-        console.error("❌ Dữ liệu chương không hợp lệ:", story.chapters);
-        alert("Dữ liệu chương không hợp lệ. Vui lòng thử lại sau.");
-        return;
+      if (rawChapters.length === 0) {
+        console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", storyId);
       }
 
       setCurrentStory(story);
 
       // Chuyển đổi dữ liệu chương từ UserLibraryChapter sang định dạng phù hợp
-      const formattedChapters = story.chapters.map((chapter) => {
+      const formattedChapters = rawChapters.map((chapter) => {
 
         return {
           id: chapter.id,

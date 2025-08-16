@@ -43,7 +43,6 @@ const userLibraryController = {
       }
 
       const story = await userLibraryService.getStoryById(id, userId);
-
       if (!story) {
         return res.status(404).json({ error: "Không tìm thấy truyện" });
       }
