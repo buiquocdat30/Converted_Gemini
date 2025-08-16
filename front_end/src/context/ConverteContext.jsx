@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
   // 🚀 Thêm useEffect để áp dụng background ngay khi app khởi động
   useEffect(() => {
     if (userData.backgroundImage) {
-      const bgImage = `http://localhost:8000/data/upload/background/${userData.backgroundImage}`;
+      const bgImage = `${API_URL}/data/upload/background/${userData.backgroundImage}`;
       document.body.style.backgroundImage = `url(${bgImage})`;
       document.body.style.backgroundSize = "cover";
       document.body.style.backgroundPosition = "center";
