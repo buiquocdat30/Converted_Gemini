@@ -224,34 +224,72 @@ const userLibraryController = {
 
       const cacheKey = `chapters:${storyId}:${page}:${limit}:userId:${userId}`;
       console.log(`[REDIS] Kiểm tra cache cho key: ${cacheKey}`);
-      const cachedChapters = await redisClient.get(cacheKey);
 
-      if (cachedChapters) {
+      let cachedResponse = null;
+      if (redisClient.isReady) {
+        try {
+          cachedResponse = await redisClient.get(cacheKey);
+        } catch (redisError) {
+          console.error(`[REDIS] Lỗi khi lấy cache cho ${cacheKey}:`, redisError);
+          cachedResponse = null;
+        }
+      } else {
+        console.warn(`[REDIS] Redis client chưa sẵn sàng. Bỏ qua cache cho key: ${cacheKey}`);
+      }
+
+      if (cachedResponse) {
         console.log(`[REDIS] Cache HIT cho key: ${cacheKey}`);
-        const parsedChapters = JSON.parse(cachedChapters);
-        // Thêm trường hasError cho từng chương từ cache
-        const chaptersWithError = parsedChapters.map(chapter => ({
+        const parsedResponse = JSON.parse(cachedResponse);
+        //console.log("[REDIS] parsedResponse: ", parsedResponse);
+        let chaptersFromCache;
+        let totalChaptersCountFromCache;
+
+        // Kiểm tra nếu parsedResponse là đối tượng có thuộc tính chapters và totalChaptersCount
+        if (parsedResponse && typeof parsedResponse === 'object' && Array.isArray(parsedResponse.chapters) && typeof parsedResponse.totalChaptersCount === 'number') {
+          chaptersFromCache = parsedResponse.chapters;
+          totalChaptersCountFromCache = parsedResponse.totalChaptersCount;
+        } 
+        // Nếu parsedResponse là một mảng chương trực tiếp (dữ liệu cache cũ hoặc định dạng khác)
+        else if (Array.isArray(parsedResponse)) {
+          chaptersFromCache = parsedResponse;
+          // Ưu tiên sử dụng totalChaptersCount nếu có, nếu không thì dùng độ dài của mảng chương
+          totalChaptersCountFromCache = parsedResponse.totalChaptersCount || parsedResponse.length; 
+        } else {
+          // Trường hợp không xác định được định dạng cache
+          console.warn("[REDIS] Định dạng cache không xác định hoặc không hợp lệ. Bỏ qua cache.");
+          cachedResponse = null; // Bỏ qua cache và tiếp tục lấy từ DB
+          // Rút gọn phần này để tránh lỗi khi không dùng cachedResponse nữa
+          return; // Thoát khỏi khối if (cachedResponse)
+        }
+
+        const chaptersWithError = chaptersFromCache.map(chapter => ({
           ...chapter,
           hasError: chapter.status === 'FAILED' || !!chapter.translationError
         }));
-        return res.json(chaptersWithError);
+        console.log('totalChaptersCountFromCache: ', totalChaptersCountFromCache);
+        return res.json({ chapters: chaptersWithError, totalChaptersCount: totalChaptersCountFromCache });
       }
 
       console.log(`[REDIS] Cache MISS cho key: ${cacheKey}. Đang lấy từ DB...`);
       console.log("Giá trị của userLibraryService trước khi gọi: ", userLibraryService);
-      const chapters = await userLibraryService.getChapters(storyId, userId, parseInt(page), parseInt(limit));
+      const { chapters, totalChaptersCount } = await userLibraryService.getChapters(storyId, userId, parseInt(page), parseInt(limit));
       
-      // Thêm trường hasError cho từng chương từ DB
       const chaptersWithError = chapters.map(chapter => ({
         ...chapter,
         hasError: chapter.status === 'FAILED' || !!chapter.translationError
       }));
 
       // Lưu vào Redis cache với TTL (ví dụ: 1 giờ = 3600 giây)
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(chaptersWithError));
-      console.log(`[REDIS] Đã lưu vào cache cho key: ${cacheKey}`);
+      if (redisClient.isReady) {
+        try {
+          await redisClient.setEx(cacheKey, 3600, JSON.stringify({ chapters: chaptersWithError, totalChaptersCount }));
+          console.log(`[REDIS] Đã lưu vào cache cho key: ${cacheKey}`);
+        } catch (redisError) {
+          console.error(`[REDIS] Lỗi khi lưu cache cho ${cacheKey}:`, redisError);
+        }
+      }
       
-      res.json(chaptersWithError);
+      res.json({ chapters: chaptersWithError, totalChaptersCount });
     } catch (error) {
       console.error("Error getting chapters in controller:", error);
       res.status(500).json({ error: "Lỗi khi lấy danh sách chương" });

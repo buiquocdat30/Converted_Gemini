@@ -275,6 +275,16 @@ const userLibraryService = {
       const skip = (page - 1) * limit;
       const take = limit;
 
+      // Lấy tổng số chương cho truyện
+      const totalChaptersCount = await prisma.userLibraryChapter.count({
+        where: {
+          story: {
+            id: storyId,
+            userId: userId,
+          },
+        },
+      });
+
       const chapters = await prisma.userLibraryChapter.findMany({
         where: {
           story: {
@@ -293,8 +303,11 @@ const userLibraryService = {
         take: take,
       });
 
+      // Đảm bảo chapters là một mảng trước khi map
+      const chaptersToFormat = Array.isArray(chapters) ? chapters : [];
+
       // Chuyển đổi các trường DateTime và đảm bảo thứ tự
-      return chapters.map((chapter) => ({
+      const formattedChapters = chaptersToFormat.map((chapter) => ({
         ...chapter,
         createdAt: chapter.createdAt ? new Date(chapter.createdAt) : null,
         updatedAt: chapter.updatedAt ? new Date(chapter.updatedAt) : null,
@@ -315,6 +328,8 @@ const userLibraryService = {
           updatedAt: version.updatedAt ? new Date(version.updatedAt) : null,
         })),
       }));
+      
+      return { chapters: formattedChapters, totalChaptersCount }; // Trả về cả danh sách chương và tổng số lượng
     } catch (error) {
       console.error("Error in getChapters service:", error);
       throw error;

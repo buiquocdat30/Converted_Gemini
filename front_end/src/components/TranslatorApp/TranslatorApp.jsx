@@ -28,6 +28,10 @@ const TranslatorApp = ({
   setModel,
   isDarkMode,
   currentStory,
+  currentPage,
+  chaptersPerPage,
+  onPageChange,
+  totalStoryChapters, // Nhận prop totalStoryChapters
 }) => {
   const {
     selectedKeys: sessionSelectedKeys,
@@ -43,7 +47,7 @@ const TranslatorApp = ({
   const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
   const [tempKey, setTempKey] = useState(sessionCurrentKey || apiKey || ""); //kiểm soát key
   const [isMenuOpen, setIsMenuOpen] = useState(false); //kiểm soát topmenu
-  const [isAddChapterModalOpen, setIsAddChapterModalOpen] = useState(false);
+  const [isAddChapterModalOpen, setIsAddChapterModal] = useState(false);
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
   const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
   const [selectedKeys, setSelectedKeys] = useState(sessionSelectedKeys || []); // Thêm state để lưu danh sách key đã chọn
@@ -541,7 +545,7 @@ const TranslatorApp = ({
         );
         if (isTitleDuplicate) {
           toast.error("❌ Tên chương đã tồn tại! Vui lòng chọn tên khác.");
-          setIsAddChapterModalOpen(true);
+          setIsAddChapterModal(true);
           return;
         }
 
@@ -567,7 +571,7 @@ const TranslatorApp = ({
           });
 
           // Chỉ đóng modal và hiển thị thông báo thành công khi thêm chương thành công
-          setIsAddChapterModalOpen(false);
+          setIsAddChapterModal(false);
           toast.success("✅ Đã thêm chương mới!");
           onChapterAdded?.();
         } catch (error) {
@@ -658,7 +662,7 @@ const TranslatorApp = ({
           }
 
           if (successCount > 0) {
-            setIsAddChapterModalOpen(false);
+            setIsAddChapterModal(false);
             toast.success(`✅ Đã thêm ${successCount} chương mới từ file!`);
             onChapterAdded?.();
           }
@@ -777,7 +781,12 @@ const TranslatorApp = ({
       model: tempModel,
       //models: allModels,
       currentIndex,
+      // 🚀 Thêm currentPage, chaptersPerPage, onPageChange vào console log
+      currentPage, 
+      chaptersPerPage,
+      onPageChange,
       storyId,
+      totalStoryChapters, // Truyền totalStoryChapters vào console log
     });
   });
 
@@ -813,7 +822,7 @@ const TranslatorApp = ({
         className="menu-toggle-button add-chapter-button"
         onClick={(e) => {
           e.stopPropagation();
-          setIsAddChapterModalOpen(true);
+          setIsAddChapterModal(true);
         }}
       >
         ➕<span className="tooltip-text">Thêm chương</span>
@@ -821,7 +830,7 @@ const TranslatorApp = ({
 
       <AddChapterModal
         isOpen={isAddChapterModalOpen}
-        onClose={() => setIsAddChapterModalOpen(false)}
+        onClose={() => setIsAddChapterModal(false)}
         onAdd={handleAddChapter}
         onCloseComplete={() => {
           setShouldRefresh(true);
@@ -892,6 +901,10 @@ const TranslatorApp = ({
             storyId={storyId}
             deleteChapter={deleteChapter}
             onChapterAdded={onChapterAdded}
+            currentPage={currentPage} // Truyền currentPage xuống
+            chaptersPerPage={chaptersPerPage} // Truyền chaptersPerPage xuống
+            onPageChange={onPageChange} // Truyền hàm xử lý chuyển trang xuống
+            totalStoryChapters={totalStoryChapters} // Truyền totalStoryChapters xuống
           />
         </div>
         <div className="translate-viewer-container">

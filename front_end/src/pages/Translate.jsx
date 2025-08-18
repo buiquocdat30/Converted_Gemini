@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import UploadForm from "../components/UploadForm/UploadForm";
 import TranslatorApp from "../components/TranslatorApp/TranslatorApp";
 import StoryInfoForm from "../components/StoryInfoForm/StoryInfoForm";
@@ -35,6 +35,11 @@ const Translate = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Thêm state cho phân trang chương
+  const [currentPage, setCurrentPage] = useState(1);
+  const chaptersPerPage = 10; // Giữ nguyên 10 chương mỗi trang như ChapterList
+  const [totalStoryChapters, setTotalStoryChapters] = useState(0); // Thêm state để lưu tổng số chương của truyện
+
   useEffect(() => {
     const storyId = searchParams.get("storyId");
     const tab = searchParams.get("tab");
@@ -45,9 +50,9 @@ const Translate = () => {
     }
 
     if (storyId) {
-      loadTranslatingStory(storyId);
+      loadTranslatingStory(storyId, currentPage, chaptersPerPage);
     }
-  }, [searchParams]);
+  }, [searchParams, currentPage, chaptersPerPage]); // Thêm currentPage và chaptersPerPage vào dependency array
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -64,7 +69,7 @@ const Translate = () => {
   }, [stories]);
 
   // Tải truyện đang dịch dựa vào storyId từ URL
-  const loadTranslatingStory = async (storyId) => {
+  const loadTranslatingStory = async (storyId, page, limit) => {
     try {
       const token = localStorage.getItem("auth-token");
       if (!token) {
@@ -73,7 +78,10 @@ const Translate = () => {
         return;
       }
 
-      const response = await axios.get(
+      console.log(`[Translate.jsx] 🚀 Đang tải truyện: storyId=${storyId}, page=${page}, limit=${limit}`);
+
+      // Lấy thông tin truyện (không bao gồm chapters ban đầu)
+      const storyInfoResponse = await axios.get(
         `http://localhost:8000/user/library/${storyId}`,
         {
           headers: {
@@ -82,23 +90,35 @@ const Translate = () => {
         }
       );
 
-      if (!response.data) {
+      if (!storyInfoResponse.data) {
         console.error("❌ Không nhận được dữ liệu truyện");
         alert("Không thể tải thông tin truyện. Vui lòng thử lại sau.");
         return;
       }
+      setCurrentStory(storyInfoResponse.data);
 
-      const story = response.data;
-      // Đảm bảo story.chapters luôn là một mảng
-      const rawChapters = story.chapters && Array.isArray(story.chapters)
-        ? story.chapters
+      // Lấy chương truyện theo phân trang
+      const chaptersResponse = await axios.get(
+        `http://localhost:8000/user/library/${storyId}/chapters?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("[Translate.jsx] 📥 Phản hồi chương từ BE:", chaptersResponse.data);
+
+      const rawChapters = chaptersResponse.data && Array.isArray(chaptersResponse.data.chapters)
+        ? chaptersResponse.data.chapters
         : [];
+      
+      // Cập nhật tổng số chương của truyện
+      setTotalStoryChapters(chaptersResponse.data.totalChaptersCount || 0);
 
       if (rawChapters.length === 0) {
         console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", storyId);
       }
-
-      setCurrentStory(story);
 
       // Chuyển đổi dữ liệu chương từ UserLibraryChapter sang định dạng phù hợp
       const formattedChapters = rawChapters.map((chapter) => {
@@ -117,6 +137,10 @@ const Translate = () => {
           chapterNumber: chapter.chapterNumber,
           // Thêm rawText để có thể truy cập nội dung gốc khi cần
           rawText: chapter.rawText || "",
+          // Thêm trạng thái và lỗi từ BE
+          status: chapter.status,
+          hasError: chapter.hasError,
+          translationError: chapter.translationError
         };
       });
 
@@ -151,6 +175,8 @@ const Translate = () => {
       window.history.pushState({}, "", newUrl);
       setCurrentStory(null);
       setChapters([]);
+      // Reset currentPage về 1 khi chuyển tab
+      setCurrentPage(1);
     }
   };
 
@@ -160,6 +186,8 @@ const Translate = () => {
     setChapters(parsedChapters);
     setApiKey(key);
     setModel(model);
+    // Khi parse file mới, reset currentPage về 1
+    setCurrentPage(1);
   };
 
   // Cập nhật nội dung chương đã dịch
@@ -187,19 +215,10 @@ const Translate = () => {
         timeTranslation
       );
 
-      // Cập nhật state local
-      setChapters(prevChapters => 
-        prevChapters.map(chapter => 
-          chapter.storyId === storyId && chapter.chapterNumber === chapterNumber
-            ? {
-                ...chapter,
-                translatedTitle: translatedTitle || chapter.chapterName,
-                translatedContent: translatedContent || chapter.content,
-                status: "TRANSLATED"
-              }
-            : chapter
-        )
-      );
+      // Sau khi cập nhật thành công, xóa chương này khỏi cache Redis ở backend
+      // Bằng cách gọi lại hàm loadTranslatingStory để nó lấy dữ liệu mới từ DB
+      // và cập nhật lại cache
+      await loadTranslatingStory(storyId, currentPage, chaptersPerPage);
 
       console.log("✅ Cập nhật thành công:", response);
       return response;
@@ -223,11 +242,11 @@ const Translate = () => {
         "http://localhost:8000/user/library",
         {
           ...storyInfo,
+          // Khi lưu truyện mới, không cần gửi toàn bộ chapters, vì BE sẽ tự xử lý
+          // Dựa vào file upload hoặc `chapters` nếu có
           chapters: chapters.map((ch) => ({
-            title: ch.title,
-            content: ch.content,
-            translated: ch.translated || "",
-            translatedTitle: ch.translatedTitle || ch.title,
+            chapterName: ch.chapterName,
+            rawText: ch.content, // Gửi rawText thay vì content
           })),
         },
         {
@@ -237,6 +256,11 @@ const Translate = () => {
         }
       );
       setCurrentStory(response.data);
+      // Sau khi lưu truyện thành công, chuyển sang tab "translating" và load truyện đó
+      navigate(`/translate?storyId=${response.data.id}&tab=translating`);
+      setActiveTab("translating");
+      // Tải lại chapters cho truyện vừa lưu (trang 1)
+      loadTranslatingStory(response.data.id, 1, chaptersPerPage);
       return response.data;
     } catch (error) {
       console.error("Lỗi khi lưu truyện:", error);
@@ -261,7 +285,8 @@ const Translate = () => {
         }
       );
       console.log("✅ Cập nhật thành công:", response.data);
-      setCurrentStory(response.data);
+      // Cập nhật currentStory với dữ liệu mới
+      setCurrentStory(prev => ({...prev, ...storyInfo}));
       return response.data;
     } catch (error) {
       console.error("❌ Lỗi khi cập nhật truyện:", error);
@@ -278,6 +303,10 @@ const Translate = () => {
         story.id === storyId ? { ...story, [field]: value } : story
       )
     );
+    // Nếu đang xem truyện đó, cập nhật luôn currentStory
+    if (currentStory && currentStory.id === storyId) {
+      setCurrentStory(prev => ({...prev, [field]: value}));
+    }
   };
 
   // Ẩn truyện (xóa mềm)
@@ -287,6 +316,12 @@ const Translate = () => {
     setTranslatingStories((prevStories) =>
       prevStories.filter((story) => story.id !== storyId)
     );
+    // Nếu truyện đang được chọn là truyện bị ẩn, reset currentStory và chapters
+    if (currentStory && currentStory.id === storyId) {
+      setCurrentStory(null);
+      setChapters([]);
+      navigate("/translate"); // Quay về trang chính của tab translating
+    }
   };
 
   // Xóa truyện vĩnh viễn (xóa cứng)
@@ -301,25 +336,40 @@ const Translate = () => {
       setTranslatingStories((prevStories) =>
         prevStories.filter((story) => story.id !== storyId)
       );
+      // Nếu truyện đang được chọn là truyện bị xóa, reset currentStory và chapters
+      if (currentStory && currentStory.id === storyId) {
+        setCurrentStory(null);
+        setChapters([]);
+        navigate("/translate"); // Quay về trang chính của tab translating
+      }
     }
   };
 
   // Xử lý khi click vào một truyện
   const handleStoryClick = (storyId) => {
     // Cập nhật URL với storyId
-    navigate(`/translate?storyId=${storyId}`);
+    navigate(`/translate?storyId=${storyId}&tab=translating`);
     // Set tab translating active
     setActiveTab("translating");
-    // Load truyện được chọn
-    loadTranslatingStory(storyId);
+    // Load truyện được chọn (trang 1)
+    loadTranslatingStory(storyId, 1, chaptersPerPage);
   };
 
   // Thêm hàm để tải lại dữ liệu sau khi thêm chương
   const handleChapterAdded = async () => {
     if (currentStory?.id) {
-      await loadTranslatingStory(currentStory.id);
+      // Tải lại chương hiện tại để cập nhật danh sách
+      await loadTranslatingStory(currentStory.id, currentPage, chaptersPerPage);
     }
   };
+
+  // Hàm xử lý khi chuyển trang trong ChapterList
+  const handlePageChangeInChapterList = useCallback(async (newPage) => {
+    setCurrentPage(newPage);
+    if (currentStory?.id) {
+      await loadTranslatingStory(currentStory.id, newPage, chaptersPerPage);
+    }
+  }, [currentStory?.id, chaptersPerPage]);
 
   // Render nội dung Translator
   const renderTranslatorContent = () => {
@@ -346,6 +396,10 @@ const Translate = () => {
           onChapterAdded={handleChapterAdded}
           deleteChapter={deleteChapter}
           currentStory={currentStory}
+          currentPage={currentPage} // Truyền currentPage xuống
+          chaptersPerPage={chaptersPerPage} // Truyền chaptersPerPage xuống
+          onPageChange={handlePageChangeInChapterList} // Truyền hàm xử lý chuyển trang xuống
+          totalStoryChapters={totalStoryChapters} // Truyền tổng số chương của truyện
         />
       );
     }
@@ -365,6 +419,9 @@ const Translate = () => {
             onUpdateChapter={handleUpdateChapterContent}
             currentStory={currentStory}
             getAuthToken={getAuthToken}
+            currentPage={currentPage} // Truyền currentPage xuống
+            chaptersPerPage={chaptersPerPage} // Truyền chaptersPerPage xuống
+            onPageChange={handlePageChangeInChapterList} // Truyền hàm xử lý chuyển trang xuống
           />
         )}
       </div>
@@ -398,6 +455,8 @@ const Translate = () => {
               setChapters([]);
               // Xóa storyId khỏi URL
               navigate("/translate");
+              // Reset currentPage về 1
+              setCurrentPage(1);
             }}
           >
             Quay lại chọn truyện

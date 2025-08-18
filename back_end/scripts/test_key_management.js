@@ -1,4 +1,4 @@
-const { prisma, toObjectId } = require("./config/prismaConfig");
+const { prisma, toObjectId } = require("../config/prismaConfig");
 
 async function testKeyManagement() {
   try {
