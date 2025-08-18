@@ -25,6 +25,10 @@ const ChapterList = ({
   deleteChapter,
   onChapterAdded,
   setChapters,
+  chaptersPerPage,
+  onPageChange,
+  currentPage,
+  totalStoryChapters, // Nhận totalStoryChapters từ props
   ...rest
 }) => {
   const { selectedModel: modelFromContext } = useSession();
@@ -163,23 +167,20 @@ const ChapterList = ({
   };
 
   //khu vực phân Trang
-  const [currentPage, setCurrentPage] = useState(1);
-  const chaptersPerPage = 10;
+  // const [currentPage, setCurrentPage] = useState(1); // chaptersPerPage đã được truyền từ props
   
-  // 🚀 Thêm ref để track user click pagination (không bị re-render)
-  const userClickedPaginationRef = useRef(false);
-
   // Sắp xếp chapters theo chapterNumber tăng dần
   const sortedChapters = [...chapters].sort(
     (a, b) => a.chapterNumber - b.chapterNumber
   );
-  const totalPages = Math.ceil(sortedChapters.length / chaptersPerPage);
+  // Tính totalPages dựa trên tổng số chương của truyện, không phải chỉ các chương hiện tại
+  const totalPages = Math.ceil(totalStoryChapters / chaptersPerPage);
 
-  const startIdx = (currentPage - 1) * chaptersPerPage;
+  const startIdx = (currentPage - 1) * chaptersPerPage; // Sửa lỗi cú pháp
   const endIdx = startIdx + chaptersPerPage;
-  const currentChapters = sortedChapters.slice(startIdx, endIdx);
+  const currentChapters = sortedChapters; // chapters đã được Backend phân trang (sửa lại để không slice hai lần)
 
-  // 🚀 Debug pagination
+  // Debug pagination
   // console.log(`[ChapterList] 📊 Debug pagination:`, {
   //   totalChapters: sortedChapters.length,
   //   chaptersPerPage,
@@ -238,44 +239,21 @@ const ChapterList = ({
     setHasTranslatedAll(false);
   }, [currentPage]);
 
-  // 🚀 Tự động cập nhật trang khi currentIndex thay đổi từ Back/Next
+  // 🚀 Tự động cuộn đến chương hiện tại khi currentIndex thay đổi
   useEffect(() => {
-    
-    
-    if (currentIndex !== undefined && !userClickedPaginationRef.current) {
-      const calculatedPage = Math.floor(currentIndex / chaptersPerPage) + 1;
-      console.log(`[ChapterList] 📊 Debug trang:`, {
-        currentIndex,
-        chaptersPerPage,
-        calculatedPage,
-        currentPage,
-        totalPages,
-        userClickedPagination: userClickedPaginationRef.current,
-        shouldUpdate: calculatedPage !== currentPage
-      });
-      
-      // 🚀 Chỉ cập nhật nếu trang hiện tại không đúng với currentIndex
-      // và không phải do user vừa click pagination
-      if (calculatedPage !== currentPage) {
-       // console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho currentIndex ${currentIndex}`);
-        setCurrentPage(calculatedPage);
-      }
-      
-      // 🚀 Đảm bảo chương hiện tại được highlight
+    if (currentIndex !== undefined) {
       console.log(`[ChapterList] 🎯 Chương hiện tại: ${currentIndex + 1} (index: ${currentIndex})`);
       
-      // 🚀 Scroll đến chương hiện tại sau khi cập nhật trang
+      // 🚀 Scroll đến chương hiện tại
       setTimeout(() => {
         const chapterElement = document.querySelector(`[data-chapter-index="${currentIndex}"]`);
         if (chapterElement) {
           chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           console.log(`[ChapterList] 📜 Đã scroll đến chương ${currentIndex + 1}`);
         }
-      }, 100);
-    } else if (userClickedPaginationRef.current) {
-      console.log(`[ChapterList] 🚫 Bỏ qua auto update vì userClickedPagination = true`);
+      }, 100); // Thêm một độ trễ nhỏ để đảm bảo render xong
     }
-  }, [currentIndex, chaptersPerPage, currentPage]);
+  }, [currentIndex]); // Chỉ phụ thuộc vào currentIndex
 
   // Debug: Test case cho logic tính toán trang
   useEffect(() => {
@@ -731,7 +709,7 @@ const ChapterList = ({
       return;
     }
 
-    setCurrentPage(num);
+    onPageChange(num); // Gọi onPageChange prop
     setJumpToPage(""); // Reset input sau khi nhảy
   };
 
@@ -750,8 +728,8 @@ const ChapterList = ({
 
     const targetIndex = num - 1;
     const newPage = Math.ceil(num / chaptersPerPage);
-    setCurrentPage(newPage);
-    onSelectChapter?.(targetIndex);
+    onPageChange(newPage); // Gọi onPageChange prop
+    onSelectChapter?.(targetIndex); // Vẫn gọi onSelectChapter để cuộn
     setJumpToChapter(""); // Reset input sau khi nhảy
   };
 
@@ -794,7 +772,7 @@ const ChapterList = ({
   };
 
   // Hàm xử lý khi chọn chương
-  const handleSelectChapter = (index, page) => {
+  const handleSelectChapter = (index) => {
     // Lấy chapterNumber từ sortedChapters
     const chapterNumber = sortedChapters[index]?.chapterNumber;
     console.log("Số chương được chọn:", chapterNumber);
@@ -807,20 +785,13 @@ const ChapterList = ({
     );
     console.log("Index thực tế trong mảng chapters:", actualIndex);
 
-    // 🚀 Tự động cập nhật trang khi chọn chương từ Back/Next
-    if (page) {
-      console.log(`[ChapterList] 🔄 Cập nhật trang từ ${currentPage} → ${page} cho chương ${index}`);
-      setCurrentPage(page);
-    } else {
-      // Nếu không có page được truyền, tính toán trang dựa trên index
-      const calculatedPage = Math.floor(index / chaptersPerPage) + 1;
-      if (calculatedPage !== currentPage) {
-        console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho chương ${index}`);
-        setCurrentPage(calculatedPage);
-      }
+    const calculatedPage = Math.floor(actualIndex / chaptersPerPage) + 1;
+    if (calculatedPage !== currentPage) {
+      console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho chương ${index}`);
+      onPageChange(calculatedPage); // Gọi onPageChange prop
     }
     
-    onSelectChapter?.(actualIndex); // Truyền index thực tế
+    onSelectChapter?.(actualIndex); // Truyền index thực tế để cuộn
   };
 
   // Hàm xử lý xóa chương
@@ -1401,19 +1372,11 @@ const ChapterList = ({
   // Hàm xử lý click pagination
   const handlePageChange = useCallback((newPage) => {
     console.log(`[ChapterList] 🔄 Click pagination: ${currentPage} → ${newPage}`);
-    userClickedPaginationRef.current = true;
     
-    // Sử dụng flushSync để đảm bảo state update ngay lập tức
-    flushSync(() => {
-      setCurrentPage(newPage);
-    });
-    
-    // Reset flag sau 2 giây để đảm bảo useEffect không override
-    setTimeout(() => {
-      console.log(`[ChapterList] 🔄 Reset userClickedPagination flag`);
-      userClickedPaginationRef.current = false;
-    }, 2000);
-  }, [currentPage]);
+    // Gọi onPageChange prop để cập nhật trang ở component cha (Translate.jsx)
+    onPageChange(newPage);
+
+  }, [currentPage, onPageChange]); // Chỉ phụ thuộc vào currentPage và onPageChange
 
   return (
     <div className="chapter-list">

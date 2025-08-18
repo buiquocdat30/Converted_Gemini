@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
 const compress = require("compression");
+const redisClient = require("./redisClient"); // Dòng này cần phải có để redisClient được định nghĩa
 
 // Import routes
 const uploadRoute = require("./routes/uploadRoute");
@@ -57,8 +58,15 @@ app.use("/user", userRoute);
 // Route admin
 app.use("/admin", adminRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[SERVER] Express server chạy trên http://localhost:${PORT}`);
+  // Khởi tạo kết nối Redis khi server khởi động
+  try {
+    await redisClient.connect();
+    console.log('[REDIS] Đã khởi tạo kết nối Redis thành công');
+  } catch (err) {
+    console.error('[REDIS] Lỗi khi khởi tạo kết nối Redis:', err);
+  }
 });
 
 // Graceful shutdown
