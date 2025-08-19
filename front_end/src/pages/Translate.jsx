@@ -8,7 +8,9 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "../pages/pageCSS/Translate.css";
 import { FaBook, FaHistory, FaSpinner } from "react-icons/fa";
+
 import { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../services/indexedDBService';
+
 
 const Translate = () => {
   const {
@@ -71,18 +73,23 @@ const Translate = () => {
 
   // Tải truyện đang dịch dựa vào storyId từ URL
   const loadTranslatingStory = async (storyId, page, limit) => {
+
     setLoading(true);
     setError(null);
+
     try {
       const token = localStorage.getItem("auth-token");
       if (!token) {
         console.error("❌ Không tìm thấy token xác thực");
         alert("Vui lòng đăng nhập lại để tiếp tục");
+
         setLoading(false);
+
         return;
       }
 
       console.log(`[Translate.jsx] 🚀 Đang tải truyện: storyId=${storyId}, page=${page}, limit=${limit}`);
+
 
       const startChapterNumber = (page - 1) * limit + 1;
       const endChapterNumber = page * limit;
@@ -113,6 +120,7 @@ const Translate = () => {
       }
 
       // 2. Luôn gọi API Backend để lấy dữ liệu mới nhất (Stale-While-Revalidate)
+
       const storyInfoResponse = await axios.get(
         `http://localhost:8000/user/library/${storyId}`,
         {
@@ -125,10 +133,13 @@ const Translate = () => {
       if (!storyInfoResponse.data) {
         console.error("❌ Không nhận được dữ liệu truyện");
         alert("Không thể tải thông tin truyện. Vui lòng thử lại sau.");
+
         setLoading(false);
+
         return;
       }
       setCurrentStory(storyInfoResponse.data);
+
 
       const chaptersResponse = await axios.get(
         `http://localhost:8000/user/library/${storyId}/chapters?page=${page}&limit=${limit}`,
@@ -152,10 +163,14 @@ const Translate = () => {
       }
 
       const formattedChapters = rawChapters.map((chapter) => {
+
         return {
           id: chapter.id,
           chapterName: chapter.chapterName,
           title: chapter.chapterName,
+
+          // Nếu có bản dịch thì dùng translatedContent, không thì dùng rawText
+
           content: chapter.translation
             ? chapter.translation.translatedContent
             : chapter.rawText || "",
@@ -163,6 +178,7 @@ const Translate = () => {
           translatedTitle:
             chapter.translation?.translatedTitle || chapter.chapterName,
           chapterNumber: chapter.chapterNumber,
+
           rawText: chapter.rawText || "",
           status: chapter.status,
           hasError: chapter.hasError,
@@ -190,6 +206,7 @@ const Translate = () => {
       }
 
       setLoading(false);
+
     } catch (error) {
       console.error("❌ Lỗi khi tải truyện đang dịch:", error);
       console.error("Chi tiết lỗi:", {
@@ -208,8 +225,10 @@ const Translate = () => {
       }
 
       alert(errorMessage);
+
       setLoading(false);
       setError(error);
+
     }
   };
 
@@ -379,8 +398,10 @@ const Translate = () => {
       )
     ) {
       await deleteStories(storyId);
+
       // Xóa cache IndexedDB cho truyện này
       await clearChapters(storyId);
+
       // Cập nhật state local sau khi xóa thành công
       setTranslatingStories((prevStories) =>
         prevStories.filter((story) => story.id !== storyId)
