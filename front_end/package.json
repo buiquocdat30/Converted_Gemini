@@ -6,19 +6,31 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "jest"
   },
   "devDependencies": {
-    "vite": "^6.2.0"
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
+    "babel-jest": "^30.0.5",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
+    "jest-mock-extended": "^4.0.0",
+    "vite": "^5.2.0"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
-    "axios": "^1.8.4",
+    "axios": "^1.6.8",
+    "dexie": "^4.0.0-beta.13",
     "epubjs": "^0.3.93",
     "file-saver": "^2.0.5",
+    "js-cookie": "^3.0.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
