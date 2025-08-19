@@ -12,6 +12,7 @@ import "./ChapterList.css";
 import { useSession } from '../../context/SessionContext';
 import { AuthContext } from '../../context/ConverteContext';
 import { API_URL } from '../../config/config';
+import { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../../services/indexedDBService';
 
 const ChapterList = ({
   chapters,
@@ -650,7 +651,7 @@ const ChapterList = ({
           setTotalProgress: () => {}, // Không cần total progress cho single chapter
           onTranslationResult,
         onSelectChapter,
-          onComplete: (duration, error) => {
+          onComplete: async (duration, error) => {
             // Khi hoàn thành, dừng progress và cập nhật trạng thái
             if (error) {
               console.error(`[CHAPTER ${index}] ❌ Lỗi dịch:`, error.message);
@@ -663,6 +664,18 @@ const ChapterList = ({
               setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
               setTranslatedCount((prev) => prev + 1);
               toast.success(`Đã dịch xong chương ${index + 1}`);
+
+              // 🚀 Lưu chương đã dịch vào IndexedDB
+              const chapterToCache = {
+                ...chapters[index],
+                translatedContent: results[index]?.translatedContent, // Lấy nội dung đã dịch từ results state
+                translatedTitle: results[index]?.translatedTitle, // Lấy tiêu đề đã dịch từ results state
+                status: "COMPLETE",
+                hasError: false,
+                translationError: null,
+              };
+              console.log(`[CHAPTER ${index}] 💾 Lưu chương vào IndexedDB:`, chapterToCache);
+              await addChapters([chapterToCache]);
             }
             chapterHook.stopProgress();
           },
@@ -877,7 +890,7 @@ const ChapterList = ({
   }, []);
 
   // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
-  const handleSocketChapterTranslated = useCallback((data) => {
+  const handleSocketChapterTranslated = useCallback(async (data) => {
     console.log('🎯 [ChapterList] ===== CALLBACK ĐƯỢC GỌI ====');
     console.log('[ChapterList] 📥 Data nhận được trong callback:', data);
     // Log kiểm tra glossary nếu có trả về qua socket
@@ -947,6 +960,18 @@ const ChapterList = ({
         console.log('[ChapterList] 📊 Results mới:', newResults);
         return newResults;
       });
+
+      // 🚀 Lưu chương đã dịch vào IndexedDB khi nhận từ Socket
+      const chapterToCache = {
+        ...chapters[chapterIndex],
+        translatedContent: data.translatedContent,
+        translatedTitle: data.translatedTitle,
+        status: "COMPLETE",
+        hasError: data.hasError,
+        translationError: data.error,
+      };
+      console.log(`[ChapterList] 💾 Lưu chương ${data.chapterNumber} từ Socket vào IndexedDB:`, chapterToCache);
+      await addChapters([chapterToCache]);
 
       // 🔄 Đẩy kết quả lên cha (TranslatorApp) để merge vào chapters và hiển thị ở Title/Viewer
       try {
