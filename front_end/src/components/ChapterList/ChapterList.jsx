@@ -12,10 +12,7 @@ import "./ChapterList.css";
 import { useSession } from '../../context/SessionContext';
 import { AuthContext } from '../../context/ConverteContext';
 import { API_URL } from '../../config/config';
-<<<<<<< HEAD
 import { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../../services/indexedDBService';
-=======
->>>>>>> 7564b567003d9c0674bd88e616a1a68c496dd653
 
 const ChapterList = ({
   chapters,
@@ -654,11 +651,7 @@ const ChapterList = ({
           setTotalProgress: () => {}, // Không cần total progress cho single chapter
           onTranslationResult,
         onSelectChapter,
-<<<<<<< HEAD
           onComplete: async (duration, error) => {
-=======
-          onComplete: (duration, error) => {
->>>>>>> 7564b567003d9c0674bd88e616a1a68c496dd653
             // Khi hoàn thành, dừng progress và cập nhật trạng thái
             if (error) {
               console.error(`[CHAPTER ${index}] ❌ Lỗi dịch:`, error.message);
@@ -671,7 +664,6 @@ const ChapterList = ({
               setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
               setTranslatedCount((prev) => prev + 1);
               toast.success(`Đã dịch xong chương ${index + 1}`);
-<<<<<<< HEAD
 
               // 🚀 Lưu chương đã dịch vào IndexedDB
               const chapterToCache = {
@@ -684,8 +676,6 @@ const ChapterList = ({
               };
               console.log(`[CHAPTER ${index}] 💾 Lưu chương vào IndexedDB:`, chapterToCache);
               await addChapters([chapterToCache]);
-=======
->>>>>>> 7564b567003d9c0674bd88e616a1a68c496dd653
             }
             chapterHook.stopProgress();
           },
@@ -900,11 +890,7 @@ const ChapterList = ({
   }, []);
 
   // Lắng nghe kết quả dịch chương từ socket.io (tối ưu callback)
-<<<<<<< HEAD
   const handleSocketChapterTranslated = useCallback(async (data) => {
-=======
-  const handleSocketChapterTranslated = useCallback((data) => {
->>>>>>> 7564b567003d9c0674bd88e616a1a68c496dd653
     console.log('🎯 [ChapterList] ===== CALLBACK ĐƯỢC GỌI ====');
     console.log('[ChapterList] 📥 Data nhận được trong callback:', data);
     // Log kiểm tra glossary nếu có trả về qua socket
