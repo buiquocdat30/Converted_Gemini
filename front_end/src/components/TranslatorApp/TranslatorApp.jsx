@@ -55,7 +55,7 @@ const TranslatorApp = ({
   const [tempModel, setTempModel] = useState(sessionSelectedModel || model);
   // Thêm state lưu danh sách models
   const [allModels, setAllModels] = useState([]);
-  console.log("Đây là truyện hiện tại",currentStory)
+  //console.log("Đây là truyện hiện tại",currentStory)
 
   // Đồng bộ session state với local state
   useEffect(() => {
@@ -762,6 +762,9 @@ const TranslatorApp = ({
   const handleChapterChange = useCallback((newIndex) => {
     console.log("TranslatorApp - Index mới:", newIndex);
     setCurrentIndex(newIndex);
+    console.log(`[TranslatorApp] 📜 Đang cuộn về đầu trang cho chương ${newIndex + 1}...`); // Thêm log này
+    // Cuộn về đầu trang
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     // Tính toán trang mới dựa trên index
     const chaptersPerPage = 10;
     const newPage = Math.floor(newIndex / chaptersPerPage) + 1;
@@ -888,7 +891,7 @@ const TranslatorApp = ({
       {/* Main layout */}
       <div className="content">
         <div className="chapter-list-container">
-          {console.log('%c[DEBUG] TranslatorApp render ChapterList', 'color: orange')}
+          
           <ChapterList
             chapters={memoizedChapters}
             apiKey={memoizedApiKey}
@@ -915,6 +918,7 @@ const TranslatorApp = ({
             onChangeIndex={handleChapterChange}
             selectedChapterIndex={selectedChapterIndex}
             onRetranslate={handleRetranslate}
+            totalStoryChapters={totalStoryChapters} // Truyền totalStoryChapters xuống
           />
         </div>
       </div>

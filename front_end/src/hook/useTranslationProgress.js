@@ -33,10 +33,10 @@ const useTranslationProgress = (storyId, defaultTime = 30) => {
       chapter.translation.timeTranslation > 0
     );
 
-    console.log(`[STORY-HISTORY] Truyện ${storyId}: ${translatedChapters.length} chương đã dịch`);
+    //console.log(`[STORY-HISTORY] Truyện ${storyId}: ${translatedChapters.length} chương đã dịch`);
 
     if (translatedChapters.length === 0) {
-      console.log(`[STORY-HISTORY] Truyện ${storyId}: Chưa có chương nào dịch, dùng default ${DEFAULT_STORY_TIME}s`);
+      //console.log(`[STORY-HISTORY] Truyện ${storyId}: Chưa có chương nào dịch, dùng default ${DEFAULT_STORY_TIME}s`);
       return DEFAULT_STORY_TIME;
     }
 
@@ -72,7 +72,7 @@ const useTranslationProgress = (storyId, defaultTime = 30) => {
     if (storyId) {
       const averageTime = calculateStoryTranslationTime(storyId);
       setEstimatedDuration(averageTime);
-      console.log(`[STORY-HISTORY] Truyện ${storyId}: Cập nhật thời gian ước tính ${averageTime.toFixed(1)}s`);
+      //console.log(`[STORY-HISTORY] Truyện ${storyId}: Cập nhật thời gian ước tính ${averageTime.toFixed(1)}s`);
     }
   }, [stories, storyId]);
 

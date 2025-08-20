@@ -10,25 +10,25 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
 
   // Luôn giữ callback mới nhất
   useEffect(() => {
-    console.log('[FE-SOCKET] 🔄 Cập nhật callback onChapterTranslated');
+    ///console.log('[FE-SOCKET] 🔄 Cập nhật callback onChapterTranslated');
     callbackRef.current = onChapterTranslated;
   }, [onChapterTranslated]);
 
   useEffect(() => {
-    console.log('[FE-SOCKET] 🔄 Cập nhật callback onChapterProgress');
+    //console.log('[FE-SOCKET] 🔄 Cập nhật callback onChapterProgress');
     progressCallbackRef.current = onChapterProgress;
   }, [onChapterProgress]);
 
   useEffect(() => {
-    console.log('[FE-SOCKET] 🔄 Cập nhật callback onChapterStarted');
+    //console.log('[FE-SOCKET] 🔄 Cập nhật callback onChapterStarted');
     startedCallbackRef.current = onChapterStarted;
   }, [onChapterStarted]);
 
   // Chỉ tạo socket một lần duy nhất
   useEffect(() => {
-    console.log('🔌 [FE-SOCKET] ===== KHỞI TẠO SOCKET ====');
-    console.log('[FE-SOCKET] 🌐 Kết nối đến:', SOCKET_URL);
-    console.log('[FE-SOCKET] 🏠 Room ID:', roomId);
+    //console.log('🔌 [FE-SOCKET] ===== KHỞI TẠO SOCKET ====');
+    //console.log('[FE-SOCKET] 🌐 Kết nối đến:', SOCKET_URL);
+    //console.log('[FE-SOCKET] 🏠 Room ID:', roomId);
     
     socketRef.current = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],

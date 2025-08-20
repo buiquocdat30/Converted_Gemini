@@ -12,6 +12,7 @@ const TranslateViewer = ({
   onChangeIndex,
   selectedChapterIndex,
   onRetranslate,
+  totalStoryChapters, // Nhận prop totalStoryChapters
 }) => {
   const { stories } = useContext(AuthContext);
   const [isEditing, setIsEditing] = useState(false);
@@ -315,7 +316,7 @@ const TranslateViewer = ({
       <h3>📝Nội dung chương</h3>
       <div className="menu-bar">
         <div className="chapter-index">
-          Chương {chapters[currentIndex]?.chapterNumber || 0} / {chapters.length}
+          Chương {chapters[currentIndex]?.chapterNumber || 0} / {totalStoryChapters || chapters.length}
         </div>
         <div className="row">
           <button onClick={() => goToChapter(-1)} disabled={currentIndex === 0}>

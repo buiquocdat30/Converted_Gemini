@@ -9,7 +9,7 @@ import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 import "../pages/pageCSS/Translate.css";
 import { FaBook, FaHistory, FaSpinner } from "react-icons/fa";
 
-import { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../services/indexedDBService';
+import db, { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../services/indexedDBService';
 
 
 const Translate = () => {
@@ -113,8 +113,7 @@ const Translate = () => {
           translationError: chapter.translationError,
         }));
         setChapters(formattedCachedChapters);
-        // Vẫn set totalStoryChapters từ API response sau
-        setLoading(false);
+        // Xóa dòng setLoading(false) ở đây để tránh re-render sớm trước khi totalStoryChapters được cập nhật
       } else {
         console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${page}, story ${storyId}. Đang tải từ Backend.`);
       }
@@ -157,6 +156,7 @@ const Translate = () => {
         : [];
 
       setTotalStoryChapters(chaptersResponse.data.totalChaptersCount || 0);
+      console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${chaptersResponse.data.totalChaptersCount || 0}`); // NEW LOG
 
       if (rawChapters.length === 0) {
         console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", storyId);
@@ -165,9 +165,11 @@ const Translate = () => {
       const formattedChapters = rawChapters.map((chapter) => {
 
         return {
-          id: chapter.id,
+          // Không bao gồm 'id' khi lưu vào IndexedDB với ++id schema để Dexie tự quản lý và dùng unique index để cập nhật
+          // id: chapter.id,
           chapterName: chapter.chapterName,
           title: chapter.chapterName,
+          storyId: storyId, // THÊM DÒNG NÀY
 
           // Nếu có bản dịch thì dùng translatedContent, không thì dùng rawText
 
@@ -196,16 +198,37 @@ const Translate = () => {
 
       if (needsUpdate) {
         console.log(`[Translate.jsx] 🔄 Dữ liệu từ Backend khác hoặc không có cache. Cập nhật IndexedDB và UI.`);
-        // Xóa các chương cũ của trang hiện tại khỏi IndexedDB trước khi thêm mới
-        await clearChapters(storyId, startChapterNumber, endChapterNumber);
-        await addChapters(formattedChapters);
-        setChapters(formattedChapters);
+        console.log(`[Translate.jsx] 📝 formattedChapters để cập nhật:`, formattedChapters.map(ch => ({chapterNumber: ch.chapterNumber, title: ch.title || ch.chapterName}))); // Log thêm
+        
+        try {
+          console.log(`[Translate.jsx] 🔑 Đang chạy transaction để cập nhật IndexedDB.`); // Log thêm
+          await db.transaction('rw', db.chapters, async () => {
+            // Xóa các chương cũ của trang hiện tại khỏi IndexedDB
+            // Đảm bảo chỉ xóa các chương của storyId và trong khoảng chapterNumber
+            await db.chapters.where({ storyId: storyId })
+                      .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
+                      .delete();
+            
+            // Thêm các chương mới
+            await db.chapters.bulkAdd(formattedChapters);
+          });
+          console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction.`);
+          setChapters(formattedChapters); // Cập nhật chapters với dữ liệu từ BE
+        } catch (dbError) {
+          console.error("❌ Lỗi Transaction IndexedDB:", dbError);
+          // Xử lý lỗi transaction, có thể là fallback hoặc thông báo cho người dùng
+          // Giữ lại setChapters ngay cả khi có lỗi DB để UI vẫn hiển thị dữ liệu từ BE
+          setChapters(formattedChapters); // Fallback: vẫn update UI với BE data
+        }
+
       } else {
         console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật.`);
-        // Dữ liệu đã được set từ cache ban đầu, không cần set lại
+        setChapters(formattedChapters); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
       }
 
       setLoading(false);
+      console.timeEnd('Load and Display Chapters'); // End timer here
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // Thêm dòng này để cuộn về đầu trang
 
     } catch (error) {
       console.error("❌ Lỗi khi tải truyện đang dịch:", error);
@@ -303,17 +326,19 @@ const Translate = () => {
   // Lưu truyện mới
   const handleSaveStory = async (storyInfo) => {
     try {
+      console.time('Save Story to Backend'); // Start timer for saving story
       const token = localStorage.getItem("auth-token");
+      const chaptersToSend = chapters.map((ch) => ({
+        chapterName: ch.chapterName,
+        rawText: ch.content,
+      }));
+      console.log(`[Translate.jsx] 📦 Đang gửi ${chaptersToSend.length} chương lên Backend...`);
+
       const response = await axios.post(
         "http://localhost:8000/user/library",
         {
           ...storyInfo,
-          // Khi lưu truyện mới, không cần gửi toàn bộ chapters, vì BE sẽ tự xử lý
-          // Dựa vào file upload hoặc `chapters` nếu có
-          chapters: chapters.map((ch) => ({
-            chapterName: ch.chapterName,
-            rawText: ch.content, // Gửi rawText thay vì content
-          })),
+          chapters: chaptersToSend,
         },
         {
           headers: {
@@ -321,6 +346,7 @@ const Translate = () => {
           },
         }
       );
+      console.timeEnd('Save Story to Backend'); // End timer for saving story
       setCurrentStory(response.data);
       // Sau khi lưu truyện thành công, chuyển sang tab "translating" và load truyện đó
       navigate(`/translate?storyId=${response.data.id}&tab=translating`);
@@ -417,6 +443,7 @@ const Translate = () => {
 
   // Xử lý khi click vào một truyện
   const handleStoryClick = (storyId) => {
+    console.time('Load and Display Chapters'); // Start timer
     // Cập nhật URL với storyId
     navigate(`/translate?storyId=${storyId}&tab=translating`);
     // Set tab translating active

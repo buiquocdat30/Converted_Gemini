@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "epubjs": "^0.3.93"
+  },
+  "devDependencies": {
+    "dexie": "^4.2.0",
+    "jest": "^30.0.5"
   }
 }

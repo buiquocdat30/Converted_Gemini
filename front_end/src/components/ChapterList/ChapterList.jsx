@@ -177,6 +177,8 @@ const ChapterList = ({
   // Tính totalPages dựa trên tổng số chương của truyện, không phải chỉ các chương hiện tại
   const totalPages = Math.ceil(totalStoryChapters / chaptersPerPage);
 
+  console.log(`[ChapterList - Pagination Debug] totalStoryChapters: ${totalStoryChapters}, chaptersPerPage: ${chaptersPerPage}, totalPages: ${totalPages}, currentPage: ${currentPage}`);
+
   const startIdx = (currentPage - 1) * chaptersPerPage; // Sửa lỗi cú pháp
   const endIdx = startIdx + chaptersPerPage;
   const currentChapters = sortedChapters; // chapters đã được Backend phân trang (sửa lại để không slice hai lần)
@@ -801,7 +803,7 @@ const ChapterList = ({
     const calculatedPage = Math.floor(actualIndex / chaptersPerPage) + 1;
     if (calculatedPage !== currentPage) {
       console.log(`[ChapterList] 🔄 Tự động cập nhật trang từ ${currentPage} → ${calculatedPage} cho chương ${index}`);
-      onPageChange(calculatedPage); // Gọi onPageChange prop
+      // onPageChange(calculatedPage); // Xóa dòng này
     }
     
     onSelectChapter?.(actualIndex); // Truyền index thực tế để cuộn
@@ -1141,18 +1143,18 @@ const ChapterList = ({
   const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
   const roomId = userId ? `user:${userId}` : `story:${storyId}`;
   
-  console.log('[ChapterList] 🔌 ===== KHỞI TẠO SOCKET HOOK ====');
+  //console.log('[ChapterList] 🔌 ===== KHỞI TẠO SOCKET HOOK ====');
   
   
   // Bật lại socket để sử dụng real-time progress
   const socketRef = useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress, handleSocketChapterStarted);
   
-  console.log('[ChapterList] 🔌 Socket hook đã được khởi tạo:', {
-    socketRef,
-    socketConnected: socketRef?.connected,
-    socketId: socketRef?.id
-  });
-  console.log('[ChapterList] 🔌 ===== HOÀN THÀNH KHỞI TẠO SOCKET ====');
+  //console.log('[ChapterList] 🔌 Socket hook đã được khởi tạo:', {
+   // socketRef,
+   // socketConnected: socketRef?.connected,
+   // socketId: socketRef?.id
+  ///});
+  //console.log('[ChapterList] 🔌 ===== HOÀN THÀNH KHỞI TẠO SOCKET ====');
 
   // Debug: Log room ID và socket connection
   useEffect(() => {
