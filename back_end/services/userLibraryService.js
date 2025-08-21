@@ -48,16 +48,7 @@ const userLibraryService = {
           id: id,
           userId: userId,
         },
-        include: {
-          chapters: {
-            orderBy: {
-              chapterNumber: "asc",
-            },
-            include: {
-              translation: true,
-            },
-          },
-        },
+        // Loại bỏ việc include chapters để chỉ lấy thông tin truyện, không phải toàn bộ chương
       });
 
       if (story) {
@@ -69,26 +60,7 @@ const userLibraryService = {
           updatedAt: story.updatedAt
             ? new Date(story.updatedAt).toISOString()
             : null,
-          chapters: story.chapters.map((chapter) => ({
-            ...chapter,
-            createdAt: chapter.createdAt
-              ? new Date(chapter.createdAt).toISOString()
-              : null,
-            updatedAt: chapter.updatedAt
-              ? new Date(chapter.updatedAt).toISOString()
-              : null,
-            translation: chapter.translation
-              ? {
-                  ...chapter.translation,
-                  createdAt: chapter.translation.createdAt
-                    ? new Date(chapter.translation.createdAt).toISOString()
-                    : null,
-                  updatedAt: chapter.translation.updatedAt
-                    ? new Date(chapter.translation.updatedAt).toISOString()
-                    : null,
-                }
-              : null,
-          })),
+          // Đã loại bỏ việc xử lý chapters ở đây vì chúng không còn được include
         };
       }
       return null;

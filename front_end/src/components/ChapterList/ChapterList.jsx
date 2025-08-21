@@ -177,6 +177,14 @@ const ChapterList = ({
   // Tính totalPages dựa trên tổng số chương của truyện, không phải chỉ các chương hiện tại
   const totalPages = Math.ceil(totalStoryChapters / chaptersPerPage);
 
+  useEffect(() => {
+    console.log('[ChapterList] 📊 Chapters prop received:', chapters);
+    console.log('[ChapterList] 📊 currentChapters (before slice/filter):', sortedChapters);
+    if (chapters && chapters.length > 0) {
+      console.log('[ChapterList] ✅ Chapters prop not empty. First chapter:', chapters[0]);
+    }
+  }, [chapters, sortedChapters]);
+
   console.log(`[ChapterList - Pagination Debug] totalStoryChapters: ${totalStoryChapters}, chaptersPerPage: ${chaptersPerPage}, totalPages: ${totalPages}, currentPage: ${currentPage}`);
 
   const startIdx = (currentPage - 1) * chaptersPerPage; // Sửa lỗi cú pháp

@@ -793,6 +793,14 @@ const TranslatorApp = ({
     });
   });
 
+  // Log chapters prop trong TranslatorApp
+  useEffect(() => {
+    console.log('[TranslatorApp] 📊 Chapters prop received:', chapters);
+    if (chapters && chapters.length > 0) {
+      console.log('[TranslatorApp] ✅ Chapters prop not empty. First chapter:', chapters[0]);
+    }
+  }, [chapters]);
+
   // Memo hóa các props truyền vào ChapterList
   const memoizedModel = useMemo(() => tempModel, [tempModel?.value]);
   const memoizedApiKey = useMemo(
