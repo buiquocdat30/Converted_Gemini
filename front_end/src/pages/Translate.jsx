@@ -112,6 +112,7 @@ const Translate = () => {
         }));
         setChapters(formattedCachedChapters);
         console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ cache:`, formattedCachedChapters.map(ch => ch.chapterName));
+        console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ cache:', formattedCachedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
         setLoading(false); // Tắt loading ngay lập tức nếu dữ liệu từ cache có sẵn
 
         // Tiếp tục gọi Backend để lấy dữ liệu mới nhất trong nền (không await)
@@ -176,12 +177,14 @@ const Translate = () => {
               console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction (nền).`);
               setChapters(formattedChapters); // Cập nhật chapters với dữ liệu từ BE
               console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (nền):`, formattedChapters.map(ch => ch.chapterName));
+              console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (nền):', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
             }).catch(dbError => console.error("❌ Lỗi Transaction IndexedDB (nền):", dbError));
 
           } else {
             console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật (nền).`);
             setChapters(formattedChapters); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
             console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (dữ liệu khớp cache, nền):`, formattedChapters.map(ch => ch.chapterName));
+            console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (dữ liệu khớp cache, nền):', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
           }
         }).catch(error => console.error("❌ Lỗi khi tải chương từ Backend trong nền:", error));
 
@@ -265,16 +268,19 @@ const Translate = () => {
             console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction.`);
             setChapters(formattedChapters); // Cập nhật chapters với dữ liệu từ BE
             console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend:`, formattedChapters.map(ch => ch.chapterName));
+            console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE:', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
           } catch (dbError) {
             console.error("❌ Lỗi Transaction IndexedDB:", dbError);
             setChapters(formattedChapters); // Fallback: vẫn update UI với BE data
             console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (fallback):`, formattedChapters.map(ch => ch.chapterName));
+            console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (fallback):', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
           }
 
         } else {
           console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật.`);
           setChapters(formattedChapters); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
           console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (dữ liệu khớp cache):`, formattedChapters.map(ch => ch.chapterName));
+          console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (dữ liệu khớp cache):', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
         }
 
         setLoading(false); // Tắt loading sau khi toàn bộ quá trình tải từ Backend hoàn tất
@@ -963,9 +969,9 @@ const Translate = () => {
   const mergedChapters = useMemo(() => {
     return chapters.map((ch, i) => ({
       ...ch,
-      ...translatedChapters[i],
+      // ...translatedChapters[i], // Xóa dòng này
     }));
-  }, [chapters, translatedChapters]);
+  }, [chapters]);
 
   // Tối ưu các callback bằng useCallback
   const handleTranslationResult = useCallback(async (
@@ -991,16 +997,16 @@ const Translate = () => {
         timeTranslation: timeTranslation,
       });
 
-      // Cập nhật state local
-      setTranslatedChapters((prev) => {
-        const updated = [...prev];
-        updated[index] = {
-          ...chapter,
+      // Cập nhật state local 'chapters' trực tiếp
+      setChapters(prev => {
+        const updatedChapters = [...prev];
+        updatedChapters[index] = {
+          ...updatedChapters[index],
           translatedContent: translated,
           translatedTitle: translatedTitle,
           status: "TRANSLATED",
         };
-        return updated;
+        return updatedChapters;
       });
 
       // Lưu vào database
@@ -1037,7 +1043,7 @@ const Translate = () => {
       console.error("❌ Lỗi khi lưu kết quả dịch:", error);
       toast.error("Lỗi khi lưu kết quả dịch: " + error.message);
     }
-  }, [chapters, currentStory?.id, updateChapterContent]);
+  }, [chapters, currentStory?.id, updateChapterContent, setChapters]); // Thêm setChapters vào dependency array
 
   const handleChapterChange = useCallback((newIndex) => {
     console.log("TranslatorApp - Index mới:", newIndex);
@@ -1074,6 +1080,8 @@ const Translate = () => {
     if (chapters && chapters.length > 0) {
       console.log('[TranslatorApp] ✅ Chapters prop not empty. First chapter:', chapters[0]);
     }
+    // Reset translatedChapters khi chapters thay đổi, để tránh hiển thị nội dung dịch cũ từ trang khác
+    setTranslatedChapters([]);
   }, [chapters]);
 
   // Memo hóa các props truyền vào ChapterList
