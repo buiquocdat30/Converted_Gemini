@@ -1314,7 +1314,7 @@ const ChapterList = ({
     // Khi render trạng thái chương hoặc xử lý kết quả dịch:
     const isFailed = chapterStatus === 'FAILED' || ch?.hasError || !!ch?.translationError;
           return (
-            <li key={ch.chapterNumber} data-chapter-index={idx}>
+            <li key={ch.id} data-chapter-index={idx}>
               <div
           className={`chapter-item ${idx === currentIndex ? "selected" : ""}`}
                 onClick={() =>
@@ -1451,7 +1451,7 @@ const ChapterList = ({
           
           return (
             <ChapterItem
-              key={ch.chapterNumber}
+              key={ch.id}
               ch={ch}
               idx={idx}
               calculatedChapterNumber={calculatedChapterNumber}
