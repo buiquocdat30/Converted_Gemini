@@ -179,15 +179,15 @@ const TranslateViewer = ({
     const title = chapter?.translatedTitle || chapter?.chapterName || chapter?.title || `Chương ${currentIndex + 1}`;
 
     // 🔎 Log để chắc chắn Viewer nhận đúng dữ liệu
-    console.log('[TranslateViewer] 🔄 Cập nhật nội dung hiển thị:', {
-      currentIndex,
-      chapterNumber: chapter?.chapterNumber,
-      hasTranslatedTitle: !!chapter?.translatedTitle,
-      hasTranslatedContent: !!chapter?.translatedContent,
-      titlePreview: (title || '').replace(/\s+/g, ' ').slice(0, 120),
-      contentLen: newContent?.length || 0,
-      contentPreview: (newContent || '').replace(/\s+/g, ' ').slice(0, 250)
-    });
+    // console.log('[TranslateViewer] 🔄 Cập nhật nội dung hiển thị:', {
+    //   currentIndex,
+    //   chapterNumber: chapter?.chapterNumber,
+    //   hasTranslatedTitle: !!chapter?.translatedTitle,
+    //   hasTranslatedContent: !!chapter?.translatedContent,
+    //   titlePreview: (title || '').replace(/\s+/g, ' ').slice(0, 120),
+    //   contentLen: newContent?.length || 0,
+    //   contentPreview: (newContent || '').replace(/\s+/g, ' ').slice(0, 250)
+    // });
 
     setHistory([newContent]);
     setHistoryIndex(0);

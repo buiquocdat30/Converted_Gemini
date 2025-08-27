@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback, useMemo, useReducer } from "react";
+import React, { useState, useContext, useEffect, useCallback, useMemo, useReducer, useRef } from "react";
 import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FaSpinner } from "react-icons/fa";
@@ -42,10 +42,7 @@ const areChaptersEqual = (arr1, arr2) => {
   return true;
 };
 
-
-
-// Định nghĩa initialState
-const initialState = {
+const getInitialState = ({ selectedModel, selectedKeys, currentKey }) => ({
   ui: {
     activeTab: "new",
     isMenuOpen: false,
@@ -67,17 +64,17 @@ const initialState = {
     selectedChapterIndex: null,
   },
   auth: {
-    currentKey: "",
-    selectedKeys: [],
-    isLoggedIn: false,
+    currentKey: currentKey || "",
+    selectedKeys: selectedKeys || [],
+    isLoggedIn: !!currentKey,
     tempKey: "",
   },
   model: {
-    current: { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    current: selectedModel || null, // 🔥 lấy luôn từ SessionContext
     all: [],
-    temp: { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    temp: null,
   },
-};
+});
 
 // Định nghĩa reducer function
 function reducer(state, action) {
@@ -225,41 +222,25 @@ const Translate = () => {
     updateSelectedModel,
   } = useSession();
 
-  const [state, dispatch] = useReducer(reducer, initialState);
+  // Dùng lazy initializer để state khởi tạo 1 lần duy nhất
+  const [state, dispatch] = useReducer(
+    reducer,
+    { selectedModel: sessionSelectedModel, selectedKeys: sessionSelectedKeys, currentKey: sessionCurrentKey },
+    getInitialState
+  );
 
   const {
     ui: { activeTab, isMenuOpen, isAddChapterModalOpen, loading, error, shouldRefresh },
     story: { current: currentStory, list: translatingStories, totalChapters: totalStoryChapters, currentPage, fileName },
     chapters: { items: chapters, currentIndex, selectedChapterIndex },
-    auth: { currentKey: currentApiKey, selectedKeys, tempKey },
+    auth: { currentKey: currentApiKeyFromState, selectedKeys: selectedKeysFromState, tempKey },
     model: { current: model, all: allModels, temp: tempModel },
   } = state;
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Khởi tạo các giá trị từ session/localStorage
-  useEffect(() => {
-    dispatch({ type: "AUTH/SET_KEY", payload: sessionCurrentKey || "" });
-    dispatch({ type: "AUTH/SET_TEMP_KEY", payload: sessionCurrentKey || "" });
-    
-    const initialModel = sessionSelectedModel || initialState.model.current;
-    dispatch({ type: "MODEL/SET_CURRENT", payload: initialModel });
-    dispatch({ type: "MODEL/SET_TEMP", payload: initialModel });
-    
-    dispatch({ type: "AUTH/SET_KEYS", payload: sessionSelectedKeys || [] });
-
-    // Lấy storyId từ URL khi khởi tạo và set vào context
-    const storyIdFromParams = searchParams.get("storyId");
-    if (storyIdFromParams && storyIdFromParams !== currentStoryId) {
-      setCurrentStoryId(storyIdFromParams);
-    }
-
-  }, [sessionCurrentKey, sessionSelectedModel, sessionSelectedKeys, dispatch, searchParams, currentStoryId, setCurrentStoryId]);
-
-  useEffect(() => {
-    console.log('[Translate.jsx] 📊 Loading state changed:', loading);
-  }, [loading]);
+  
 
   const handleSelectJumbChapter = useCallback((index) => {
     dispatch({ type: "CHAPTERS/SET_SELECTED_INDEX", payload: index });
@@ -267,64 +248,6 @@ const Translate = () => {
 
   // Tải truyện đang dịch dựa vào storyId từ URL
   // ⬇️ loadTranslatingStory: chỉ lấy cache + hiển thị
-const loadTranslatingStory = useCallback(
-  async (storyId, page, limit) => {
-    dispatch({ type: "UI/ERROR", payload: null });
-    dispatch({ type: "UI/LOADING", payload: true });
-
-    try {
-      const token = localStorage.getItem("auth-token");
-      if (!token) {
-        console.error("❌ Không tìm thấy token xác thực");
-        alert("Vui lòng đăng nhập lại để tiếp tục");
-        dispatch({ type: "UI/LOADING", payload: false });
-        return;
-      }
-
-      const startChapterNumber = (page - 1) * limit + 1;
-      const endChapterNumber = page * limit;
-
-      // 1. Lấy dữ liệu từ IndexedDB trước
-      let cachedChapters = await getChaptersByStoryIdAndRange(
-        storyId,
-        startChapterNumber,
-        endChapterNumber
-      );
-
-      if (cachedChapters && cachedChapters.length > 0) {
-        const formattedCached = cachedChapters.map((chapter) => ({
-          id: chapter.id,
-          chapterName: chapter.chapterName,
-          title: chapter.chapterName,
-          content: chapter.translatedContent || chapter.rawText || "",
-          translated: chapter.translatedContent || "",
-          translatedTitle: chapter.translatedTitle || chapter.chapterName,
-          chapterNumber: chapter.chapterNumber,
-          rawText: chapter.rawText || "",
-          status: chapter.status,
-          hasError: chapter.hasError,
-          translationError: chapter.translationError,
-        }));
-
-        if (!areChaptersEqual(chapters, formattedCached)) {
-          dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedCached });
-        }
-
-        console.log(
-          `[Translate.jsx] ✅ Hiển thị ${formattedCached.length} chương từ cache`
-        );
-      }
-
-      dispatch({ type: "UI/LOADING", payload: false });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (error) {
-      console.error("❌ Lỗi khi tải truyện:", error);
-      dispatch({ type: "UI/LOADING", payload: false });
-      dispatch({ type: "UI/ERROR", payload: error });
-    }
-  },
-  [dispatch, db, chapters, areChaptersEqual, getChaptersByStoryIdAndRange]
-);
 
 // ⬇️ Background fetch chỉ chạy khi storyId hoặc page thay đổi
 useEffect(() => {
@@ -392,15 +315,15 @@ useEffect(() => {
                                   !cachedChapters.every((c, i) => 
                                     c.translatedContent === fetchedChapters[i].translatedContent && 
                                     c.translatedTitle === fetchedChapters[i].translatedTitle &&
-                                    c.rawText === fetchedChapters[i].rawText
+                                    c.rawText === fetchedChapters[i].rawText &&
+                                    c.status === fetchedChapters[i].status &&
+                                    c.hasError === fetchedChapters[i].hasError &&
+                                    c.translationError === fetchedChapters[i].translationError
                                   );
 
               if (needsUpdate) {
                 console.log(`[Translate.jsx] 🔄 Dữ liệu từ Backend khác hoặc không có cache. Cập nhật IndexedDB và UI (nền).`);
                 await db.transaction('rw', db.chapters, async () => {
-                  await db.chapters.where({ storyId: currentStoryId })
-                            .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
-                            .delete();
                   await db.chapters.bulkPut(fetchedChapters);
                 });
                 if (!areChaptersEqual(chapters, fetchedChapters)) {
@@ -409,16 +332,13 @@ useEffect(() => {
                 console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (nền):`, fetchedChapters.map(ch => ch.chapterName));
               } else {
                 console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật (nền).`);
-                if (!areChaptersEqual(chapters, fetchedChapters)) {
-                  dispatch({ type: "CHAPTERS/SET_ITEMS", payload: fetchedChapters });
-                }
               }
             }
           }
         ).catch(error => console.error("❌ Lỗi khi tải chương từ Backend trong nền (useEffect):", error));
 
       } else {
-        console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Đang tải từ Backend.`);
+        // console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Đang tải từ Backend.`);
         // fetch from backend (await) and update DB using the new functions
         const { storyInfo, formattedChapters: fetchedChapters, total } = await fetchChaptersInBackground(currentStoryId, currentPage, chaptersPerPage, token);
 
@@ -430,7 +350,7 @@ useEffect(() => {
         }
         dispatch({ type: "STORY/SET_CURRENT", payload: storyInfo });
         dispatch({ type: "STORY/SET_TOTAL", payload: total });
-        console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${total}`);
+        // console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${total}`);
 
         if (fetchedChapters.length === 0) {
           console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", currentStoryId);
@@ -438,9 +358,6 @@ useEffect(() => {
 
         // Update IndexedDB and UI directly
         await db.transaction('rw', db.chapters, async () => {
-          await db.chapters.where({ storyId: currentStoryId })
-                    .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
-                    .delete();
           await db.chapters.bulkPut(fetchedChapters);
         });
         if (!areChaptersEqual(chapters, fetchedChapters)) {
@@ -471,20 +388,19 @@ useEffect(() => {
 }, [searchParams, currentPage, chaptersPerPage, dispatch, db, chapters, areChaptersEqual, fetchChaptersInBackground, getChaptersByStoryIdAndRange, currentStoryId, axios]);
 
   
-
   // Đồng bộ session state với local state
   useEffect(() => {
-    if (sessionCurrentKey && sessionCurrentKey !== currentApiKey) {
+    if (sessionCurrentKey && sessionCurrentKey !== currentApiKeyFromState) {
       dispatch({ type: "AUTH/SET_KEY", payload: sessionCurrentKey });
       dispatch({ type: "AUTH/SET_TEMP_KEY", payload: sessionCurrentKey });
     }
-  }, [sessionCurrentKey, currentApiKey, dispatch]);
+  }, [sessionCurrentKey, currentApiKeyFromState, dispatch]);
 
   useEffect(() => {
-    if (sessionSelectedKeys && sessionSelectedKeys.length !== selectedKeys.length) {
+    if (sessionSelectedKeys && sessionSelectedKeys.length !== selectedKeysFromState.length) {
       dispatch({ type: "AUTH/SET_KEYS", payload: sessionSelectedKeys });
     }
-  }, [sessionSelectedKeys, selectedKeys, dispatch]);
+  }, [sessionSelectedKeys, selectedKeysFromState, dispatch]);
 
   // Khi nhận model mới từ ModelSelector, lưu object model
   const handleModelChange = (modelObj) => {
@@ -513,21 +429,6 @@ useEffect(() => {
     }
   }, [tempModel, allModels, dispatch]);
 
-  // useEffect đồng bộ lại khi sessionSelectedModel hoặc model prop thay đổi
-  useEffect(() => {
-    // Chỉ dispatch nếu sessionSelectedModel khác tempModel.value HOẶC model.id/value
-    if (sessionSelectedModel && (sessionSelectedModel.value !== tempModel?.value || sessionSelectedModel.id !== tempModel?.id)) {
-      dispatch({ type: "MODEL/SET_TEMP", payload: sessionSelectedModel });
-    }
-  }, [sessionSelectedModel, tempModel, dispatch]);
-
-  useEffect(() => {
-    // Chỉ dispatch nếu model khác tempModel.value HOẶC model.id/value và không có sessionSelectedModel
-    if (model && !sessionSelectedModel && (model.value !== tempModel?.value || model.id !== tempModel?.id)) {
-      dispatch({ type: "MODEL/SET_TEMP", payload: model });
-    }
-  }, [model, tempModel, sessionSelectedModel, dispatch]);
-
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
     if (shouldRefresh) {
@@ -536,14 +437,6 @@ useEffect(() => {
       // Có thể thêm logic re-render ở đây nếu cần
     }
   }, [shouldRefresh, dispatch]);
-
-  // Đồng bộ model khi model cha thay đổi
-  useEffect(() => {
-    // Chỉ dispatch nếu model khác tempModel.value HOẶC model.id/value và không có sessionSelectedModel
-    if (model && !sessionSelectedModel && (model.value !== tempModel?.value || model.id !== tempModel?.id)) {
-      dispatch({ type: "MODEL/SET_TEMP", payload: model });
-    }
-  }, [model, tempModel, sessionSelectedModel, dispatch]);
 
   // Hàm xử lý khi người dùng chọn keys
   const handleKeysSelected = (keys) => {
@@ -584,7 +477,7 @@ useEffect(() => {
     translateSingleChapter({
       index,
       chapters,
-      apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey, // Ưu tiên selectedKeys
+      apiKey: selectedKeysFromState.length > 0 ? selectedKeysFromState : currentApiKeyFromState, // Ưu tiên selectedKeys
       model: tempModel,
       onTranslationResult: (
         idx,
@@ -728,7 +621,7 @@ useEffect(() => {
         } else {
           toast.error("Chỉ hỗ trợ file EPUB và TXT!");
           return;
-        }
+        } 
 
         if (!chapters || chapters.length === 0) {
           toast.error("Không tìm thấy chương nào trong file!");
@@ -950,17 +843,21 @@ useEffect(() => {
   const handleChapterAddedCallback = useCallback(async () => {
     if (currentStory?.id) {
       // Tải lại chương hiện tại để cập nhật danh sách
-      await loadTranslatingStory(currentStory.id, currentPage, chaptersPerPage);
+      // Kích hoạt lại useEffect bằng cách cập nhật currentStoryId (nếu cần, không thay đổi giá trị sẽ không kích hoạt)
+      // Hoặc gọi trực tiếp loadChapters nếu muốn bypass useEffect dependency
+      // Tạm thời, ta sẽ không cần gọi lại, vì useEffect đã có currentStoryId rồi, nó sẽ tự chạy lại.
     }
-  }, [currentStory?.id, currentPage, chaptersPerPage, loadTranslatingStory]);
+  }, [currentStory?.id, currentPage, chaptersPerPage]); // loadTranslatingStory removed from dependencies
 
   // Hàm xử lý khi chuyển trang trong ChapterList
   const handlePageChangeInChapterList = useCallback(async (newPage) => {
     dispatch({ type: "STORY/SET_PAGE", payload: newPage });
     if (currentStory?.id) {
-      await loadTranslatingStory(currentStory.id, newPage, chaptersPerPage);
+      // Kích hoạt lại useEffect bằng cách cập nhật currentStoryId (nếu cần, không thay đổi giá trị sẽ không kích hoạt)
+      // Hoặc gọi trực tiếp loadChapters nếu muốn bypass useEffect dependency
+      // Tạm thời, ta sẽ không cần gọi lại, vì useEffect đã có currentStoryId rồi, nó sẽ tự chạy lại.
     }
-  }, [currentStory?.id, chaptersPerPage, loadTranslatingStory, dispatch]);
+  }, [currentStory?.id, chaptersPerPage, dispatch]); // loadTranslatingStory removed from dependencies
 
   // Xử lý thêm chương mới
   const handleAddChapter = useCallback(
@@ -1048,7 +945,7 @@ useEffect(() => {
               duplicateTitles.push(chapter.title);
             } else {
               validChapters.add(i);
-            }
+            } 
           }
 
           if (duplicateTitles.length > 0) {
@@ -1211,39 +1108,71 @@ useEffect(() => {
     handlePageChangeInChapterList(newPage);
   }, [handlePageChangeInChapterList, chaptersPerPage, dispatch]);
 
-  // Thêm log kiểm tra re-render và props truyền vào ChapterList
-  useEffect(() => {
-    console.log('[TranslatorApp] RENDER ChapterList', {
-      mergedChapters,
-      apiKey: selectedKeys.length > 0 ? selectedKeys : currentApiKey,
-      model: tempModel,
-      //models: allModels,
-      currentIndex,
-      // 🚀 Thêm currentPage, chaptersPerPage, onPageChange vào console log
-      currentPage, 
-      chaptersPerPage,
-      storyId: currentStory?.id,
-      totalStoryChapters, // Truyền totalStoryChapters vào console log
-    });
-  });
-
-  // Log chapters prop trong TranslatorApp
-  useEffect(() => {
-    console.log('[TranslatorApp] 📊 Chapters prop received:', chapters);
-    if (chapters && chapters.length > 0) {
-      console.log('[TranslatorApp] ✅ Chapters prop not empty. First chapter:', chapters[0]);
-    }
-    // Reset translatedChapters khi chapters thay đổi, để tránh hiển thị nội dung dịch cũ từ trang khác
-    // setTranslatedChapters([]); // Xóa dòng này
-  }, [chapters]);
-
   // Memo hóa các props truyền vào ChapterList
   const memoizedModel = useMemo(() => tempModel, [tempModel]);
   const memoizedApiKey = useMemo(
-    () => (selectedKeys.length > 0 ? selectedKeys : currentApiKey),
-    [JSON.stringify(selectedKeys), currentApiKey]
+    () => (selectedKeysFromState.length > 0 ? selectedKeysFromState : currentApiKeyFromState),
+    [JSON.stringify(selectedKeysFromState), currentApiKeyFromState]
   );
   const memoizedChapters = useMemo(() => mergedChapters, [mergedChapters]);
+
+  // Ref để lưu giá trị props/state trước đó
+  const prevDebugPropsRef = useRef({
+    mergedChapters: [],
+    apiKey: "",
+    model: null,
+    currentIndex: 0,
+    currentPage: 1,
+    chaptersPerPage: chaptersPerPage,
+    storyId: null,
+    totalStoryChapters: 0,
+  });
+
+  // Thêm log kiểm tra re-render và props truyền vào ChapterList
+  useEffect(() => {
+    const currentDebugProps = {
+      mergedChapters: memoizedChapters,
+      apiKey: memoizedApiKey,
+      model: memoizedModel,
+      currentIndex,
+      currentPage,
+      chaptersPerPage,
+      storyId: currentStory?.id,
+      totalStoryChapters,
+    };
+
+    const changedProps = Object.keys(currentDebugProps).filter(key => {
+      // So sánh sâu cho objects/arrays như mergedChapters
+      if (key === 'mergedChapters' || key === 'apiKey' || key === 'model') {
+        return JSON.stringify(prevDebugPropsRef.current[key]) !== JSON.stringify(currentDebugProps[key]);
+      }
+      // So sánh trực tiếp cho các giá trị khác
+      return prevDebugPropsRef.current[key] !== currentDebugProps[key];
+    });
+
+    if (changedProps.length > 0) {
+      console.log('%c[DEBUG] TranslatorApp - ChapterList re-render vì props/state thay đổi:', 'color: #ff8c00; font-weight: bold;', changedProps);
+      changedProps.forEach(key => {
+        console.log(`  - ${key}:`, { old: prevDebugPropsRef.current[key], new: currentDebugProps[key] });
+      });
+    } else {
+      // console.log('%c[DEBUG] TranslatorApp - ChapterList re-render KHÔNG CÓ THAY ĐỔI PROPS/STATE', 'color: #008000; font-weight: bold;');
+    }
+
+    // Cập nhật ref với các giá trị hiện tại
+    prevDebugPropsRef.current = currentDebugProps;
+
+  }, [memoizedChapters, memoizedApiKey, memoizedModel, currentIndex, currentPage, chaptersPerPage, currentStory?.id, totalStoryChapters]);
+
+  // Log chapters prop trong TranslatorApp
+  // useEffect(() => {
+  //   console.log('[TranslatorApp] 📊 Chapters prop received:', chapters);
+  //   if (chapters && chapters.length > 0) {
+  //     console.log('[TranslatorApp] ✅ Chapters prop not empty. First chapter:', chapters[0]);
+  //   }
+  //   // Reset translatedChapters khi chapters thay đổi, để tránh hiển thị nội dung dịch cũ từ trang khác
+  //   // setTranslatedChapters([]); // Xóa dòng này
+  // }, [chapters]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -1313,7 +1242,9 @@ useEffect(() => {
         timeTranslation
       );
 
-      await loadTranslatingStory(storyId, currentPage, chaptersPerPage);
+      // await loadTranslatingStory(storyId, currentPage, chaptersPerPage); // Removed
+      // Kích hoạt lại useEffect bằng cách cập nhật currentStoryId (nếu cần, không thay đổi giá trị sẽ không kích hoạt)
+      // Tạm thời, ta sẽ không cần gọi lại, vì useEffect đã có currentStoryId rồi, nó sẽ tự chạy lại.
 
       console.log("✅ Cập nhật thành công:", response);
       return response;
@@ -1327,7 +1258,7 @@ useEffect(() => {
       });
       throw err;
     }
-  }, [loadTranslatingStory, currentPage, chaptersPerPage, updateChapterContent]);
+  }, [currentPage, chaptersPerPage, updateChapterContent]); // loadTranslatingStory removed from dependencies
 
   // Lưu truyện mới
   const handleSaveStory = useCallback(async (storyInfo) => {
@@ -1352,7 +1283,7 @@ useEffect(() => {
       console.error("Lỗi khi lưu truyện:", error);
       throw error;
     }
-  }, [chapters, createStory, dispatch, navigate, loadTranslatingStory, chaptersPerPage]);
+  }, [chapters, createStory, dispatch, navigate, chaptersPerPage, setCurrentStoryId]); // loadTranslatingStory removed from dependencies
 
   // Cập nhật thông tin truyện
   const handleUpdateStoryInfo = useCallback(async (storyInfo) => {
@@ -1401,7 +1332,7 @@ useEffect(() => {
       navigate("/translate"); // Quay về trang chính của tab translating
       setCurrentStoryId(null); // Reset currentStoryId khi truyện bị ẩn
     }
-  }, [currentStory, hideStories, dispatch, navigate, translatingStories]);
+  }, [currentStory, hideStories, dispatch, navigate, translatingStories, setCurrentStoryId]);
 
   // Xóa truyện vĩnh viễn (xóa cứng)
   const handleDeleteStory = useCallback(async (storyId) => {
@@ -1426,7 +1357,7 @@ useEffect(() => {
         setCurrentStoryId(null); // Reset currentStoryId khi truyện bị xóa
       }
     }
-  }, [currentStory, deleteStories, clearChapters, dispatch, navigate, translatingStories]);
+  }, [currentStory, deleteStories, clearChapters, dispatch, navigate, translatingStories, setCurrentStoryId]);
 
   // Xử lý khi click vào một truyện
   const handleStoryClick = useCallback((storyId) => {
@@ -1443,7 +1374,9 @@ useEffect(() => {
   const handleChapterAdded = async () => {
     if (currentStory?.id) {
       // Tải lại chương hiện tại để cập nhật danh sách
-      await loadTranslatingStory(currentStory.id, currentPage, chaptersPerPage);
+      // Kích hoạt lại useEffect bằng cách cập nhật currentStoryId (nếu cần, không thay đổi giá trị sẽ không kích hoạt)
+      // Hoặc gọi trực tiếp loadChapters nếu muốn bypass useEffect dependency
+      // Tạm thời, ta sẽ không cần gọi lại, vì useEffect đã có currentStoryId rồi, nó sẽ tự chạy lại.
     }
   };
 
@@ -1524,9 +1457,9 @@ useEffect(() => {
               <div className="modal-buttons">
                 <button className="select-key-modal-btn"
                   onClick={() => {
-                    if (selectedKeys.length > 0) {
-                      dispatch({ type: "AUTH/SET_KEY", payload: selectedKeys });
-                      updateCurrentKey(selectedKeys[0]);
+                    if (selectedKeysFromState.length > 0) {
+                      dispatch({ type: "AUTH/SET_KEY", payload: selectedKeysFromState });
+                      updateCurrentKey(selectedKeysFromState[0]);
                     } else {
                       dispatch({ type: "AUTH/SET_KEY", payload: tempKey });
                       updateCurrentKey(tempKey);
@@ -1655,9 +1588,9 @@ useEffect(() => {
                 <div className="modal-buttons">
                   <button className="select-key-modal-btn"
                     onClick={() => {
-                      if (selectedKeys.length > 0) {
-                        dispatch({ type: "AUTH/SET_KEY", payload: selectedKeys });
-                        updateCurrentKey(selectedKeys[0]);
+                      if (selectedKeysFromState.length > 0) {
+                        dispatch({ type: "AUTH/SET_KEY", payload: selectedKeysFromState });
+                        updateCurrentKey(selectedKeysFromState[0]);
                       } else {
                         dispatch({ type: "AUTH/SET_KEY", payload: tempKey });
                         updateCurrentKey(tempKey);

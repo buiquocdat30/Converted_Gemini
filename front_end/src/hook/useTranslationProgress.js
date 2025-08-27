@@ -4,39 +4,35 @@ import { AuthContext } from '../context/ConverteContext';
 const DEFAULT_STORY_TIME = 30; // 30s cho truyện chưa có dữ liệu dịch
 const MAX_HISTORY = 10; // 10 chương gần nhất
 
-const useTranslationProgress = (storyId, defaultTime = 30) => {
+const useTranslationProgress = (storyData, chapterItems, defaultTime = 30) => {
   const [progress, setProgress] = useState(0);
   const [isTranslating, setIsTranslating] = useState(false);
   const [estimatedDuration, setEstimatedDuration] = useState(DEFAULT_STORY_TIME);
   const startTime = useRef(null);
   const intervalRef = useRef(null);
-  const { stories } = useContext(AuthContext);
+  // const { stories } = useContext(AuthContext); // Removed
 
   // Tính toán thời gian dịch trung bình cho truyện cụ thể
-  const calculateStoryTranslationTime = (storyId) => {
-    if (!stories || !Array.isArray(stories)) {
-      console.log('[STORY-HISTORY] Không có dữ liệu stories');
+  const calculateStoryTranslationTime = (id) => {
+    // Sử dụng storyData được truyền vào
+    if (!storyData || !storyData.id) {
+      console.log(`[STORY-HISTORY] Không có dữ liệu storyData hợp lệ.`);
       return DEFAULT_STORY_TIME;
     }
 
-    // Tìm truyện cụ thể
-    const story = stories.find(s => s.id === storyId);
-    if (!story || !story.chapters) {
-      console.log(`[STORY-HISTORY] Không tìm thấy truyện ${storyId} hoặc không có chapters`);
+    if (!chapterItems || !Array.isArray(chapterItems) || chapterItems.length === 0) {
+      console.log(`[STORY-HISTORY] Story ${storyData.id}: Không có chương nào.`);
       return DEFAULT_STORY_TIME;
     }
 
-    // Lọc các chương đã dịch có timeTranslation
-    const translatedChapters = story.chapters.filter(chapter => 
+    const translatedChapters = chapterItems.filter(chapter => 
       chapter.translation && 
       chapter.translation.timeTranslation && 
       chapter.translation.timeTranslation > 0
     );
 
-    //console.log(`[STORY-HISTORY] Truyện ${storyId}: ${translatedChapters.length} chương đã dịch`);
-
     if (translatedChapters.length === 0) {
-      //console.log(`[STORY-HISTORY] Truyện ${storyId}: Chưa có chương nào dịch, dùng default ${DEFAULT_STORY_TIME}s`);
+      console.log(`[STORY-HISTORY] Story ${storyData.id}: Chưa có chương nào dịch có dữ liệu thời gian, dùng default ${DEFAULT_STORY_TIME}s`);
       return DEFAULT_STORY_TIME;
     }
 
@@ -53,8 +49,8 @@ const useTranslationProgress = (storyId, defaultTime = 30) => {
 
     const averageTime = totalTime / recentChapters.length;
 
-    console.log(`[STORY-HISTORY] Truyện ${storyId}:`, {
-      totalChapters: story.chapters.length,
+    console.log(`[STORY-HISTORY] Truyện ${id}:`, {
+      totalChapters: chapterItems.length,
       translatedChapters: translatedChapters.length,
       recentChapters: recentChapters.length,
       averageTime: averageTime.toFixed(1) + 's',
@@ -69,22 +65,22 @@ const useTranslationProgress = (storyId, defaultTime = 30) => {
 
   // Cập nhật thời gian ước tính khi stories hoặc storyId thay đổi
   useEffect(() => {
-    if (storyId) {
-      const averageTime = calculateStoryTranslationTime(storyId);
+    if (storyData && storyData.id) {
+      const averageTime = calculateStoryTranslationTime(storyData.id);
       setEstimatedDuration(averageTime);
-      //console.log(`[STORY-HISTORY] Truyện ${storyId}: Cập nhật thời gian ước tính ${averageTime.toFixed(1)}s`);
+      //console.log(`[STORY-HISTORY] Truyện ${storyData.id}: Cập nhật thời gian ước tính ${averageTime.toFixed(1)}s`);
     }
-  }, [stories, storyId]);
+  }, [storyData, chapterItems]); // Updated dependency array
 
   // Hàm cập nhật lịch sử dịch
   const updateTranslationHistory = (duration) => {
     console.log(`[STORY-HISTORY] Cập nhật lịch sử: ${duration.toFixed(1)}s`);
     
     // Tính lại thời gian trung bình cho truyện này
-    const averageTime = calculateStoryTranslationTime(storyId);
+    const averageTime = calculateStoryTranslationTime(storyData.id);
     setEstimatedDuration(averageTime);
     
-    console.log(`[STORY-HISTORY] Truyện ${storyId}: Thời gian ước tính mới ${averageTime.toFixed(1)}s`);
+    console.log(`[STORY-HISTORY] Truyện ${storyData.id}: Thời gian ước tính mới ${averageTime.toFixed(1)}s`);
   };
 
   // Hàm khởi động tiến độ (KHÔNG cần wordCount nữa)

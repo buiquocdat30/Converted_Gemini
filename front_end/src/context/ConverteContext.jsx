@@ -364,11 +364,6 @@ export const AuthProvider = ({ children }) => {
   // Hàm mới để lấy chương từ BE trong nền
   const fetchChaptersInBackground = useCallback(
     async (storyId, page, limit, token) => {
-      if (!token) {
-        console.error("❌ Không tìm thấy token xác thực cho tác vụ nền.");
-        return { storyInfo: null, formattedChapters: [], total: 0 };
-      }
-  
       try {
         console.log("[ConverteContext] 📥 Fetch story & chapters từ BE (nền)...");
   
@@ -410,7 +405,7 @@ export const AuthProvider = ({ children }) => {
         return { storyInfo: null, formattedChapters: [], total: 0 };
       }
     },
-    []
+    [axios]
   );
   
   

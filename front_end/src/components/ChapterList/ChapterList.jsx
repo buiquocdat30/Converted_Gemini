@@ -14,6 +14,27 @@ import { AuthContext } from '../../context/ConverteContext';
 import { API_URL } from '../../config/config';
 import { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../../services/indexedDBService';
 
+// Helper function for deep comparison of chapters
+const areChaptersEqual = (arr1, arr2) => {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0; i < arr1.length; i++) {
+    const ch1 = arr1[i];
+    const ch2 = arr2[i];
+    if (ch1.id !== ch2.id ||
+        ch1.chapterNumber !== ch2.chapterNumber ||
+        ch1.chapterName !== ch2.chapterName ||
+        ch1.rawText !== ch2.rawText ||
+        ch1.translatedContent !== ch2.translatedContent ||
+        ch1.translatedTitle !== ch2.translatedTitle ||
+        ch1.status !== ch2.status ||
+        ch1.hasError !== ch2.hasError ||
+        ch1.translationError !== ch2.translationError) {
+      return false;
+    }
+  }
+  return true;
+};
+
 // Định nghĩa initialState cho ChapterList
 const initialState = {
   translation: {
@@ -84,7 +105,7 @@ const ChapterList = ({
   onSelectChapter,
   onSelectJumbChapter,
   currentIndex = 0,
-  storyId,
+  currentStory, // Thay đổi từ storyId
   deleteChapter,
   onChapterAdded,
   setChapters,
@@ -111,7 +132,7 @@ const ChapterList = ({
   // Sử dụng hook cho tiến độ tổng
   const {
     estimatedDuration,
-  } = useTranslationProgress(storyId, 30); // Sử dụng defaultTime = 30s từ hook
+  } = useTranslationProgress(currentStory, chapters, 30); // Thay đổi từ storyId sang currentStory và chapters
   // console.log("đây là thời gian trung bình dịch từ:", averageTimePerWord);
   // Sử dụng hook cho tiến độ từng chương
   const chapterProgressHooks = useRef({});
@@ -234,15 +255,15 @@ const ChapterList = ({
   // Tính totalPages dựa trên tổng số chương của truyện, không phải chỉ các chương hiện tại
   const totalPages = Math.ceil(totalStoryChapters / chaptersPerPage);
 
-  useEffect(() => {
-    console.log('[ChapterList] 📊 Chapters prop received:', chapters);
-    console.log('[ChapterList] 📊 currentChapters (before slice/filter):', sortedChapters);
-    if (chapters && chapters.length > 0) {
-      console.log('[ChapterList] ✅ Chapters prop not empty. First chapter:', chapters[0]);
-    }
-  }, [chapters, sortedChapters]);
+  // useEffect(() => {
+  //   console.log('[ChapterList] 📊 Chapters prop received:', chapters);
+  //   console.log('[ChapterList] 📊 currentChapters (before slice/filter):', sortedChapters);
+  //   if (chapters && chapters.length > 0) {
+  //     console.log('[ChapterList] ✅ Chapters prop not empty. First chapter:', chapters[0]);
+  //   }
+  // }, [chapters, sortedChapters]);
 
-  console.log(`[ChapterList - Pagination Debug] totalStoryChapters: ${totalStoryChapters}, chaptersPerPage: ${chaptersPerPage}, totalPages: ${totalPages}, currentPage: ${currentPage}`);
+  // console.log(`[ChapterList - Pagination Debug] totalStoryChapters: ${totalStoryChapters}, chaptersPerPage: ${chaptersPerPage}, totalPages: ${totalPages}, currentPage: ${currentPage}`);
 
   const startIdx = (currentPage - 1) * chaptersPerPage; // Sửa lỗi cú pháp
   const endIdx = startIdx + chaptersPerPage;
@@ -309,7 +330,7 @@ const ChapterList = ({
 
   // Reset translation-related states when currentPage or storyId changes
   useEffect(() => {
-    console.log('[ChapterList] 🔄 Resetting translation states due to page/story change.');
+    // console.log('[ChapterList] 🔄 Resetting translation states due to page/story change.');
     dispatch({ type: "TRANSLATION/SET_RESULTS", payload: {} });
     dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: {} });
     dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: 0 });
@@ -319,34 +340,34 @@ const ChapterList = ({
     dispatch({ type: "TRANSLATION/SET_HAS_TRANSLATED_ALL", payload: false });
     isStoppedRef.current = false;
     cancelMapRef.current = {};
-  }, [currentPage, storyId]);
+  }, [currentPage, currentStory?.id]); // Sử dụng currentStory?.id
 
   // 🚀 Tự động cuộn đến chương hiện tại khi currentIndex thay đổi
-  useEffect(() => {
-    if (currentIndex !== undefined) {
-      console.log(`[ChapterList] 🎯 Chương hiện tại: ${currentIndex + 1} (index: ${currentIndex})`);
+  // useEffect(() => {
+  //   if (currentIndex !== undefined) {
+  //     // console.log(`[ChapterList] 🎯 Chương hiện tại: ${currentIndex + 1} (index: ${currentIndex})`);
       
-      // 🚀 Scroll đến chương hiện tại
-      setTimeout(() => {
-        const chapterElement = document.querySelector(`[data-chapter-index="${currentIndex}"]`);
-        if (chapterElement) {
-          chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          console.log(`[ChapterList] 📜 Đã scroll đến chương ${currentIndex + 1}`);
-        }
-      }, 100); // Thêm một độ trễ nhỏ để đảm bảo render xong
-    }
-  }, [currentIndex]); // Chỉ phụ thuộc vào currentIndex
+  //     // 🚀 Scroll đến chương hiện tại
+  //     setTimeout(() => {
+  //       const chapterElement = document.querySelector(`[data-chapter-index="${currentIndex}"]`);
+  //       if (chapterElement) {
+  //         chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  //         console.log(`[ChapterList] 📜 Đã scroll đến chương ${currentIndex + 1}`);
+  //       }
+  //     }, 100); // Thêm một độ trễ nhỏ để đảm bảo render xong
+  //   }
+  // }, [currentIndex]); // Chỉ phụ thuộc vào currentIndex
 
   // Debug: Test case cho logic tính toán trang
-  useEffect(() => {
-    console.log(`[ChapterList] 🧪 Test case tính toán trang:`, {
-      'Chương 1 (index 0)': Math.floor(0 / 10) + 1, // Trang 1
-      'Chương 10 (index 9)': Math.floor(9 / 10) + 1, // Trang 1
-      'Chương 11 (index 10)': Math.floor(10 / 10) + 1, // Trang 2
-      'Chương 20 (index 19)': Math.floor(19 / 10) + 1, // Trang 2
-      'Chương 21 (index 20)': Math.floor(20 / 10) + 1, // Trang 3
-    });
-  }, []);
+  // useEffect(() => {
+  //   console.log(`[ChapterList] 🧪 Test case tính toán trang:`, {
+  //     'Chương 1 (index 0)': Math.floor(0 / 10) + 1, // Trang 1
+  //     'Chương 10 (index 9)': Math.floor(9 / 10) + 1, // Trang 1
+  //     'Chương 11 (index 10)': Math.floor(10 / 10) + 1, // Trang 2
+  //     'Chương 20 (index 19)': Math.floor(19 / 10) + 1, // Trang 2
+  //     'Chương 21 (index 20)': Math.floor(20 / 10) + 1, // Trang 3
+  //   });
+  // }, []);
 
   // Đảm bảo translatedCount không vượt quá 2 nếu không có apiKey
   useEffect(() => {
@@ -477,7 +498,7 @@ const ChapterList = ({
         chapters,
         apiKey,
         model: modelObject,
-        storyId,
+        storyId: currentStory?.id, // Sử dụng currentStory?.id
         userData, // Truyền userData
         setResults: (updater) => {
           // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
@@ -633,7 +654,7 @@ const ChapterList = ({
   const translate = async (index) => {
     console.log(`[CHAPTER ${index}] ===== BẮT ĐẦU DỊCH 1 CHƯƠNG =====`);
     console.log(`[CHAPTER ${index}] 📊 estimatedDuration từ hook:`, estimatedDuration);
-    console.log(`[CHAPTER ${index}] 📊 storyId:`, storyId);
+    console.log(`[CHAPTER ${index}] 📊 storyId:`, currentStory?.id);
     
     cancelMapRef.current[index] = false; // Reset trạng thái hủy khi dịch lại
     
@@ -707,7 +728,7 @@ const ChapterList = ({
         chapters,
         apiKey,
         model: modelObject,
-        storyId,
+        storyId: currentStory?.id, // Sử dụng currentStory?.id
         setProgress: (progress) => {
             // Cập nhật progress từ translateSingleChapter
           dispatch({ type: "TRANSLATION/SET_CHAPTER_PROGRESSES", payload: { ...chapterProgresses, [index]: progress } });
@@ -874,7 +895,7 @@ const ChapterList = ({
   const handleDeleteChapter = async (chapterNumber) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa chương này?")) {
       try {
-        await deleteChapter(storyId, chapterNumber);
+        await deleteChapter(currentStory?.id, chapterNumber); // Sử dụng currentStory?.id
         // Gọi callback để tải lại dữ liệu
         if (onChapterAdded) {
           onChapterAdded();
@@ -1186,7 +1207,7 @@ const ChapterList = ({
   }, [chapters]);
 
   const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
-  const roomId = userId ? `user:${userId}` : `story:${storyId}`;
+  const roomId = userId ? `user:${userId}` : `story:${currentStory?.id}`; // Sử dụng currentStory?.id
   
   //console.log('[ChapterList] 🔌 ===== KHỞI TẠO SOCKET HOOK ====');
   
@@ -1194,95 +1215,7 @@ const ChapterList = ({
   // Bật lại socket để sử dụng real-time progress
   const socketRef = useTranslationSocket(roomId, handleSocketChapterTranslated, handleSocketChapterProgress, handleSocketChapterStarted);
   
-  //console.log('[ChapterList] 🔌 Socket hook đã được khởi tạo:', {
-   // socketRef,
-   // socketConnected: socketRef?.connected,
-   // socketId: socketRef?.id
-  ///});
-  //console.log('[ChapterList] 🔌 ===== HOÀN THÀNH KHỞI TẠO SOCKET ====');
-
-  // Debug: Log room ID và socket connection
-  useEffect(() => {
-    const userId = userData?.id; // Lấy userId từ userData thay vì localStorage
-    const roomId = userId ? `user:${userId}` : `story:${storyId}`;
-    console.log('[PROGRESS] Room ID:', roomId);
-    console.log('[PROGRESS] User ID:', userId);
-    console.log('[PROGRESS] Story ID:', storyId);
-  }, [storyId, userData?.id]);
-
-  // Log props thay đổi mỗi lần render
-  const prevPropsRef = useRef({});
-  useEffect(() => {
-    const changed = [];
-    if (prevPropsRef.current.chapters !== chapters) changed.push('chapters');
-    if (prevPropsRef.current.apiKey !== apiKey) changed.push('apiKey');
-    if (prevPropsRef.current.model !== modelProp) changed.push('model');
-    if (prevPropsRef.current.currentIndex !== currentIndex) changed.push('currentIndex');
-    if (prevPropsRef.current.storyId !== storyId) changed.push('storyId');
-    if (changed.length > 0) {
-      //console.log('%c[DEBUG] ChapterList re-render vì props:', 'color: orange', changed);
-      const currentProps = { chapters, apiKey, model: modelProp, currentIndex, storyId };
-      changed.forEach(key => {
-        //console.log(`[DEBUG] Giá trị mới của ${key}:`, currentProps[key]);
-      });
-    }
-    prevPropsRef.current = { chapters, apiKey, model: modelProp, currentIndex, storyId };
-  });
-
-   // Log các state chính mỗi lần render
-   useEffect(() => {
-     console.log('%c[DEBUG] ChapterList state:', 'color: green', {
-       results,
-       chapterStatus,
-       translatedCount,
-       isTranslatingAll,
-       isTranslateAllDisabled,
-       chapterProgresses,
-       chapterTranslatingStates,
-     });
-   });
-
-   // Log từng state riêng biệt khi thay đổi
-   useEffect(() => {
-     console.log('[DEBUG][STATE] results thay đổi:', results);
-   }, [results]);
-   useEffect(() => {
-     console.log('[DEBUG][STATE] chapterStatus thay đổi:', chapterStatus);
-   }, [chapterStatus]);
-   useEffect(() => {
-     console.log('[DEBUG][STATE] translatedCount thay đổi:', translatedCount);
-   }, [translatedCount]);
-   useEffect(() => {
-     console.log('[DEBUG][STATE] isTranslatingAll thay đổi:', isTranslatingAll);
-   }, [isTranslatingAll]);
-   useEffect(() => {
-     console.log('[DEBUG][STATE] isTranslateAllDisabled thay đổi:', isTranslateAllDisabled);
-   }, [isTranslateAllDisabled]);
-   useEffect(() => {
-     console.log('[DEBUG][STATE] chapterProgresses thay đổi:', chapterProgresses);
-   }, [chapterProgresses]);
-   useEffect(() => {
-     console.log('[DEBUG][STATE] chapterTranslatingStates thay đổi:', chapterTranslatingStates);
-   }, [chapterTranslatingStates]);
-
-   // Log từng prop riêng biệt khi thay đổi
-   useEffect(() => {
-     console.log('[DEBUG][PROP] chapters thay đổi:', chapters);
-   }, [chapters]);
-   useEffect(() => {
-     console.log('[DEBUG][PROP] apiKey thay đổi:', apiKey);
-   }, [apiKey]);
-   useEffect(() => {
-     console.log('[DEBUG][PROP] modelProp thay đổi:', modelProp);
-   }, [modelProp]);
-   useEffect(() => {
-     console.log('[DEBUG][PROP] currentIndex thay đổi:', currentIndex);
-   }, [currentIndex]);
-   useEffect(() => {
-     console.log('[DEBUG][PROP] storyId thay đổi:', storyId);
-   }, [storyId]);
-
- 
+  
   // Progress bar component tối ưu hóa bằng React.memo
   const ChapterProgressBar = React.memo(({ progress }) => {
     //console.log(`[PROGRESS-BAR] 🎨 Render progress bar với progress: ${progress}%`);
@@ -1321,18 +1254,18 @@ const ChapterList = ({
     chaptersPerPage,
     onSelectChapter
   }) => {
-     console.log(`[ChapterItem] 🎨 Render ChapterItem ${calculatedChapterNumber}:`, {
-       chapterNumber: ch.chapterNumber,
-       chapterStatus,
-       chapterProgress,
-       chapterTranslatingState,
-       isTranslated,
-       duration,
-       shouldShowProgress: chapterStatus === "PENDING" || chapterStatus === "PROCESSING",
-       translatedTitle: ch.translatedTitle, // Thêm log này
-       translatedContentPreview: ch.translatedContent?.substring(0, 50), // Thêm log này (50 ký tự đầu)
-       rawTextPreview: ch.rawText?.substring(0, 50) // Thêm log này (50 ký tự đầu)
-     });
+    //  console.log(`[ChapterItem] 🎨 Render ChapterItem ${calculatedChapterNumber}:`, {
+    //    chapterNumber: ch.chapterNumber,
+    //    chapterStatus,
+    //    chapterProgress,
+    //    chapterTranslatingState,
+    //    isTranslated,
+    //    duration,
+    //    shouldShowProgress: chapterStatus === "PENDING" || chapterStatus === "PROCESSING",
+    //    translatedTitle: ch.translatedTitle, // Thêm log này
+    //    translatedContentPreview: ch.translatedContent?.substring(0, 50), // Thêm log này (50 ký tự đầu)
+    //    rawTextPreview: ch.rawText?.substring(0, 50) // Thêm log này (50 ký tự đầu)
+    //  });
     
     // Khi render trạng thái chương hoặc xử lý kết quả dịch:
     const isFailed = chapterStatus === 'FAILED' || ch?.hasError || !!ch?.translationError;
@@ -1447,7 +1380,7 @@ const ChapterList = ({
 
   // Hàm xử lý click pagination
   const handlePageChange = useCallback((newPage) => {
-    console.log(`[ChapterList] 🔄 Click pagination: ${currentPage} → ${newPage}`);
+    // console.log(`[ChapterList] 🔄 Click pagination: ${currentPage} → ${newPage}`);
     
     // Gọi onPageChange prop để cập nhật trang ở component cha (Translate.jsx)
     onPageChange(newPage);
@@ -1500,7 +1433,7 @@ const ChapterList = ({
       </ul>
       {/* trang chứa các chương khi vượt quá 10 chương */}
       <div className="pagination">
-        {console.log(`[ChapterList - Pagination] totalPages: ${totalPages}, currentPage: ${currentPage}`)}
+       
         {(() => {
           const pageButtons = [];
           const pagesToShowAtEnds = 5;
@@ -1700,10 +1633,10 @@ const ChapterList = ({
 
 export default React.memo(ChapterList, (prevProps, nextProps) => {
   return (
-    prevProps.chapters === nextProps.chapters &&
+    areChaptersEqual(prevProps.chapters, nextProps.chapters) &&
     prevProps.apiKey === nextProps.apiKey &&
     prevProps.model?.value === nextProps.model?.value &&
     prevProps.currentIndex === nextProps.currentIndex &&
-    prevProps.storyId === nextProps.storyId
+    prevProps.currentStory?.id === nextProps.currentStory?.id // Sử dụng currentStory?.id
   );
 });

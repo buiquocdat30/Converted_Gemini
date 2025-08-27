@@ -40,31 +40,31 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
 
     // Lắng nghe kết nối
     socketRef.current.on('connect', () => {
-      console.log('[FE-SOCKET] ✅ Đã kết nối thành công:', socketRef.current.id);
-      console.log('[FE-SOCKET] 📡 Socket URL:', SOCKET_URL);
-      console.log('[FE-SOCKET] 🏠 Room ID hiện tại:', roomId);
+      //console.log('[FE-SOCKET] ✅ Đã kết nối thành công:', socketRef.current.id);
+      // console.log('[FE-SOCKET] 📡 Socket URL:', SOCKET_URL);
+      // console.log('[FE-SOCKET] 🏠 Room ID hiện tại:', roomId);
     });
 
     // Lắng nghe ngắt kết nối
     socketRef.current.on('disconnect', (reason) => {
-      console.log('[FE-SOCKET] ❌ Đã ngắt kết nối, lý do:', reason);
+      //console.log('[FE-SOCKET] ❌ Đã ngắt kết nối, lý do:', reason);
     });
 
     // Lắng nghe kết quả dịch
     socketRef.current.on('chapterTranslated', (data) => {
-      console.log('📥 [FE-SOCKET] ===== NHẬN KẾT QUẢ DỊCH ====');
-      console.log('[FE-SOCKET] 📋 Dữ liệu nhận được:', {
-        chapterNumber: data.chapterNumber,
-        hasTranslatedTitle: !!data.translatedTitle,
-        hasTranslatedContent: !!data.translatedContent,
-        titleLength: data.translatedTitle?.length || 0,
-        contentLength: data.translatedContent?.length || 0,
-        duration: data.duration,
-        hasError: data.hasError,
-        error: data.error,
-        jobIndex: data.jobIndex,
-        totalJobs: data.totalJobs
-      });
+      //console.log('📥 [FE-SOCKET] ===== NHẬN KẾT QUẢ DỊCH ====');
+      // console.log('[FE-SOCKET] 📋 Dữ liệu nhận được:', {
+      //   chapterNumber: data.chapterNumber,
+      //   hasTranslatedTitle: !!data.translatedTitle,
+      //   hasTranslatedContent: !!data.translatedContent,
+      //   titleLength: data.translatedTitle?.length || 0,
+      //   contentLength: data.translatedContent?.length || 0,
+      //   duration: data.duration,
+      //   hasError: data.hasError,
+      //   error: data.error,
+      //   jobIndex: data.jobIndex,
+      //   totalJobs: data.totalJobs
+      // });
       const titlePreview = (data.translatedTitle || '').replace(/\s+/g, ' ').slice(0, 120);
       const contentPreview = (data.translatedContent || '').replace(/\s+/g, ' ').slice(0, 250);
       console.log(`[FE-SOCKET] 🧩 Preview chương ${data.chapterNumber}:`);
@@ -193,9 +193,9 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
   // Khi roomId đổi thì emit join
   useEffect(() => {
     if (roomId && socketRef.current) {
-      console.log('🏠 [FE-SOCKET] ===== JOIN ROOM ====');
-      console.log('[FE-SOCKET] 📍 Join room:', roomId);
-      console.log('[FE-SOCKET] 🔍 Socket connected:', socketRef.current.connected);
+      // console.log('🏠 [FE-SOCKET] ===== JOIN ROOM ====');
+      // console.log('[FE-SOCKET] 📍 Join room:', roomId);
+      // console.log('[FE-SOCKET] 🔍 Socket connected:', socketRef.current.connected);
       
       try {
         socketRef.current.emit('join', roomId);
@@ -204,7 +204,7 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
         console.error('[FE-SOCKET] ❌ Lỗi khi emit join room:', error);
       }
       
-      console.log('🏠 [FE-SOCKET] ===== JOIN ROOM HOÀN THÀNH ====');
+      //console.log('🏠 [FE-SOCKET] ===== JOIN ROOM HOÀN THÀNH ====');
     } else {
       console.log('[FE-SOCKET] ⚠️ Không thể join room:', {
         roomId,
@@ -215,14 +215,14 @@ export default function useTranslationSocket(roomId, onChapterTranslated, onChap
   }, [roomId]);
 
   // Log thông tin socket mỗi khi roomId thay đổi
-  useEffect(() => {
-    console.log('[FE-SOCKET] 📊 Thông tin socket hiện tại:', {
-      roomId,
-      socketExists: !!socketRef.current,
-      socketConnected: socketRef.current?.connected,
-      socketId: socketRef.current?.id
-    });
-  }, [roomId]);
+  // useEffect(() => {
+  //   console.log('[FE-SOCKET] 📊 Thông tin socket hiện tại:', {
+  //     roomId,
+  //     socketExists: !!socketRef.current,
+  //     socketConnected: socketRef.current?.connected,
+  //     socketId: socketRef.current?.id
+  //   });
+  // }, [roomId]);
 
   // Trả về socket ref để component có thể sử dụng nếu cần
   return socketRef.current;
