@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [menu, setMenu] = useState("home");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentStoryId, setCurrentStoryId] = useState(null);
 
   // Sử dụng useMemo để cache token
   const token = useMemo(() => {
@@ -359,6 +360,60 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, [token]);
+
+  // Hàm mới để lấy chương từ BE trong nền
+  const fetchChaptersInBackground = useCallback(
+    async (storyId, page, limit, token) => {
+      if (!token) {
+        console.error("❌ Không tìm thấy token xác thực cho tác vụ nền.");
+        return { storyInfo: null, formattedChapters: [], total: 0 };
+      }
+  
+      try {
+        console.log("[ConverteContext] 📥 Fetch story & chapters từ BE (nền)...");
+  
+        // Gọi song song
+        const [storyInfoResponse, chaptersResponse] = await Promise.all([
+          axios.get(`${API_URL}/user/library/${storyId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(
+            `${API_URL}/user/library/${storyId}/chapters?page=${page}&limit=${limit}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          ),
+        ]);
+  
+        const storyInfo = storyInfoResponse.data || null;
+        const total = chaptersResponse.data?.totalChaptersCount || 0;
+  
+        const rawChapters = Array.isArray(chaptersResponse.data?.chapters)
+          ? chaptersResponse.data.chapters
+          : [];
+  
+        const formattedChapters = rawChapters.map((ch) => ({
+          id: ch.id,
+          chapterName: ch.chapterName,
+          title: ch.chapterName,
+          content: ch.translation?.translatedContent || ch.rawText || "",
+          translated: ch.translation?.translatedContent || "",
+          translatedTitle: ch.translation?.translatedTitle || ch.chapterName,
+          chapterNumber: ch.chapterNumber,
+          rawText: ch.rawText || "",
+          status: ch.status,
+          hasError: ch.hasError,
+          translationError: ch.translationError,
+        }));
+  
+        return { storyInfo, formattedChapters, total };
+      } catch (err) {
+        console.error("❌ Lỗi fetch BE trong nền:", err);
+        return { storyInfo: null, formattedChapters: [], total: 0 };
+      }
+    },
+    []
+  );
+  
+  
 
   const createStory = async (file, storyInfo) => {
     try {
@@ -755,6 +810,7 @@ export const AuthProvider = ({ children }) => {
         userApiKey,
         userApiKeyToday,
         getAuthToken,
+        currentStoryId,
 
         // User Functions
         onLogin,
@@ -786,6 +842,8 @@ export const AuthProvider = ({ children }) => {
         // Chapter Functions
         addChapter,
         deleteChapter,
+        fetchChaptersInBackground,
+        setCurrentStoryId,
       }}
     >
       {children}

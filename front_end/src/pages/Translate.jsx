@@ -42,6 +42,8 @@ const areChaptersEqual = (arr1, arr2) => {
   return true;
 };
 
+
+
 // Định nghĩa initialState
 const initialState = {
   ui: {
@@ -210,6 +212,9 @@ const Translate = () => {
     updateChapterContent,
     isDarkMode,
     createStory,
+    fetchChaptersInBackground,
+    currentStoryId,
+    setCurrentStoryId,
   } = useContext(AuthContext);
   const {
     selectedKeys: sessionSelectedKeys,
@@ -243,7 +248,14 @@ const Translate = () => {
     dispatch({ type: "MODEL/SET_TEMP", payload: initialModel });
     
     dispatch({ type: "AUTH/SET_KEYS", payload: sessionSelectedKeys || [] });
-  }, [sessionCurrentKey, sessionSelectedModel, sessionSelectedKeys, dispatch]);
+
+    // Lấy storyId từ URL khi khởi tạo và set vào context
+    const storyIdFromParams = searchParams.get("storyId");
+    if (storyIdFromParams && storyIdFromParams !== currentStoryId) {
+      setCurrentStoryId(storyIdFromParams);
+    }
+
+  }, [sessionCurrentKey, sessionSelectedModel, sessionSelectedKeys, dispatch, searchParams, currentStoryId, setCurrentStoryId]);
 
   useEffect(() => {
     console.log('[Translate.jsx] 📊 Loading state changed:', loading);
@@ -254,33 +266,99 @@ const Translate = () => {
   }, []);
 
   // Tải truyện đang dịch dựa vào storyId từ URL
-  const loadTranslatingStory = useCallback(async (storyId, page, limit) => {
+  // ⬇️ loadTranslatingStory: chỉ lấy cache + hiển thị
+const loadTranslatingStory = useCallback(
+  async (storyId, page, limit) => {
     dispatch({ type: "UI/ERROR", payload: null });
-    dispatch({ type: "UI/LOADING", payload: true }); // Bật loading ngay khi bắt đầu tải (dù từ cache hay BE)
+    dispatch({ type: "UI/LOADING", payload: true });
 
     try {
       const token = localStorage.getItem("auth-token");
       if (!token) {
         console.error("❌ Không tìm thấy token xác thực");
         alert("Vui lòng đăng nhập lại để tiếp tục");
-
         dispatch({ type: "UI/LOADING", payload: false });
-
         return;
       }
-
-      console.log(`[Translate.jsx] 🚀 Đang tải truyện: storyId=${storyId}, page=${page}, limit=${limit}`);
-
 
       const startChapterNumber = (page - 1) * limit + 1;
       const endChapterNumber = page * limit;
 
-      // 1. Cố gắng lấy chương từ IndexedDB trước
-      let cachedChapters = await getChaptersByStoryIdAndRange(storyId, startChapterNumber, endChapterNumber);
-      console.log(`[Translate.jsx] 📥 cachedChapters:`, cachedChapters); // Giữ log này để kiểm tra nội dung
+      // 1. Lấy dữ liệu từ IndexedDB trước
+      let cachedChapters = await getChaptersByStoryIdAndRange(
+        storyId,
+        startChapterNumber,
+        endChapterNumber
+      );
 
       if (cachedChapters && cachedChapters.length > 0) {
-        console.log(`[Translate.jsx] ✅ Tìm thấy ${cachedChapters.length} chương trong IndexedDB cho trang ${page}, story ${storyId}. Hiển thị từ cache.`);
+        const formattedCached = cachedChapters.map((chapter) => ({
+          id: chapter.id,
+          chapterName: chapter.chapterName,
+          title: chapter.chapterName,
+          content: chapter.translatedContent || chapter.rawText || "",
+          translated: chapter.translatedContent || "",
+          translatedTitle: chapter.translatedTitle || chapter.chapterName,
+          chapterNumber: chapter.chapterNumber,
+          rawText: chapter.rawText || "",
+          status: chapter.status,
+          hasError: chapter.hasError,
+          translationError: chapter.translationError,
+        }));
+
+        if (!areChaptersEqual(chapters, formattedCached)) {
+          dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedCached });
+        }
+
+        console.log(
+          `[Translate.jsx] ✅ Hiển thị ${formattedCached.length} chương từ cache`
+        );
+      }
+
+      dispatch({ type: "UI/LOADING", payload: false });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      console.error("❌ Lỗi khi tải truyện:", error);
+      dispatch({ type: "UI/LOADING", payload: false });
+      dispatch({ type: "UI/ERROR", payload: error });
+    }
+  },
+  [dispatch, db, chapters, areChaptersEqual, getChaptersByStoryIdAndRange]
+);
+
+// ⬇️ Background fetch chỉ chạy khi storyId hoặc page thay đổi
+useEffect(() => {
+  const loadChapters = async () => {
+    const tab = searchParams.get("tab");
+
+    if (!currentStoryId) return; // Sử dụng currentStoryId từ context
+    
+    // Nếu có tab trong URL, set active tab
+    if (tab === "translating") {
+      dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
+    }
+
+    const token = localStorage.getItem("auth-token");
+    if (!token) {
+      console.error("❌ Không tìm thấy token xác thực");
+      return;
+    }
+
+    dispatch({ type: "UI/LOADING", payload: true });
+
+    const startChapterNumber = (currentPage - 1) * chaptersPerPage + 1;
+    const endChapterNumber = currentPage * chaptersPerPage;
+
+    try {
+      // 1. Lấy dữ liệu từ IndexedDB trước
+      let cachedChapters = await getChaptersByStoryIdAndRange(
+        currentStoryId,
+        startChapterNumber,
+        endChapterNumber
+      );
+
+      if (cachedChapters && cachedChapters.length > 0) {
+        console.log(`[Translate.jsx] ✅ Tìm thấy ${cachedChapters.length} chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Hiển thị từ cache.`);
         const formattedCachedChapters = cachedChapters.map((chapter) => ({
           id: chapter.id,
           chapterName: chapter.chapterName,
@@ -297,204 +375,83 @@ const Translate = () => {
         if (!areChaptersEqual(chapters, formattedCachedChapters)) {
           dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedCachedChapters });
         }
-        console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ cache:`, formattedCachedChapters.map(ch => ch.chapterName));
-        console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ cache:', formattedCachedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
-        console.log('[Translate.jsx] 🔍 Kiểm tra tính duy nhất của chapterNumber và id (từ cache):', formattedCachedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
-        dispatch({ type: "UI/LOADING", payload: false }); // Tắt loading ngay lập tức nếu dữ liệu từ cache có sẵn
+        dispatch({ type: "UI/LOADING", payload: false });
 
         // Tiếp tục gọi Backend để lấy dữ liệu mới nhất trong nền (không await)
-        axios.get(
-          `http://localhost:8000/user/library/${storyId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        ).then(storyInfoResponse => {
-          if (storyInfoResponse.data) {
-            dispatch({ type: "STORY/SET_CURRENT", payload: storyInfoResponse.data });
-          }
-        }).catch(error => console.error("❌ Lỗi khi lấy thông tin truyện trong nền:", error));
-
-        axios.get(
-          `http://localhost:8000/user/library/${storyId}/chapters?page=${page}&limit=${limit}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        ).then(chaptersResponse => {
-          console.log("[Translate.jsx] 📥 Phản hồi chương từ BE (nền):", chaptersResponse.data);
-          dispatch({ type: "STORY/SET_TOTAL", payload: chaptersResponse.data.totalChaptersCount || 0 });
-          const rawChapters = chaptersResponse.data && Array.isArray(chaptersResponse.data.chapters)
-            ? chaptersResponse.data.chapters
-            : [];
-          const formattedChapters = rawChapters.map((chapter) => ({
-            id: chapter.id,
-            chapterName: chapter.chapterName,
-            title: chapter.chapterName,
-            content: chapter.translation
-              ? chapter.translation.translatedContent
-              : chapter.rawText || "",
-            translated: chapter.translation?.translatedContent || "",
-            translatedTitle:
-              chapter.translation?.translatedTitle || chapter.chapterName,
-            chapterNumber: chapter.chapterNumber,
-            rawText: chapter.rawText || "",
-            status: chapter.status,
-            hasError: chapter.hasError,
-            translationError: chapter.translationError,
-          }));
-
-          const needsUpdate = !cachedChapters || cachedChapters.length !== formattedChapters.length || 
-                              !cachedChapters.every((c, i) => 
-                                c.translatedContent === formattedChapters[i].translatedContent && 
-                                c.translatedTitle === formattedChapters[i].translatedTitle &&
-                                c.rawText === formattedChapters[i].rawText
-                              );
-
-          if (needsUpdate) {
-            console.log(`[Translate.jsx] 🔄 Dữ liệu từ Backend khác hoặc không có cache. Cập nhật IndexedDB và UI (nền).`);
-            db.transaction('rw', db.chapters, async () => {
-              await db.chapters.where({ storyId: storyId })
-                        .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
-                        .delete();
-              await db.chapters.bulkPut(formattedChapters); // Thay đổi từ bulkAdd sang bulkPut
-            }).then(() => {
-              console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction (nền).`);
-              if (!areChaptersEqual(chapters, formattedChapters)) {
-                dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Cập nhật chapters với dữ liệu từ BE
-              }
-              console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (nền):`, formattedChapters.map(ch => ch.chapterName));
-              console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (nền):', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
-              console.log('[Translate.jsx] 🔍 Kiểm tra tính duy nhất của chapterNumber và id (từ BE nền):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
-            }).catch(dbError => console.error("❌ Lỗi Transaction IndexedDB (nền):", dbError));
-
-          } else {
-            console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật (nền).`);
-            if (!areChaptersEqual(chapters, formattedChapters)) {
-              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
+        fetchChaptersInBackground(currentStoryId, currentPage, chaptersPerPage, token).then(
+          async (result) => {
+            if (result.storyInfo) {
+              dispatch({ type: "STORY/SET_CURRENT", payload: result.storyInfo });
             }
-            console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (dữ liệu khớp cache, nền):`, formattedChapters.map(ch => ch.chapterName));
-            console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (dữ liệu khớp cache, nền):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
-          }
-        }).catch(error => console.error("❌ Lỗi khi tải chương từ Backend trong nền:", error));
+            dispatch({ type: "STORY/SET_TOTAL", payload: result.total });
 
-        return; // Thoát khỏi hàm nếu đã tải từ cache
+            // Update IndexedDB and UI directly
+            const fetchedChapters = result.formattedChapters;
+            if (fetchedChapters && fetchedChapters.length > 0) {
+              const needsUpdate = !cachedChapters || cachedChapters.length !== fetchedChapters.length || 
+                                  !cachedChapters.every((c, i) => 
+                                    c.translatedContent === fetchedChapters[i].translatedContent && 
+                                    c.translatedTitle === fetchedChapters[i].translatedTitle &&
+                                    c.rawText === fetchedChapters[i].rawText
+                                  );
+
+              if (needsUpdate) {
+                console.log(`[Translate.jsx] 🔄 Dữ liệu từ Backend khác hoặc không có cache. Cập nhật IndexedDB và UI (nền).`);
+                await db.transaction('rw', db.chapters, async () => {
+                  await db.chapters.where({ storyId: currentStoryId })
+                            .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
+                            .delete();
+                  await db.chapters.bulkPut(fetchedChapters);
+                });
+                if (!areChaptersEqual(chapters, fetchedChapters)) {
+                  dispatch({ type: "CHAPTERS/SET_ITEMS", payload: fetchedChapters });
+                }
+                console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (nền):`, fetchedChapters.map(ch => ch.chapterName));
+              } else {
+                console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật (nền).`);
+                if (!areChaptersEqual(chapters, fetchedChapters)) {
+                  dispatch({ type: "CHAPTERS/SET_ITEMS", payload: fetchedChapters });
+                }
+              }
+            }
+          }
+        ).catch(error => console.error("❌ Lỗi khi tải chương từ Backend trong nền (useEffect):", error));
+
       } else {
-        console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${page}, story ${storyId}. Đang tải từ Backend.`);
-        // Phần này sẽ chờ backend response và xử lý như bình thường
-        const storyInfoResponse = await axios.get(
-          `http://localhost:8000/user/library/${storyId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Đang tải từ Backend.`);
+        // fetch from backend (await) and update DB using the new functions
+        const { storyInfo, formattedChapters: fetchedChapters, total } = await fetchChaptersInBackground(currentStoryId, currentPage, chaptersPerPage, token);
 
-        if (!storyInfoResponse.data) {
+        if (!storyInfo) {
           console.error("❌ Không nhận được dữ liệu truyện");
           alert("Không thể tải thông tin truyện. Vui lòng thử lại sau.");
           dispatch({ type: "UI/LOADING", payload: false });
           return;
         }
-        dispatch({ type: "STORY/SET_CURRENT", payload: storyInfoResponse.data });
+        dispatch({ type: "STORY/SET_CURRENT", payload: storyInfo });
+        dispatch({ type: "STORY/SET_TOTAL", payload: total });
+        console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${total}`);
 
-        const chaptersResponse = await axios.get(
-          `http://localhost:8000/user/library/${storyId}/chapters?page=${page}&limit=${limit}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        
-        console.log("[Translate.jsx] 📥 Phản hồi chương từ BE:", chaptersResponse.data);
-
-        const rawChapters = chaptersResponse.data && Array.isArray(chaptersResponse.data.chapters)
-          ? chaptersResponse.data.chapters
-          : [];
-
-        dispatch({ type: "STORY/SET_TOTAL", payload: chaptersResponse.data.totalChaptersCount || 0 });
-        console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${chaptersResponse.data.totalChaptersCount || 0}`);
-
-        if (rawChapters.length === 0) {
-          console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", storyId);
+        if (fetchedChapters.length === 0) {
+          console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", currentStoryId);
         }
 
-        const formattedChapters = rawChapters.map((chapter) => ({
-          id: chapter.id,
-          chapterName: chapter.chapterName,
-          title: chapter.chapterName,
-          content: chapter.translation
-            ? chapter.translation.translatedContent
-            : chapter.rawText || "",
-          translated: chapter.translation?.translatedContent || "",
-          translatedTitle:
-            chapter.translation?.translatedTitle || chapter.chapterName,
-          chapterNumber: chapter.chapterNumber,
-          rawText: chapter.rawText || "",
-          status: chapter.status,
-          hasError: chapter.hasError,
-          translationError: chapter.translationError,
-        }));
-
-        const needsUpdate = !cachedChapters || cachedChapters.length !== formattedChapters.length || 
-                            !cachedChapters.every((c, i) => 
-                              c.translatedContent === formattedChapters[i].translatedContent && 
-                              c.translatedTitle === formattedChapters[i].translatedTitle &&
-                              c.rawText === formattedChapters[i].rawText
-                            );
-
-        if (needsUpdate) {
-          console.log(`[Translate.jsx] 🔄 Dữ liệu từ Backend khác hoặc không có cache. Cập nhật IndexedDB và UI.`);
-          try {
-            console.log(`[Translate.jsx] 🔑 Đang chạy transaction để cập nhật IndexedDB.`);
-            await db.transaction('rw', db.chapters, async () => {
-              await db.chapters.where({ storyId: storyId })
-                        .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
-                        .delete();
-              await db.chapters.bulkPut(formattedChapters); // Thay đổi từ bulkAdd sang bulkPut
-            });
-            console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction.`);
-            if (!areChaptersEqual(chapters, formattedChapters)) {
-              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Cập nhật chapters với dữ liệu từ BE
-            }
-            console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend:`, formattedChapters.map(ch => ch.chapterName));
-            console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE:', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
-            console.log('[Translate.jsx] 🔍 Kiểm tra tính duy nhất của chapterNumber và id (từ BE):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
-          } catch (dbError) {
-            console.error("❌ Lỗi Transaction IndexedDB:", dbError);
-            if (!areChaptersEqual(chapters, formattedChapters)) {
-              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Fallback: vẫn update UI với BE data
-            }
-            console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (fallback):`, formattedChapters.map(ch => ch.chapterName));
-            console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (fallback):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
-          }
-
-        } else {
-          console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật.`);
-          if (!areChaptersEqual(chapters, formattedChapters)) {
-            dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
-          }
-          console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (dữ liệu khớp cache):`, formattedChapters.map(ch => ch.chapterName));
-          console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (dữ liệu khớp cache):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
+        // Update IndexedDB and UI directly
+        await db.transaction('rw', db.chapters, async () => {
+          await db.chapters.where({ storyId: currentStoryId })
+                    .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
+                    .delete();
+          await db.chapters.bulkPut(fetchedChapters);
+        });
+        if (!areChaptersEqual(chapters, fetchedChapters)) {
+          dispatch({ type: "CHAPTERS/SET_ITEMS", payload: fetchedChapters });
         }
 
-        dispatch({ type: "UI/LOADING", payload: false }); // Tắt loading sau khi toàn bộ quá trình tải từ Backend hoàn tất
+        dispatch({ type: "UI/LOADING", payload: false });
       }
-      console.timeEnd('Load and Display Chapters');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-
     } catch (error) {
-      console.error("❌ Lỗi khi tải truyện đang dịch:", error);
-      console.error("Chi tiết lỗi:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
+      console.error("❌ Lỗi khi tải truyện đang dịch (useEffect):", error);
       let errorMessage = "Không thể tải thông tin truyện. ";
       if (error.response?.status === 401) {
         errorMessage += "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
@@ -503,14 +460,17 @@ const Translate = () => {
       } else if (error.response?.status === 500) {
         errorMessage += "Lỗi server. Vui lòng thử lại sau.";
       }
-
       alert(errorMessage);
-
       dispatch({ type: "UI/LOADING", payload: false });
       dispatch({ type: "UI/ERROR", payload: error });
-
     }
-  }, [dispatch, db, getChaptersByStoryIdAndRange, axios, chapters]);
+  };
+
+  loadChapters();
+
+}, [searchParams, currentPage, chaptersPerPage, dispatch, db, chapters, areChaptersEqual, fetchChaptersInBackground, getChaptersByStoryIdAndRange, currentStoryId, axios]);
+
+  
 
   // Đồng bộ session state với local state
   useEffect(() => {
@@ -1286,20 +1246,6 @@ const Translate = () => {
   const memoizedChapters = useMemo(() => mergedChapters, [mergedChapters]);
 
   useEffect(() => {
-    const storyId = searchParams.get("storyId");
-    const tab = searchParams.get("tab");
-
-    // Nếu có tab trong URL, set active tab
-    if (tab === "translating") {
-      dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
-    }
-
-    if (storyId) {
-      loadTranslatingStory(storyId, currentPage, chaptersPerPage);
-    }
-  }, [searchParams, loadTranslatingStory, currentPage, chaptersPerPage, dispatch]);
-
-  useEffect(() => {
     if (isLoggedIn) {
       fetchStories();
     }
@@ -1325,6 +1271,7 @@ const Translate = () => {
       dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
       // Reset currentPage về 1 khi chuyển tab
       dispatch({ type: "STORY/SET_PAGE", payload: 1 });
+      setCurrentStoryId(null); // Reset currentStoryId khi chuyển sang tab "new"
     }
   }, [dispatch]);
 
@@ -1399,7 +1346,7 @@ const Translate = () => {
       dispatch({ type: "STORY/SET_CURRENT", payload: response });
       navigate(`/translate?storyId=${response.id}&tab=translating`);
       dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
-      loadTranslatingStory(response.id, 1, chaptersPerPage);
+      setCurrentStoryId(response.id); // Cập nhật currentStoryId sau khi lưu truyện mới
       return response;
     } catch (error) {
       console.error("Lỗi khi lưu truyện:", error);
@@ -1452,6 +1399,7 @@ const Translate = () => {
       // Không cần kiểm tra areChaptersEqual ở đây vì luôn reset về mảng rỗng
       dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
       navigate("/translate"); // Quay về trang chính của tab translating
+      setCurrentStoryId(null); // Reset currentStoryId khi truyện bị ẩn
     }
   }, [currentStory, hideStories, dispatch, navigate, translatingStories]);
 
@@ -1475,6 +1423,7 @@ const Translate = () => {
         // Không cần kiểm tra areChaptersEqual ở đây vì luôn reset về mảng rỗng
         dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
         navigate("/translate"); // Quay về trang chính của tab translating
+        setCurrentStoryId(null); // Reset currentStoryId khi truyện bị xóa
       }
     }
   }, [currentStory, deleteStories, clearChapters, dispatch, navigate, translatingStories]);
@@ -1487,8 +1436,8 @@ const Translate = () => {
     // Set tab translating active
     dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
     // Load truyện được chọn (trang 1)
-    loadTranslatingStory(storyId, 1, chaptersPerPage);
-  }, [dispatch, navigate, loadTranslatingStory, chaptersPerPage]);
+    setCurrentStoryId(storyId); // Cập nhật currentStoryId khi click vào truyện
+  }, [dispatch, navigate, setCurrentStoryId]);
 
   // Thêm hàm để tải lại dữ liệu sau khi thêm chương
   const handleChapterAdded = async () => {
