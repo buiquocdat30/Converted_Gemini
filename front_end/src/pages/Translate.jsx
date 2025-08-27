@@ -1,26 +1,200 @@
-import React, { useState, useContext, useEffect, useCallback, useMemo } from "react";
-import UploadForm from "../components/UploadForm/UploadForm";
-import StoryInfoForm from "../components/StoryInfoForm/StoryInfoForm";
-import { AuthContext } from "../context/ConverteContext";
+import React, { useState, useContext, useEffect, useCallback, useMemo, useReducer } from "react";
 import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
-import "../pages/pageCSS/Translate.css";
-import { FaBook, FaHistory, FaSpinner } from "react-icons/fa";
+import { FaSpinner } from "react-icons/fa";
 import { toast } from "react-hot-toast";
+import "../pages/pageCSS/Translate.css";
 import db, { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../services/indexedDBService';
 import {
   handleEpubFile,
-  handleTxtFile,
   checkFileFormatFromText,
 } from "../utils/fileHandlers";
+import { translateSingleChapter } from "../services/translateSingleChapter";
+import { AuthContext } from "../context/ConverteContext";
 import { useSession } from "../context/SessionContext";
+import UploadForm from "../components/UploadForm/UploadForm";
 import ChapterList from "../components/ChapterList/ChapterList";
 import TranslateViewer from "../components/TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../components/ConverteKeyInput/ConverteKeyInput";
 import ModelSelector from "../components/ModelSelector/ModelSelector";
-import { translateSingleChapter } from "../services/translateSingleChapter";
+import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
 
+const chaptersPerPage = 10; // Giữ nguyên 10 chương mỗi trang như ChapterList
+
+// Helper function for deep comparison of chapters
+const areChaptersEqual = (arr1, arr2) => {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0; i < arr1.length; i++) {
+    const ch1 = arr1[i];
+    const ch2 = arr2[i];
+    if (ch1.id !== ch2.id ||
+        ch1.chapterNumber !== ch2.chapterNumber ||
+        ch1.chapterName !== ch2.chapterName ||
+        ch1.rawText !== ch2.rawText ||
+        ch1.translatedContent !== ch2.translatedContent ||
+        ch1.translatedTitle !== ch2.translatedTitle ||
+        ch1.status !== ch2.status ||
+        ch1.hasError !== ch2.hasError ||
+        ch1.translationError !== ch2.translationError) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Định nghĩa initialState
+const initialState = {
+  ui: {
+    activeTab: "new",
+    isMenuOpen: false,
+    isAddChapterModalOpen: false,
+    loading: false,
+    error: null,
+    shouldRefresh: false,
+  },
+  story: {
+    current: null,
+    list: [],
+    totalChapters: 0,
+    currentPage: 1,
+    fileName: "",
+  },
+  chapters: {
+    items: [],
+    currentIndex: 0,
+    selectedChapterIndex: null,
+  },
+  auth: {
+    currentKey: "",
+    selectedKeys: [],
+    isLoggedIn: false,
+    tempKey: "",
+  },
+  model: {
+    current: { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    all: [],
+    temp: { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+  },
+};
+
+// Định nghĩa reducer function
+function reducer(state, action) {
+  switch (action.type) {
+    // UI
+    case "UI/SET_ACTIVE_TAB":
+      return { ...state, ui: { ...state.ui, activeTab: action.payload } };
+    case "UI/LOADING":
+      return { ...state, ui: { ...state.ui, loading: action.payload } };
+    case "UI/ERROR":
+      return { ...state, ui: { ...state.ui, error: action.payload } };
+    case "UI/TOGGLE_MENU":
+      return { ...state, ui: { ...state.ui, isMenuOpen: action.payload } };
+    case "UI/TOGGLE_ADD_MODAL":
+      return { ...state, ui: { ...state.ui, isAddChapterModalOpen: action.payload } };
+    case "UI/SET_SHOULD_REFRESH":
+      return { ...state, ui: { ...state.ui, shouldRefresh: action.payload } };
+
+    // STORY
+    case "STORY/SET_CURRENT":
+      return { ...state, story: { ...state.story, current: action.payload } };
+    case "STORY/SET_LIST":
+      return { ...state, story: { ...state.story, list: action.payload } };
+    case "STORY/SET_TOTAL":
+      return { ...state, story: { ...state.story, totalChapters: action.payload } };
+    case "STORY/SET_PAGE":
+      return { ...state, story: { ...state.story, currentPage: action.payload } };
+    case "STORY/SET_FILE_NAME":
+      return { ...state, story: { ...state.story, fileName: action.payload } };
+
+    // CHAPTERS
+    case "CHAPTERS/SET_ITEMS":
+      return { ...state, chapters: { ...state.chapters, items: action.payload } };
+    case "CHAPTERS/SET_INDEX":
+      return { ...state, chapters: { ...state.chapters, currentIndex: action.payload } };
+    case "CHAPTERS/SET_SELECTED_INDEX":
+      return { ...state, chapters: { ...state.chapters, selectedChapterIndex: action.payload } };
+
+    // AUTH
+    case "AUTH/SET_KEY":
+      return { ...state, auth: { ...state.auth, currentKey: action.payload } };
+    case "AUTH/SET_KEYS":
+      return { ...state, auth: { ...state.auth, selectedKeys: action.payload } };
+    case "AUTH/SET_LOGIN":
+      return { ...state, auth: { ...state.auth, isLoggedIn: action.payload } };
+    case "AUTH/SET_TEMP_KEY":
+      return { ...state, auth: { ...state.auth, tempKey: action.payload } };
+
+    // MODEL
+    case "MODEL/SET_CURRENT":
+      return { ...state, model: { ...state.model, current: action.payload } };
+    case "MODEL/SET_ALL":
+      return { ...state, model: { ...state.model, all: action.payload } };
+    case "MODEL/SET_TEMP":
+      return { ...state, model: { ...state.model, temp: action.payload } };
+
+    case "RESET_TRANSLATION_STATE":
+      return { ...initialState,
+        auth: {
+          ...initialState.auth,
+          currentKey: state.auth.currentKey,
+          tempKey: state.auth.tempKey,
+          selectedKeys: state.auth.selectedKeys,
+        },
+        model: {
+          ...initialState.model,
+          current: state.model.current,
+          temp: state.model.temp,
+        },
+        ui: {
+          ...initialState.ui,
+          activeTab: state.ui.activeTab,
+        }
+      };
+
+    case "SET_TRANSLATING_STORIES":
+      return { ...state, story: { ...state.story, list: action.payload } };
+
+    default:
+      return state;
+  }
+}
+
+// AddChapterModal reducer
+const initialAddChapterModalState = {
+  localTitle: "",
+  localContent: "",
+  localFile: null,
+  localMode: "manual",
+  processedChapters: [],
+  selectedChapterIndex: null,
+  isProcessingFile: false,
+  selectedChapters: new Set(),
+};
+
+function addChapterModalReducer(state, action) {
+  switch (action.type) {
+    case "SET_LOCAL_TITLE":
+      return { ...state, localTitle: action.payload };
+    case "SET_LOCAL_CONTENT":
+      return { ...state, localContent: action.payload };
+    case "SET_LOCAL_FILE":
+      return { ...state, localFile: action.payload };
+    case "SET_LOCAL_MODE":
+      return { ...state, localMode: action.payload };
+    case "SET_PROCESSED_CHAPTERS":
+      return { ...state, processedChapters: action.payload };
+    case "SET_SELECTED_CHAPTER_INDEX":
+      return { ...state, selectedChapterIndex: action.payload };
+    case "SET_IS_PROCESSING_FILE":
+      return { ...state, isProcessingFile: action.payload };
+    case "SET_SELECTED_CHAPTERS":
+      return { ...state, selectedChapters: action.payload };
+    case "RESET_ADD_CHAPTER_MODAL_STATE":
+      return initialAddChapterModalState;
+    default:
+      return state;
+  }
+}
 
 const Translate = () => {
   const {
@@ -45,34 +219,44 @@ const Translate = () => {
     updateCurrentKey,
     updateSelectedModel,
   } = useSession();
-  const [activeTab, setActiveTab] = useState("new");
-  const [chapters, setChapters] = useState([]);
-  const [apiKey, setApiKey] = useState(sessionCurrentKey || "");
-  const [model, setModel] = useState(sessionSelectedModel || "gemini-2.0-flash");
-  const [currentStory, setCurrentStory] = useState(null);
-  const [fileName, setFileName] = useState("");
-  const [searchParams] = useSearchParams();
-  const [translatingStories, setTranslatingStories] = useState([]);
+
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const {
+    ui: { activeTab, isMenuOpen, isAddChapterModalOpen, loading, error, shouldRefresh },
+    story: { current: currentStory, list: translatingStories, totalChapters: totalStoryChapters, currentPage, fileName },
+    chapters: { items: chapters, currentIndex, selectedChapterIndex },
+    auth: { currentKey: currentApiKey, selectedKeys, tempKey },
+    model: { current: model, all: allModels, temp: tempModel },
+  } = state;
+
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Khởi tạo các giá trị từ session/localStorage
+  useEffect(() => {
+    dispatch({ type: "AUTH/SET_KEY", payload: sessionCurrentKey || "" });
+    dispatch({ type: "AUTH/SET_TEMP_KEY", payload: sessionCurrentKey || "" });
+    
+    const initialModel = sessionSelectedModel || initialState.model.current;
+    dispatch({ type: "MODEL/SET_CURRENT", payload: initialModel });
+    dispatch({ type: "MODEL/SET_TEMP", payload: initialModel });
+    
+    dispatch({ type: "AUTH/SET_KEYS", payload: sessionSelectedKeys || [] });
+  }, [sessionCurrentKey, sessionSelectedModel, sessionSelectedKeys, dispatch]);
+
   useEffect(() => {
     console.log('[Translate.jsx] 📊 Loading state changed:', loading);
   }, [loading]);
-  const [error, setError] = useState(null);
-
-  // Thêm state cho phân trang chương
-  const [currentPage, setCurrentPage] = useState(1);
-  const chaptersPerPage = 10; // Giữ nguyên 10 chương mỗi trang như ChapterList
-  const [totalStoryChapters, setTotalStoryChapters] = useState(0); // Thêm state để lưu tổng số chương của truyện
 
   const handleSelectJumbChapter = useCallback((index) => {
-    setSelectedChapterIndex(index);
+    dispatch({ type: "CHAPTERS/SET_SELECTED_INDEX", payload: index });
   }, []);
 
   // Tải truyện đang dịch dựa vào storyId từ URL
   const loadTranslatingStory = useCallback(async (storyId, page, limit) => {
-    setError(null);
-    setLoading(true); // Bật loading ngay khi bắt đầu tải (dù từ cache hay BE)
+    dispatch({ type: "UI/ERROR", payload: null });
+    dispatch({ type: "UI/LOADING", payload: true }); // Bật loading ngay khi bắt đầu tải (dù từ cache hay BE)
 
     try {
       const token = localStorage.getItem("auth-token");
@@ -80,7 +264,7 @@ const Translate = () => {
         console.error("❌ Không tìm thấy token xác thực");
         alert("Vui lòng đăng nhập lại để tiếp tục");
 
-        setLoading(false);
+        dispatch({ type: "UI/LOADING", payload: false });
 
         return;
       }
@@ -110,11 +294,13 @@ const Translate = () => {
           hasError: chapter.hasError,
           translationError: chapter.translationError,
         }));
-        setChapters(formattedCachedChapters);
+        if (!areChaptersEqual(chapters, formattedCachedChapters)) {
+          dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedCachedChapters });
+        }
         console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ cache:`, formattedCachedChapters.map(ch => ch.chapterName));
         console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ cache:', formattedCachedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
         console.log('[Translate.jsx] 🔍 Kiểm tra tính duy nhất của chapterNumber và id (từ cache):', formattedCachedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
-        setLoading(false); // Tắt loading ngay lập tức nếu dữ liệu từ cache có sẵn
+        dispatch({ type: "UI/LOADING", payload: false }); // Tắt loading ngay lập tức nếu dữ liệu từ cache có sẵn
 
         // Tiếp tục gọi Backend để lấy dữ liệu mới nhất trong nền (không await)
         axios.get(
@@ -126,7 +312,7 @@ const Translate = () => {
           }
         ).then(storyInfoResponse => {
           if (storyInfoResponse.data) {
-            setCurrentStory(storyInfoResponse.data);
+            dispatch({ type: "STORY/SET_CURRENT", payload: storyInfoResponse.data });
           }
         }).catch(error => console.error("❌ Lỗi khi lấy thông tin truyện trong nền:", error));
 
@@ -139,7 +325,7 @@ const Translate = () => {
           }
         ).then(chaptersResponse => {
           console.log("[Translate.jsx] 📥 Phản hồi chương từ BE (nền):", chaptersResponse.data);
-          setTotalStoryChapters(chaptersResponse.data.totalChaptersCount || 0);
+          dispatch({ type: "STORY/SET_TOTAL", payload: chaptersResponse.data.totalChaptersCount || 0 });
           const rawChapters = chaptersResponse.data && Array.isArray(chaptersResponse.data.chapters)
             ? chaptersResponse.data.chapters
             : [];
@@ -176,7 +362,9 @@ const Translate = () => {
               await db.chapters.bulkPut(formattedChapters); // Thay đổi từ bulkAdd sang bulkPut
             }).then(() => {
               console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction (nền).`);
-              setChapters(formattedChapters); // Cập nhật chapters với dữ liệu từ BE
+              if (!areChaptersEqual(chapters, formattedChapters)) {
+                dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Cập nhật chapters với dữ liệu từ BE
+              }
               console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (nền):`, formattedChapters.map(ch => ch.chapterName));
               console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (nền):', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
               console.log('[Translate.jsx] 🔍 Kiểm tra tính duy nhất của chapterNumber và id (từ BE nền):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
@@ -184,7 +372,9 @@ const Translate = () => {
 
           } else {
             console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật (nền).`);
-            setChapters(formattedChapters); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
+            if (!areChaptersEqual(chapters, formattedChapters)) {
+              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
+            }
             console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (dữ liệu khớp cache, nền):`, formattedChapters.map(ch => ch.chapterName));
             console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (dữ liệu khớp cache, nền):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
           }
@@ -206,10 +396,10 @@ const Translate = () => {
         if (!storyInfoResponse.data) {
           console.error("❌ Không nhận được dữ liệu truyện");
           alert("Không thể tải thông tin truyện. Vui lòng thử lại sau.");
-          setLoading(false);
+          dispatch({ type: "UI/LOADING", payload: false });
           return;
         }
-        setCurrentStory(storyInfoResponse.data);
+        dispatch({ type: "STORY/SET_CURRENT", payload: storyInfoResponse.data });
 
         const chaptersResponse = await axios.get(
           `http://localhost:8000/user/library/${storyId}/chapters?page=${page}&limit=${limit}`,
@@ -219,14 +409,14 @@ const Translate = () => {
             },
           }
         );
-
+        
         console.log("[Translate.jsx] 📥 Phản hồi chương từ BE:", chaptersResponse.data);
 
         const rawChapters = chaptersResponse.data && Array.isArray(chaptersResponse.data.chapters)
           ? chaptersResponse.data.chapters
           : [];
 
-        setTotalStoryChapters(chaptersResponse.data.totalChaptersCount || 0);
+        dispatch({ type: "STORY/SET_TOTAL", payload: chaptersResponse.data.totalChaptersCount || 0 });
         console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${chaptersResponse.data.totalChaptersCount || 0}`);
 
         if (rawChapters.length === 0) {
@@ -268,25 +458,31 @@ const Translate = () => {
               await db.chapters.bulkPut(formattedChapters); // Thay đổi từ bulkAdd sang bulkPut
             });
             console.log(`[Translate.jsx] ✅ Cập nhật IndexedDB thành công trong transaction.`);
-            setChapters(formattedChapters); // Cập nhật chapters với dữ liệu từ BE
+            if (!areChaptersEqual(chapters, formattedChapters)) {
+              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Cập nhật chapters với dữ liệu từ BE
+            }
             console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend:`, formattedChapters.map(ch => ch.chapterName));
             console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE:', formattedChapters.map(ch => ({ chapterNumber: ch.chapterNumber, chapterName: ch.chapterName, translated: ch.translated, status: ch.status })));
             console.log('[Translate.jsx] 🔍 Kiểm tra tính duy nhất của chapterNumber và id (từ BE):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
           } catch (dbError) {
             console.error("❌ Lỗi Transaction IndexedDB:", dbError);
-            setChapters(formattedChapters); // Fallback: vẫn update UI với BE data
+            if (!areChaptersEqual(chapters, formattedChapters)) {
+              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Fallback: vẫn update UI với BE data
+            }
             console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (fallback):`, formattedChapters.map(ch => ch.chapterName));
             console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (fallback):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
           }
 
         } else {
           console.log(`[Translate.jsx] ✅ Dữ liệu từ Backend khớp với cache. Không cần cập nhật.`);
-          setChapters(formattedChapters); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
+          if (!areChaptersEqual(chapters, formattedChapters)) {
+            dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedChapters }); // Dữ liệu khớp, nhưng vẫn cần cập nhật state chapters với dữ liệu từ BE để đảm bảo tính đồng bộ
+          }
           console.log(`[Translate.jsx] 📝 Đã hiển thị chương từ Backend (dữ liệu khớp cache):`, formattedChapters.map(ch => ch.chapterName));
           console.log('[Translate.jsx] 📖 Chapters state sau khi cập nhật từ BE (dữ liệu khớp cache):', formattedChapters.map(ch => ({ id: ch.id, chapterNumber: ch.chapterNumber })));
         }
 
-        setLoading(false); // Tắt loading sau khi toàn bộ quá trình tải từ Backend hoàn tất
+        dispatch({ type: "UI/LOADING", payload: false }); // Tắt loading sau khi toàn bộ quá trình tải từ Backend hoàn tất
       }
       console.timeEnd('Load and Display Chapters');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -310,53 +506,39 @@ const Translate = () => {
 
       alert(errorMessage);
 
-      setLoading(false);
-      setError(error);
+      dispatch({ type: "UI/LOADING", payload: false });
+      dispatch({ type: "UI/ERROR", payload: error });
 
     }
-  }, [setLoading, setError, setChapters, setCurrentStory, setTotalStoryChapters, db, getChaptersByStoryIdAndRange, axios]);
-
-  const [currentApiKey, setCurrentApiKey] = useState(sessionCurrentKey || apiKey || ""); //key đã nhập
-  const [translatedChapters, setTranslatedChapters] = useState([]); //đã dịch
-  const [currentIndex, setCurrentIndex] = useState(0); // 👈 thêm state để điều hướng
-  const [tempKey, setTempKey] = useState(sessionCurrentKey || apiKey || ""); //kiểm soát key
-  const [isMenuOpen, setIsMenuOpen] = useState(false); //kiểm soát topmenu
-  const [isAddChapterModalOpen, setIsAddChapterModal] = useState(false);
-  const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
-  const [shouldRefresh, setShouldRefresh] = useState(false); // Thêm state mới
-  const [selectedKeys, setSelectedKeys] = useState(sessionSelectedKeys || []); // Thêm state để lưu danh sách key đã chọn
-  // tempModel luôn là object model
-  const [tempModel, setTempModel] = useState(sessionSelectedModel || model);
-  // Thêm state lưu danh sách models
-  const [allModels, setAllModels] = useState([]);
+  }, [dispatch, db, getChaptersByStoryIdAndRange, axios, chapters]);
 
   // Đồng bộ session state với local state
   useEffect(() => {
     if (sessionCurrentKey && sessionCurrentKey !== currentApiKey) {
-      setCurrentApiKey(sessionCurrentKey);
-      setTempKey(sessionCurrentKey);
+      dispatch({ type: "AUTH/SET_KEY", payload: sessionCurrentKey });
+      dispatch({ type: "AUTH/SET_TEMP_KEY", payload: sessionCurrentKey });
     }
-  }, [sessionCurrentKey, currentApiKey]);
+  }, [sessionCurrentKey, currentApiKey, dispatch]);
 
   useEffect(() => {
     if (sessionSelectedKeys && sessionSelectedKeys.length !== selectedKeys.length) {
-      setSelectedKeys(sessionSelectedKeys);
+      dispatch({ type: "AUTH/SET_KEYS", payload: sessionSelectedKeys });
     }
-  }, [sessionSelectedKeys, selectedKeys]);
+  }, [sessionSelectedKeys, selectedKeys, dispatch]);
 
   // Khi nhận model mới từ ModelSelector, lưu object model
   const handleModelChange = (modelObj) => {
-    setTempModel(modelObj);
+    dispatch({ type: "MODEL/SET_TEMP", payload: modelObj });
     updateSelectedModel(modelObj);
   };
 
   // Nhận models từ ModelSelector
   const handleModelSelectorChange = (modelObj, modelsList) => {
     console.log('[TranslatorApp] handleModelSelectorChange', modelObj, modelsList);
-    setTempModel(modelObj);
+    dispatch({ type: "MODEL/SET_TEMP", payload: modelObj });
     updateSelectedModel(modelObj);
     if (Array.isArray(modelsList) && modelsList.length > 0) {
-      setAllModels(modelsList);
+      dispatch({ type: "MODEL/SET_ALL", payload: modelsList });
     }
   };
 
@@ -365,65 +547,77 @@ const Translate = () => {
     if (typeof tempModel === 'string' && allModels.length > 0) {
       const found = allModels.find(m => m.value === tempModel);
       if (found) {
-        setTempModel(found);
+        dispatch({ type: "MODEL/SET_TEMP", payload: found });
         console.log('[TranslatorApp] Đã convert model string sang object:', found);
       }
     }
-  }, [tempModel, allModels]);
+  }, [tempModel, allModels, dispatch]);
 
   // useEffect đồng bộ lại khi sessionSelectedModel hoặc model prop thay đổi
   useEffect(() => {
-    if (sessionSelectedModel && sessionSelectedModel.value !== tempModel?.value) {
-      setTempModel(sessionSelectedModel);
+    // Chỉ dispatch nếu sessionSelectedModel khác tempModel.value HOẶC model.id/value
+    if (sessionSelectedModel && (sessionSelectedModel.value !== tempModel?.value || sessionSelectedModel.id !== tempModel?.id)) {
+      dispatch({ type: "MODEL/SET_TEMP", payload: sessionSelectedModel });
     }
-  }, [sessionSelectedModel, tempModel]);
+  }, [sessionSelectedModel, tempModel, dispatch]);
 
   useEffect(() => {
-    if (model && model.value !== tempModel?.value && !sessionSelectedModel) {
-      setTempModel(model);
+    // Chỉ dispatch nếu model khác tempModel.value HOẶC model.id/value và không có sessionSelectedModel
+    if (model && !sessionSelectedModel && (model.value !== tempModel?.value || model.id !== tempModel?.id)) {
+      dispatch({ type: "MODEL/SET_TEMP", payload: model });
     }
-  }, [model, tempModel, sessionSelectedModel]);
+  }, [model, tempModel, sessionSelectedModel, dispatch]);
 
   // Thêm useEffect để xử lý re-render
   useEffect(() => {
     if (shouldRefresh) {
       // Reset state để tránh re-render vô hạn
-      setShouldRefresh(false);
+      dispatch({ type: "UI/SET_SHOULD_REFRESH", payload: false });
       // Có thể thêm logic re-render ở đây nếu cần
     }
-  }, [shouldRefresh]);
+  }, [shouldRefresh, dispatch]);
 
   // Đồng bộ model khi model cha thay đổi
   useEffect(() => {
-    if (model && model !== tempModel && !sessionSelectedModel) {
-      setTempModel(model);
+    // Chỉ dispatch nếu model khác tempModel.value HOẶC model.id/value và không có sessionSelectedModel
+    if (model && !sessionSelectedModel && (model.value !== tempModel?.value || model.id !== tempModel?.id)) {
+      dispatch({ type: "MODEL/SET_TEMP", payload: model });
     }
-  }, [model, tempModel, sessionSelectedModel]);
+  }, [model, tempModel, sessionSelectedModel, dispatch]);
 
   // Hàm xử lý khi người dùng chọn keys
   const handleKeysSelected = (keys) => {
     console.log("🔑 Keys đã được chọn:", keys);
-    setSelectedKeys(keys);
+    dispatch({ type: "AUTH/SET_KEYS", payload: keys });
     updateSelectedKeys(keys);
   };
 
   // Hàm xử lý khi người dùng thay đổi key hiện tại
   const handleCurrentKey = (key) => {
-    setCurrentApiKey(key);
+    dispatch({ type: "AUTH/SET_KEY", payload: key });
     updateCurrentKey(key);
   };
 
   // Khi người dùng sửa lại nội dung trong TranslateViewer
-  const handleEditChapter = (index, newContent, type = "translated") => {
-    setTranslatedChapters((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...(chapters[index] || {}),
-        [type]: newContent,
-      };
-      return updated;
-    });
-  };
+  const handleEditChapter = useCallback((index, newContent, type = "translated") => {
+    // setTranslatedChapters((prev) => {
+    //   const updated = [...prev];
+    //   updated[index] = {
+    //     ...(chapters[index] || {}),
+    //     [type]: newContent,
+    //   };
+    //   return updated;
+    // });
+    // Thay vì cập nhật translatedChapters riêng, cập nhật trực tiếp chapters để nó phản ánh vào mergedChapters
+    const newChapters = chapters.map((ch, idx) =>
+      idx === index
+        ? { ...ch, [type]: newContent }
+        : ch
+    );
+    if (!areChaptersEqual(chapters, newChapters)) {
+      dispatch({ type: "CHAPTERS/SET_ITEMS", payload: newChapters });
+    }
+  }, [chapters, dispatch]);
 
   // Hàm xử lý dịch lại chương
   const handleRetranslate = (index) => {
@@ -457,7 +651,7 @@ const Translate = () => {
   };
 
   //hàm check key
-  const handleCheckKey = async () => {
+  const handleCheckKey = useCallback(async () => {
     if (!tempKey) return;
 
     try {
@@ -477,7 +671,7 @@ const Translate = () => {
             translated !== fakeChapter.content
           ) {
             toast.success("✅ Key hợp lệ!");
-            setCurrentApiKey(tempKey);
+            dispatch({ type: "AUTH/SET_KEY", payload: tempKey });
             updateCurrentKey(tempKey);
           } else {
             toast.error("❌ Key không hợp lệ hoặc có vấn đề!");
@@ -494,23 +688,18 @@ const Translate = () => {
       console.error("Lỗi khi kiểm tra key:", error);
       toast.error("❌ Lỗi khi kiểm tra key: " + error.message);
     }
-  };
+  }, [tempKey, updateCurrentKey, dispatch]);
 
   // Tách modal thành component riêng để tránh re-render
-  const AddChapterModal = React.memo(
-    ({ isOpen, onClose, onAdd, onCloseComplete }) => {
-      const [localTitle, setLocalTitle] = useState("");
-      const [localContent, setLocalContent] = useState("");
-      const [localFile, setLocalFile] = useState(null);
-      const [localMode, setLocalMode] = useState("manual");
-      const [processedChapters, setProcessedChapters] = useState([]);
-      const [selectedChapterIndex, setSelectedChapterIndex] = useState(null);
-      const [isProcessingFile, setIsProcessingFile] = useState(false);
-      const [selectedChapters, setSelectedChapters] = useState(new Set()); // Thêm state để lưu các chương được chọn
+  const AddChapterModal = React.memo(({ isOpen, onClose, onAdd, onCloseComplete }) => {
+    const [addChapterModalState, dispatchAddChapterModal] = useReducer(addChapterModalReducer, initialAddChapterModalState);
+    const { localTitle, localContent, localFile, localMode, processedChapters, selectedChapterIndex, isProcessingFile, selectedChapters } = addChapterModalState;
 
-      // Hàm xử lý khi chọn/bỏ chọn một chương
-      const handleChapterSelect = (index) => {
-        setSelectedChapters((prev) => {
+    // Hàm xử lý khi chọn/bỏ chọn một chương
+    const handleChapterSelect = (index) => {
+      dispatchAddChapterModal({
+        type: "SET_SELECTED_CHAPTERS",
+        payload: ((prev) => {
           const newSelected = new Set(prev);
           if (newSelected.has(index)) {
             newSelected.delete(index);
@@ -518,289 +707,284 @@ const Translate = () => {
             newSelected.add(index);
           }
           return newSelected;
+        })(selectedChapters),
+      });
+    };
+
+    // Hàm chọn/bỏ chọn tất cả chương
+    const handleSelectAll = () => {
+      if (selectedChapters.size === processedChapters.length) {
+        // Nếu đã chọn hết thì bỏ chọn hết
+        dispatchAddChapterModal({ type: "SET_SELECTED_CHAPTERS", payload: new Set() });
+      } else {
+        // Nếu chưa chọn hết thì chọn hết
+        dispatchAddChapterModal({ type: "SET_SELECTED_CHAPTERS", payload: new Set(processedChapters.map((_, index) => index)) });
+      }
+    };
+
+    // Reset selected chapters khi đóng modal hoặc chuyển mode
+    const resetSelections = () => {
+      dispatchAddChapterModal({ type: "RESET_ADD_CHAPTER_MODAL_STATE" });
+    };
+
+    const handleFileSelect = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      dispatchAddChapterModal({ type: "SET_LOCAL_FILE", payload: file });
+      dispatchAddChapterModal({ type: "SET_IS_PROCESSING_FILE", payload: true });
+      resetSelections();
+
+      try {
+        const content = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = (e) => reject(e);
+          reader.readAsText(file);
         });
-      };
 
-      // Hàm chọn/bỏ chọn tất cả chương
-      const handleSelectAll = () => {
-        if (selectedChapters.size === processedChapters.length) {
-          // Nếu đã chọn hết thì bỏ chọn hết
-          setSelectedChapters(new Set());
-        } else {
-          // Nếu chưa chọn hết thì chọn hết
-          setSelectedChapters(
-            new Set(processedChapters.map((_, index) => index))
+        const fileExt = file.name.split(".").pop().toLowerCase();
+        let chapters;
+
+        if (fileExt === "epub") {
+          chapters = await handleEpubFile(
+            content,
+            null,
+            (error) => toast.error(error),
+            (success) => toast.success(success),
+            null,
+            null,
+            null,
+            null,
+            null
           );
-        }
-      };
-
-      // Reset selected chapters khi đóng modal hoặc chuyển mode
-      const resetSelections = () => {
-        setSelectedChapters(new Set());
-        setSelectedChapterIndex(null);
-        setProcessedChapters([]);
-      };
-
-      const handleFileSelect = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setLocalFile(file);
-        setIsProcessingFile(true);
-        resetSelections();
-
-        try {
-          const content = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(file);
-          });
-
-          const fileExt = file.name.split(".").pop().toLowerCase();
-          let chapters;
-
-          if (fileExt === "epub") {
-            chapters = await handleEpubFile(
-              content,
-              null,
-              (error) => toast.error(error),
-              (success) => toast.success(success),
-              null,
-              null,
-              null,
-              null,
-              null
-            );
-          } else if (fileExt === "txt") {
-            const result = checkFileFormatFromText(content);
-            if (!result.valid) {
-              toast.error("File không đúng định dạng chương!");
-              return;
-            }
-            chapters = result.chapters;
-          } else {
-            toast.error("Chỉ hỗ trợ file EPUB và TXT!");
+        } else if (fileExt === "txt") {
+          const result = checkFileFormatFromText(content);
+          if (!result.valid) {
+            toast.error("File không đúng định dạng chương!");
             return;
           }
-
-          if (!chapters || chapters.length === 0) {
-            toast.error("Không tìm thấy chương nào trong file!");
-            return;
-          }
-
-          setProcessedChapters(chapters);
-          toast.success(`Đã tìm thấy ${chapters.length} chương trong file!`);
-        } catch (error) {
-          console.error("Lỗi khi xử lý file:", error);
-          toast.error(error.message || "Lỗi khi xử lý file!");
-        } finally {
-          setIsProcessingFile(false);
-        }
-      };
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (localMode === "manual") {
-          if (!localTitle.trim() || !localContent.trim()) {
-            toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
-            return;
-          }
-          onAdd({
-            title: localTitle,
-            content: localContent,
-            mode: localMode,
-          });
+          chapters = result.chapters;
         } else {
-          if (!localFile) {
-            toast.error("Vui lòng chọn file!");
-            return;
-          }
-          if (selectedChapters.size === 0) {
-            toast.error("Vui lòng chọn ít nhất một chương!");
-            return;
-          }
-
-          onAdd({
-            mode: localMode,
-            file: localFile,
-            selectedChapters: selectedChapters,
-            processedChapters: processedChapters,
-            setSelectedChapters: setSelectedChapters,
-          });
+          toast.error("Chỉ hỗ trợ file EPUB và TXT!");
+          return;
         }
-      };
 
-      if (!isOpen) return null;
+        if (!chapters || chapters.length === 0) {
+          toast.error("Không tìm thấy chương nào trong file!");
+          return;
+        }
 
-      return (
+        dispatchAddChapterModal({ type: "SET_PROCESSED_CHAPTERS", payload: chapters });
+        toast.success(`Đã tìm thấy ${chapters.length} chương trong file!`);
+      } catch (error) {
+        console.error("Lỗi khi xử lý file:", error);
+        toast.error(error.message || "Lỗi khi xử lý file!");
+      } finally {
+        dispatchAddChapterModal({ type: "SET_IS_PROCESSING_FILE", payload: false });
+      }
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (localMode === "manual") {
+        if (!localTitle.trim() || !localContent.trim()) {
+          toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung chương!");
+          return;
+        }
+        onAdd({
+          title: localTitle,
+          content: localContent,
+          mode: localMode,
+        });
+      } else {
+        if (!localFile) {
+          toast.error("Vui lòng chọn file!");
+          return;
+        }
+        if (selectedChapters.size === 0) {
+          toast.error("Vui lòng chọn ít nhất một chương!");
+          return;
+        }
+
+        onAdd({
+          mode: localMode,
+          file: localFile,
+          selectedChapters: selectedChapters,
+          processedChapters: processedChapters,
+        });
+      }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+      <div
+        className="modal-overlay modal-add-chapter"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      >
         <div
-          className="modal-overlay modal-add-chapter"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
+          className="modal-content modal-add-chapter-content"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className="modal-content modal-add-chapter-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit}>
+            <button
+              type="button"
+              className="modal-close-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetSelections();
+                onClose();
+              }}
+            >
+              ✕
+            </button>
+            <h3>Thêm chương mới</h3>
+            <div className="add-chapter-tabs">
               <button
                 type="button"
-                className="modal-close-button"
+                className={localMode === "manual" ? "active" : ""}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatchAddChapterModal({ type: "SET_LOCAL_MODE", payload: "manual" });
+                  dispatchAddChapterModal({ type: "SET_PROCESSED_CHAPTERS", payload: [] });
+                  dispatchAddChapterModal({ type: "SET_SELECTED_CHAPTER_INDEX", payload: null });
+                }}
+              >
+                Nhập thủ công
+              </button>
+              <button
+                type="button"
+                className={localMode === "file" ? "active" : ""}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatchAddChapterModal({ type: "SET_LOCAL_MODE", payload: "file" });
+                }}
+              >
+                Từ file
+              </button>
+            </div>
+
+            {localMode === "manual" ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Nhập tiêu đề chương"
+                  value={localTitle}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    dispatchAddChapterModal({ type: "SET_LOCAL_TITLE", payload: e.target.value });
+                  }}
+                />
+                <textarea
+                  placeholder="Nhập nội dung chương"
+                  value={localContent}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    dispatchAddChapterModal({ type: "SET_LOCAL_CONTENT", payload: e.target.value });
+                  }}
+                  rows={10}
+                />
+              </>
+            ) : (
+              <div className="file-input-container">
+                <input
+                  type="file"
+                  accept=".txt,.epub"
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={handleFileSelect}
+                  disabled={isProcessingFile}
+                />
+                {isProcessingFile && (
+                  <div className="processing-indicator">
+                    Đang xử lý file...
+                  </div>
+                )}
+                {processedChapters.length > 0 && (
+                  <div className="chapter-list">
+                    <div className="chapter-list-header">
+                      <h4>Chọn chương muốn thêm:</h4>
+                      <button
+                        type="button"
+                        className="select-all-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectAll();
+                        }}
+                      >
+                        {selectedChapters.size === processedChapters.length
+                          ? "Bỏ chọn tất cả"
+                          : "Chọn tất cả"}
+                      </button>
+                    </div>
+                    <div className="modal-chapter-select">
+                      {processedChapters.map((chapter, index) => (
+                        <div
+                          key={index}
+                          className={`modal-chapter-item ${
+                            selectedChapters.has(index) ? "selected" : ""
+                          }`}
+                          onClick={() => handleChapterSelect(index)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedChapters.has(index)}
+                            onChange={() => {}}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="modal-chapter-number">
+                            Chương {index + 1}:
+                          </span>
+                          <span className="modal-chapter-title">
+                            {chapter.title}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="selected-count">
+                      Đã chọn {selectedChapters.size} /{" "}
+                      {processedChapters.length} chương
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="modal-buttons">
+              <button
+                type="submit"
+                disabled={
+                  isProcessingFile ||
+                  (localMode === "file" && selectedChapters.size === 0)
+                }
+              >
+                {localMode === "file" && selectedChapters.size > 0
+                  ? `Thêm ${selectedChapters.size} chương`
+                  : "Thêm chương"}
+              </button>
+              <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   resetSelections();
                   onClose();
                 }}
               >
-                ✕
+                Hủy
               </button>
-              <h3>Thêm chương mới</h3>
-              <div className="add-chapter-tabs">
-                <button
-                  type="button"
-                  className={localMode === "manual" ? "active" : ""}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLocalMode("manual");
-                    setProcessedChapters([]);
-                    setSelectedChapterIndex(null);
-                  }}
-                >
-                  Nhập thủ công
-                </button>
-                <button
-                  type="button"
-                  className={localMode === "file" ? "active" : ""}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLocalMode("file");
-                  }}
-                >
-                  Từ file
-                </button>
-              </div>
-
-              {localMode === "manual" ? (
-                <>
-                  <input
-                    type="text"
-                    placeholder="Nhập tiêu đề chương"
-                    value={localTitle}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      setLocalTitle(e.target.value);
-                    }}
-                  />
-                  <textarea
-                    placeholder="Nhập nội dung chương"
-                    value={localContent}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      setLocalContent(e.target.value);
-                    }}
-                    rows={10}
-                  />
-                </>
-              ) : (
-                <div className="file-input-container">
-                  <input
-                    type="file"
-                    accept=".txt,.epub"
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={handleFileSelect}
-                    disabled={isProcessingFile}
-                  />
-                  {isProcessingFile && (
-                    <div className="processing-indicator">
-                      Đang xử lý file...
-                    </div>
-                  )}
-                  {processedChapters.length > 0 && (
-                    <div className="chapter-list">
-                      <div className="chapter-list-header">
-                        <h4>Chọn chương muốn thêm:</h4>
-                        <button
-                          type="button"
-                          className="select-all-button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectAll();
-                          }}
-                        >
-                          {selectedChapters.size === processedChapters.length
-                            ? "Bỏ chọn tất cả"
-                            : "Chọn tất cả"}
-                        </button>
-                      </div>
-                      <div className="modal-chapter-select">
-                        {processedChapters.map((chapter, index) => (
-                          <div
-                            key={index}
-                            className={`modal-chapter-item ${
-                              selectedChapters.has(index) ? "selected" : ""
-                            }`}
-                            onClick={() => handleChapterSelect(index)}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedChapters.has(index)}
-                              onChange={() => {}}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <span className="modal-chapter-number">
-                              Chương {index + 1}:
-                            </span>
-                            <span className="modal-chapter-title">
-                              {chapter.title}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="selected-count">
-                        Đã chọn {selectedChapters.size} /{" "}
-                        {processedChapters.length} chương
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="modal-buttons">
-                <button
-                  type="submit"
-                  disabled={
-                    isProcessingFile ||
-                    (localMode === "file" && selectedChapters.size === 0)
-                  }
-                >
-                  {localMode === "file" && selectedChapters.size > 0
-                    ? `Thêm ${selectedChapters.size} chương`
-                    : "Thêm chương"}
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    resetSelections();
-                    onClose();
-                  }}
-                >
-                  Hủy
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
-      );
-    }
-  );
+      </div>
+    );
+  });
 
   // Thêm hàm để tải lại dữ liệu sau khi thêm chương
   const handleChapterAddedCallback = useCallback(async () => {
@@ -812,11 +996,11 @@ const Translate = () => {
 
   // Hàm xử lý khi chuyển trang trong ChapterList
   const handlePageChangeInChapterList = useCallback(async (newPage) => {
-    setCurrentPage(newPage);
+    dispatch({ type: "STORY/SET_PAGE", payload: newPage });
     if (currentStory?.id) {
       await loadTranslatingStory(currentStory.id, newPage, chaptersPerPage);
     }
-  }, [currentStory?.id, chaptersPerPage, loadTranslatingStory]);
+  }, [currentStory?.id, chaptersPerPage, loadTranslatingStory, dispatch]);
 
   // Xử lý thêm chương mới
   const handleAddChapter = useCallback(
@@ -834,7 +1018,7 @@ const Translate = () => {
         );
         if (isTitleDuplicate) {
           toast.error("❌ Tên chương đã tồn tại! Vui lòng chọn tên khác.");
-          setIsAddChapterModal(true);
+          dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: true });
           return;
         }
 
@@ -845,7 +1029,7 @@ const Translate = () => {
           chapterNumber: totalStoryChapters + 1, // Sử dụng totalStoryChapters để đảm bảo số chương duy nhất
         };
 
-        console.log('[Translate.jsx] ➕ Chuẩn bị thêm chương thủ công:', newChapter); // Thêm log này
+        console.log('[Translate.jsx] ➕ Chuẩn bị thêm chương thủ công:', newChapter);
 
         try {
           const token = getAuthToken();
@@ -862,9 +1046,9 @@ const Translate = () => {
           });
 
           // Chỉ đóng modal và hiển thị thông báo thành công khi thêm chương thành công
-          setIsAddChapterModal(false);
+          dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: false });
           toast.success("✅ Đã thêm chương mới!");
-          handleChapterAddedCallback?.(); // Sử dụng hàm callback mới
+          handleChapterAddedCallback?.();
         } catch (error) {
           console.error("Lỗi khi thêm chương:", error);
           if (error.response?.status === 401) {
@@ -911,8 +1095,8 @@ const Translate = () => {
             toast.error(
               `❌ Các chương sau đã tồn tại: ${duplicateTitles.join(", ")}`
             );
-            // Sử dụng setSelectedChapters được truyền từ AddChapterModal
-            data.setSelectedChapters(validChapters);
+            // Sử dụng dispatchAddChapterModal để cập nhật state trong AddChapterModal
+            dispatchAddChapterModal({ type: "SET_SELECTED_CHAPTERS", payload: validChapters });
             return;
           }
 
@@ -935,7 +1119,7 @@ const Translate = () => {
               chapterNumber: totalStoryChapters + i + 1, // Sử dụng totalStoryChapters để đảm bảo số chương duy nhất
             };
 
-            console.log('[Translate.jsx] ➕ Chuẩn bị thêm chương từ file:', newChapter); // Thêm log này
+            console.log('[Translate.jsx] ➕ Chuẩn bị thêm chương từ file:', newChapter);
 
             try {
               await addChapter({
@@ -955,9 +1139,9 @@ const Translate = () => {
           }
 
           if (successCount > 0) {
-            setIsAddChapterModal(false);
+            dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: false });
             toast.success(`✅ Đã thêm ${successCount} chương mới từ file!`);
-            handleChapterAddedCallback?.(); // Sử dụng hàm callback mới
+            handleChapterAddedCallback?.();
           }
         } catch (error) {
           console.error("Lỗi khi thêm chương từ file:", error);
@@ -969,7 +1153,7 @@ const Translate = () => {
         }
       }
     },
-    [chapters, addChapter, currentStory?.id, getAuthToken, handleChapterAddedCallback, updateCurrentKey, totalStoryChapters]
+    [chapters, addChapter, currentStory?.id, getAuthToken, handleChapterAddedCallback, totalStoryChapters, dispatch]
   );
 
   // Tối ưu mergedChapters bằng useMemo
@@ -1005,16 +1189,19 @@ const Translate = () => {
       });
 
       // Cập nhật state local 'chapters' trực tiếp
-      setChapters(prev => {
-        const updatedChapters = [...prev];
-        updatedChapters[index] = {
-          ...updatedChapters[index],
-          translatedContent: translated,
-          translatedTitle: translatedTitle,
-          status: "TRANSLATED",
-        };
-        return updatedChapters;
-      });
+      const newChapters = chapters.map((ch, idx) =>
+          idx === index
+            ? { 
+                ...ch,
+                translatedContent: translated,
+                translatedTitle: translatedTitle,
+                status: "TRANSLATED",
+              }
+            : ch
+        );
+      if (!areChaptersEqual(chapters, newChapters)) {
+        dispatch({ type: "CHAPTERS/SET_ITEMS", payload: newChapters });
+      }
 
       // Lưu vào database
       if (currentStory?.id && chapter.chapterNumber) {
@@ -1042,7 +1229,7 @@ const Translate = () => {
       }
 
       // Chuyển sang chương vừa dịch
-      setCurrentIndex(index);
+      dispatch({ type: "CHAPTERS/SET_INDEX", payload: index });
 
       // Thông báo thành công
       //toast.success(`Đã dịch xong chương ${chapter.chapterNumber}`);
@@ -1050,20 +1237,19 @@ const Translate = () => {
       console.error("❌ Lỗi khi lưu kết quả dịch:", error);
       toast.error("Lỗi khi lưu kết quả dịch: " + error.message);
     }
-  }, [chapters, currentStory?.id, updateChapterContent, setChapters]); // Thêm setChapters vào dependency array
+  }, [chapters, currentStory?.id, updateChapterContent, dispatch]);
 
   const handleChapterChange = useCallback((newIndex) => {
     console.log("TranslatorApp - Index mới:", newIndex);
-    setCurrentIndex(newIndex);
-    console.log(`[TranslatorApp] 📜 Đang cuộn về đầu trang cho chương ${newIndex + 1}...`); // Thêm log này
+    dispatch({ type: "CHAPTERS/SET_INDEX", payload: newIndex });
+    console.log(`[TranslatorApp] 📜 Đang cuộn về đầu trang cho chương ${newIndex + 1}...`);
     // Cuộn về đầu trang
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Tính toán trang mới dựa trên index
-    const chaptersPerPage = 10;
     const newPage = Math.floor(newIndex / chaptersPerPage) + 1;
     // Gọi callback để cập nhật trang trong ChapterList
     handlePageChangeInChapterList(newPage);
-  }, [currentStory?.id, chaptersPerPage, loadTranslatingStory, handlePageChangeInChapterList]);
+  }, [handlePageChangeInChapterList, chaptersPerPage, dispatch]);
 
   // Thêm log kiểm tra re-render và props truyền vào ChapterList
   useEffect(() => {
@@ -1088,11 +1274,11 @@ const Translate = () => {
       console.log('[TranslatorApp] ✅ Chapters prop not empty. First chapter:', chapters[0]);
     }
     // Reset translatedChapters khi chapters thay đổi, để tránh hiển thị nội dung dịch cũ từ trang khác
-    setTranslatedChapters([]);
+    // setTranslatedChapters([]); // Xóa dòng này
   }, [chapters]);
 
   // Memo hóa các props truyền vào ChapterList
-  const memoizedModel = useMemo(() => tempModel, [tempModel?.value]);
+  const memoizedModel = useMemo(() => tempModel, [tempModel]);
   const memoizedApiKey = useMemo(
     () => (selectedKeys.length > 0 ? selectedKeys : currentApiKey),
     [JSON.stringify(selectedKeys), currentApiKey]
@@ -1105,56 +1291,60 @@ const Translate = () => {
 
     // Nếu có tab trong URL, set active tab
     if (tab === "translating") {
-      setActiveTab("translating");
+      dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
     }
 
     if (storyId) {
       loadTranslatingStory(storyId, currentPage, chaptersPerPage);
     }
-  }, [searchParams, loadTranslatingStory]); // Đã loại bỏ currentPage và chaptersPerPage khỏi dependencies
+  }, [searchParams, loadTranslatingStory, currentPage, chaptersPerPage, dispatch]);
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchStories();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, fetchStories]);
 
   useEffect(() => {
     if (stories) {
       // Lọc các truyện đang dịch (isComplete == false)
       const translatingStories = stories.filter((story) => !story.isComplete);
-      setTranslatingStories(translatingStories);
+      dispatch({ type: "SET_TRANSLATING_STORIES", payload: translatingStories });
     }
-  }, [stories]);
+  }, [stories, dispatch]);
 
   // Xử lý khi chuyển tab
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
+  const handleTabChange = useCallback((tab) => {
+    dispatch({ type: "UI/SET_ACTIVE_TAB", payload: tab });
     // Nếu chuyển sang tab "new", xóa storyId khỏi URL
     if (tab === "new") {
       const newUrl = window.location.pathname;
       window.history.pushState({}, "", newUrl);
-      setCurrentStory(null);
-      setChapters([]);
+      dispatch({ type: "STORY/SET_CURRENT", payload: null });
+      // Không cần kiểm tra areChaptersEqual ở đây vì luôn reset về mảng rỗng
+      dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
       // Reset currentPage về 1 khi chuyển tab
-      setCurrentPage(1);
+      dispatch({ type: "STORY/SET_PAGE", payload: 1 });
     }
-  };
+  }, [dispatch]);
 
   // Xử lý khi nhận được chapters từ UploadForm
-  const handleParsedChapters = (parsedChapters, key, model) => {
+  const handleParsedChapters = useCallback((parsedChapters, key, model) => {
     console.log("✔️ Nhận được từ UploadForm:", { parsedChapters, key, model });
-    setChapters(parsedChapters);
-    setCurrentApiKey(key);
+    // Chỉ cập nhật chapters nếu có sự thay đổi thực sự
+    if (!areChaptersEqual(chapters, parsedChapters)) {
+      dispatch({ type: "CHAPTERS/SET_ITEMS", payload: parsedChapters });
+    }
+    dispatch({ type: "AUTH/SET_KEY", payload: key });
     updateCurrentKey(key);
-    setTempModel(model);
+    dispatch({ type: "MODEL/SET_TEMP", payload: model });
     updateSelectedModel(model);
     // Khi parse file mới, reset currentPage về 1
-    setCurrentPage(1);
-  };
+    dispatch({ type: "STORY/SET_PAGE", payload: 1 });
+  }, [dispatch, updateCurrentKey, updateSelectedModel, chapters]);
 
   // Cập nhật nội dung chương đã dịch
-  const handleUpdateChapterContent = async (storyId, chapterNumber, translatedTitle, translatedContent, timeTranslation = 0) => {
+  const handleUpdateChapterContent = useCallback(async (storyId, chapterNumber, translatedTitle, translatedContent, timeTranslation = 0) => {
     try {
       // Log để debug
       console.log("📝 Cập nhật nội dung chương:", {
@@ -1165,11 +1355,9 @@ const Translate = () => {
         timeTranslation: timeTranslation
       });
 
-      // Kiểm tra tham số bắt buộc
       if (!storyId) throw new Error("Thiếu storyId");
       if (!chapterNumber) throw new Error("Thiếu chapterNumber");
       
-      // Gọi API cập nhật
       const response = await updateChapterContent(
         storyId,
         chapterNumber,
@@ -1178,9 +1366,6 @@ const Translate = () => {
         timeTranslation
       );
 
-      // Sau khi cập nhật thành công, xóa chương này khỏi cache Redis ở backend
-      // Bằng cách gọi lại hàm loadTranslatingStory để nó lấy dữ liệu mới từ DB
-      // và cập nhật lại cache
       await loadTranslatingStory(storyId, currentPage, chaptersPerPage);
 
       console.log("✅ Cập nhật thành công:", response);
@@ -1195,12 +1380,12 @@ const Translate = () => {
       });
       throw err;
     }
-  };
+  }, [loadTranslatingStory, currentPage, chaptersPerPage, updateChapterContent]);
 
   // Lưu truyện mới
-  const handleSaveStory = async (storyInfo) => {
+  const handleSaveStory = useCallback(async (storyInfo) => {
     try {
-      console.time('Save Story to Backend'); // Start timer for saving story
+      console.time('Save Story to Backend');
       const chaptersToSend = chapters.map((ch) => ({
         chapterName: ch.chapterName,
         rawText: ch.content,
@@ -1210,22 +1395,20 @@ const Translate = () => {
       const response = await createStory(
         {...storyInfo, chapters: chaptersToSend}
       );
-      console.timeEnd('Save Story to Backend'); // End timer for saving story
-      setCurrentStory(response);
-      // Sau khi lưu truyện thành công, chuyển sang tab "translating" và load truyện đó
+      console.timeEnd('Save Story to Backend');
+      dispatch({ type: "STORY/SET_CURRENT", payload: response });
       navigate(`/translate?storyId=${response.id}&tab=translating`);
-      setActiveTab("translating");
-      // Tải lại chapters cho truyện vừa lưu (trang 1)
+      dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
       loadTranslatingStory(response.id, 1, chaptersPerPage);
       return response;
     } catch (error) {
       console.error("Lỗi khi lưu truyện:", error);
       throw error;
     }
-  };
+  }, [chapters, createStory, dispatch, navigate, loadTranslatingStory, chaptersPerPage]);
 
   // Cập nhật thông tin truyện
-  const handleUpdateStoryInfo = async (storyInfo) => {
+  const handleUpdateStoryInfo = useCallback(async (storyInfo) => {
     try {
       console.log("🔄 Đang cập nhật truyện:", currentStory.id);
       console.log("📋 Thông tin cập nhật:", storyInfo);
@@ -1237,46 +1420,43 @@ const Translate = () => {
       );
       console.log("✅ Cập nhật thành công:", response.data);
       // Cập nhật currentStory với dữ liệu mới
-      setCurrentStory(prev => ({...prev, ...storyInfo}));
+      dispatch({ type: "STORY/SET_CURRENT", payload: {...currentStory, ...storyInfo} });
       return response.data;
     } catch (error) {
       console.error("❌ Lỗi khi cập nhật truyện:", error);
       throw error;
     }
-  };
+  }, [currentStory, editStories, dispatch]);
 
   // Cập nhật một trường cụ thể của truyện
-  const handleUpdateStoryField = (storyId, field, value) => {
+  const handleUpdateStoryField = useCallback((storyId, field, value) => {
     editStories(storyId, field, value);
     // Cập nhật state local sau khi API call thành công
-    setTranslatingStories((prevStories) =>
-      prevStories.map((story) =>
+    dispatch({ type: "SET_TRANSLATING_STORIES", payload: translatingStories.map((story) =>
         story.id === storyId ? { ...story, [field]: value } : story
-      )
-    );
+    ) });
     // Nếu đang xem truyện đó, cập nhật luôn currentStory
     if (currentStory && currentStory.id === storyId) {
-      setCurrentStory(prev => ({...prev, [field]: value}));
+      dispatch({ type: "STORY/SET_CURRENT", payload: {...currentStory, [field]: value} });
     }
-  };
+  }, [currentStory, editStories, dispatch, translatingStories]);
 
   // Ẩn truyện (xóa mềm)
-  const handleHideStory = async (storyId) => {
+  const handleHideStory = useCallback(async (storyId) => {
     await hideStories(storyId);
     // Cập nhật state local sau khi ẩn thành công
-    setTranslatingStories((prevStories) =>
-      prevStories.filter((story) => story.id !== storyId)
-    );
+    dispatch({ type: "SET_TRANSLATING_STORIES", payload: translatingStories.filter((story) => story.id !== storyId) });
     // Nếu truyện đang được chọn là truyện bị ẩn, reset currentStory và chapters
     if (currentStory && currentStory.id === storyId) {
-      setCurrentStory(null);
-      setChapters([]);
+      dispatch({ type: "STORY/SET_CURRENT", payload: null });
+      // Không cần kiểm tra areChaptersEqual ở đây vì luôn reset về mảng rỗng
+      dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
       navigate("/translate"); // Quay về trang chính của tab translating
     }
-  };
+  }, [currentStory, hideStories, dispatch, navigate, translatingStories]);
 
   // Xóa truyện vĩnh viễn (xóa cứng)
-  const handleDeleteStory = async (storyId) => {
+  const handleDeleteStory = useCallback(async (storyId) => {
     if (
       window.confirm(
         "Bạn có chắc muốn xóa vĩnh viễn truyện này? Hành động này không thể hoàn tác."
@@ -1288,28 +1468,27 @@ const Translate = () => {
       await clearChapters(storyId);
 
       // Cập nhật state local sau khi xóa thành công
-      setTranslatingStories((prevStories) =>
-        prevStories.filter((story) => story.id !== storyId)
-      );
+      dispatch({ type: "SET_TRANSLATING_STORIES", payload: translatingStories.filter((story) => story.id !== storyId) });
       // Nếu truyện đang được chọn là truyện bị xóa, reset currentStory và chapters
       if (currentStory && currentStory.id === storyId) {
-        setCurrentStory(null);
-        setChapters([]);
+        dispatch({ type: "STORY/SET_CURRENT", payload: null });
+        // Không cần kiểm tra areChaptersEqual ở đây vì luôn reset về mảng rỗng
+        dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
         navigate("/translate"); // Quay về trang chính của tab translating
       }
     }
-  };
+  }, [currentStory, deleteStories, clearChapters, dispatch, navigate, translatingStories]);
 
   // Xử lý khi click vào một truyện
-  const handleStoryClick = (storyId) => {
-    console.time('Load and Display Chapters'); // Start timer
+  const handleStoryClick = useCallback((storyId) => {
+    console.time('Load and Display Chapters');
     // Cập nhật URL với storyId
     navigate(`/translate?storyId=${storyId}&tab=translating`);
     // Set tab translating active
-    setActiveTab("translating");
+    dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
     // Load truyện được chọn (trang 1)
     loadTranslatingStory(storyId, 1, chaptersPerPage);
-  };
+  }, [dispatch, navigate, loadTranslatingStory, chaptersPerPage]);
 
   // Thêm hàm để tải lại dữ liệu sau khi thêm chương
   const handleChapterAdded = async () => {
@@ -1343,7 +1522,7 @@ const Translate = () => {
         {/* Nút tròn để mở menu */}
         <div
           className="menu-toggle-button"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          onClick={() => dispatch({ type: "UI/TOGGLE_MENU", payload: !isMenuOpen })}
         >
           🔑
           <span className="tooltip-text">Nhập key</span>
@@ -1353,7 +1532,7 @@ const Translate = () => {
           className="menu-toggle-button add-chapter-button"
           onClick={(e) => {
             e.stopPropagation();
-            setIsAddChapterModal(true);
+            dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: true });
           }}
         >
           ➕<span className="tooltip-text">Thêm chương</span>
@@ -1361,11 +1540,11 @@ const Translate = () => {
   
         <AddChapterModal
           isOpen={isAddChapterModalOpen}
-          onClose={() => setIsAddChapterModal(false)}
+          onClose={() => dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: false })}
           onAdd={handleAddChapter}
           onCloseComplete={() => {
-            setShouldRefresh(true);
-            handleChapterAddedCallback?.(); // Sử dụng hàm callback mới
+            dispatch({ type: "UI/SET_SHOULD_REFRESH", payload: true });
+            handleChapterAddedCallback?.();
           }}
         />
   
@@ -1375,7 +1554,7 @@ const Translate = () => {
             <div className="modal-content modal-key-model-content">
               <button
                 className="modal-close-button"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => dispatch({ type: "UI/TOGGLE_MENU", payload: false })}
               >
                 ✕
               </button>
@@ -1383,7 +1562,7 @@ const Translate = () => {
               <div className="top-menu-body">
                 <ConverteKeyInput
                   apiKey={tempKey}
-                  setApiKey={setTempKey}
+                  setApiKey={(key) => dispatch({ type: "AUTH/SET_TEMP_KEY", payload: key })}
                   onCurrentKey={handleCurrentKey}
                   onKeysSelected={handleKeysSelected}
                 />
@@ -1397,20 +1576,20 @@ const Translate = () => {
                 <button className="select-key-modal-btn"
                   onClick={() => {
                     if (selectedKeys.length > 0) {
-                      setCurrentApiKey(selectedKeys);
+                      dispatch({ type: "AUTH/SET_KEY", payload: selectedKeys });
                       updateCurrentKey(selectedKeys[0]);
                     } else {
-                      setCurrentApiKey(tempKey);
+                      dispatch({ type: "AUTH/SET_KEY", payload: tempKey });
                       updateCurrentKey(tempKey);
                     }
-                    setModel(tempModel);
+                    dispatch({ type: "MODEL/SET_CURRENT", payload: tempModel });
                     updateSelectedModel(tempModel);
-                    setIsMenuOpen(false);
+                    dispatch({ type: "UI/TOGGLE_MENU", payload: false });
                   }}
                 >
                   Áp dụng
                 </button>
-                <button className="cancel-key-modal-btn" onClick={() => setIsMenuOpen(false)}>Đóng</button>
+                <button className="cancel-key-modal-btn" onClick={() => dispatch({ type: "UI/TOGGLE_MENU", payload: false })}>Đóng</button>
               </div>
             </div>
           </div>
@@ -1431,11 +1610,11 @@ const Translate = () => {
               currentIndex={currentIndex}
           storyId={currentStory?.id}
           deleteChapter={deleteChapter}
-              onChapterAdded={handleChapterAddedCallback} // Truyền callback mới xuống
-          currentPage={currentPage} // Truyền currentPage xuống
-          chaptersPerPage={chaptersPerPage} // Truyền chaptersPerPage xuống
-          onPageChange={handlePageChangeInChapterList} // Truyền hàm xử lý chuyển trang xuống
-              totalStoryChapters={totalStoryChapters} // Truyền totalStoryChapters xuống
+              onChapterAdded={handleChapterAddedCallback}
+          currentPage={currentPage}
+          chaptersPerPage={chaptersPerPage}
+          onPageChange={handlePageChangeInChapterList}
+              totalStoryChapters={totalStoryChapters}
             />
           </div>
           <div className="translate-viewer-container">
@@ -1446,7 +1625,7 @@ const Translate = () => {
               onChangeIndex={handleChapterChange}
               selectedChapterIndex={selectedChapterIndex}
               onRetranslate={handleRetranslate}
-              totalStoryChapters={totalStoryChapters} // Truyền totalStoryChapters xuống
+              totalStoryChapters={totalStoryChapters}
             />
           </div>
         </div>
@@ -1474,7 +1653,7 @@ const Translate = () => {
           {/* Nút tròn để mở menu */}
           <div
             className="menu-toggle-button"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={() => dispatch({ type: "UI/TOGGLE_MENU", payload: !isMenuOpen })}
           >
             🔑
             <span className="tooltip-text">Nhập key</span>
@@ -1484,7 +1663,7 @@ const Translate = () => {
             className="menu-toggle-button add-chapter-button"
             onClick={(e) => {
               e.stopPropagation();
-              setIsAddChapterModal(true);
+              dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: true });
             }}
           >
             ➕<span className="tooltip-text">Thêm chương</span>
@@ -1492,11 +1671,11 @@ const Translate = () => {
     
           <AddChapterModal
             isOpen={isAddChapterModalOpen}
-            onClose={() => setIsAddChapterModal(false)}
+            onClose={() => dispatch({ type: "UI/TOGGLE_ADD_MODAL", payload: false })}
             onAdd={handleAddChapter}
             onCloseComplete={() => {
-              setShouldRefresh(true);
-              handleChapterAddedCallback?.(); // Sử dụng hàm callback mới
+              dispatch({ type: "UI/SET_SHOULD_REFRESH", payload: true });
+              handleChapterAddedCallback?.();
             }}
           />
     
@@ -1506,7 +1685,7 @@ const Translate = () => {
               <div className="modal-content modal-key-model-content">
                 <button
                   className="modal-close-button"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => dispatch({ type: "UI/TOGGLE_MENU", payload: false })}
                 >
                   ✕
                 </button>
@@ -1514,7 +1693,7 @@ const Translate = () => {
                 <div className="top-menu-body">
                   <ConverteKeyInput
                     apiKey={tempKey}
-                    setApiKey={setTempKey}
+                    setApiKey={(key) => dispatch({ type: "AUTH/SET_TEMP_KEY", payload: key })}
                     onCurrentKey={handleCurrentKey}
                     onKeysSelected={handleKeysSelected}
                   />
@@ -1528,20 +1707,20 @@ const Translate = () => {
                   <button className="select-key-modal-btn"
                     onClick={() => {
                       if (selectedKeys.length > 0) {
-                        setCurrentApiKey(selectedKeys);
+                        dispatch({ type: "AUTH/SET_KEY", payload: selectedKeys });
                         updateCurrentKey(selectedKeys[0]);
                       } else {
-                        setCurrentApiKey(tempKey);
+                        dispatch({ type: "AUTH/SET_KEY", payload: tempKey });
                         updateCurrentKey(tempKey);
                       }
-                      setModel(tempModel);
+                      dispatch({ type: "MODEL/SET_CURRENT", payload: tempModel });
                       updateSelectedModel(tempModel);
-                      setIsMenuOpen(false);
+                      dispatch({ type: "UI/TOGGLE_MENU", payload: false });
                     }}
                   >
                     Áp dụng
                   </button>
-                  <button className="cancel-key-modal-btn" onClick={() => setIsMenuOpen(false)}>Đóng</button>
+                  <button className="cancel-key-modal-btn" onClick={() => dispatch({ type: "UI/TOGGLE_MENU", payload: false })}>Đóng</button>
                 </div>
               </div>
             </div>
@@ -1562,11 +1741,11 @@ const Translate = () => {
                 currentIndex={currentIndex}
                 storyId={currentStory?.id}
                 deleteChapter={deleteChapter}
-                onChapterAdded={handleChapterAddedCallback} // Truyền callback mới xuống
-            currentPage={currentPage} // Truyền currentPage xuống
-            chaptersPerPage={chaptersPerPage} // Truyền chaptersPerPage xuống
-            onPageChange={handlePageChangeInChapterList} // Truyền hàm xử lý chuyển trang xuống
-                totalStoryChapters={totalStoryChapters} // Truyền totalStoryChapters xuống
+                onChapterAdded={handleChapterAddedCallback}
+            currentPage={currentPage}
+            chaptersPerPage={chaptersPerPage}
+            onPageChange={handlePageChangeInChapterList}
+                totalStoryChapters={totalStoryChapters}
               />
             </div>
             <div className="translate-viewer-container">
@@ -1577,7 +1756,7 @@ const Translate = () => {
                 onChangeIndex={handleChapterChange}
                 selectedChapterIndex={selectedChapterIndex}
                 onRetranslate={handleRetranslate}
-                totalStoryChapters={totalStoryChapters} // Truyền totalStoryChapters xuống
+                totalStoryChapters={totalStoryChapters}
               />
             </div>
           </div>
@@ -1608,14 +1787,11 @@ const Translate = () => {
           <button
             className="tab-button"
             onClick={() => {
-              setActiveTab("translating");
-              // Khi bấm quay lại, load lại danh sách truyện đang dịch
-              setCurrentStory(null);
-              setChapters([]);
-              // Xóa storyId khỏi URL
+              dispatch({ type: "SET_ACTIVE_TAB", payload: "translating" });
+              dispatch({ type: "STORY/SET_CURRENT", payload: null });
+              dispatch({ type: "CHAPTERS/SET_ITEMS", payload: [] });
               navigate("/translate");
-              // Reset currentPage về 1
-              setCurrentPage(1);
+              dispatch({ type: "STORY/SET_PAGE", payload: 1 });
             }}
           >
             Quay lại chọn truyện

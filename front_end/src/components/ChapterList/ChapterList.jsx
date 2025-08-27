@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
+import React, { useState, useEffect, useRef, useCallback, useContext, useReducer } from "react";
 import { flushSync } from "react-dom";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,6 +13,68 @@ import { useSession } from '../../context/SessionContext';
 import { AuthContext } from '../../context/ConverteContext';
 import { API_URL } from '../../config/config';
 import { addChapters, getChaptersByStoryIdAndRange, clearChapters } from '../../services/indexedDBService';
+
+// Định nghĩa initialState cho ChapterList
+const initialState = {
+  translation: {
+    results: {},
+    errorMessages: {},
+    translatedCount: 0,
+    isTranslateAllDisabled: false,
+    isTranslatingAll: false,
+    hasTranslatedAll: false,
+    translationDurations: {},
+    chapterProgresses: {},
+    chapterTranslatingStates: {},
+    chapterStatus: {}, // { [index]: 'PENDING' | 'PROCESSING' | 'COMPLETE' | 'CANCELLED' | 'FAILED' }
+    singleTranslateCooldown: 0,
+    queueTiming: null,
+  },
+  pagination: {
+    jumpToPage: "",
+    jumpToChapter: "",
+  },
+};
+
+// Định nghĩa reducer function
+function reducer(state, action) {
+  switch (action.type) {
+    // TRANSLATION ACTIONS
+    case "TRANSLATION/SET_RESULTS":
+      return { ...state, translation: { ...state.translation, results: action.payload } };
+    case "TRANSLATION/SET_ERROR_MESSAGES":
+      return { ...state, translation: { ...state.translation, errorMessages: action.payload } };
+    case "TRANSLATION/SET_TRANSLATED_COUNT":
+      return { ...state, translation: { ...state.translation, translatedCount: action.payload } };
+    case "TRANSLATION/SET_IS_TRANSLATE_ALL_DISABLED":
+      return { ...state, translation: { ...state.translation, isTranslateAllDisabled: action.payload } };
+    case "TRANSLATION/SET_IS_TRANSLATING_ALL":
+      return { ...state, translation: { ...state.translation, isTranslatingAll: action.payload } };
+    case "TRANSLATION/SET_HAS_TRANSLATED_ALL":
+      return { ...state, translation: { ...state.translation, hasTranslatedAll: action.payload } };
+    case "TRANSLATION/SET_TRANSLATION_DURATIONS":
+      return { ...state, translation: { ...state.translation, translationDurations: action.payload } };
+    case "TRANSLATION/SET_CHAPTER_PROGRESSES":
+      return { ...state, translation: { ...state.translation, chapterProgresses: action.payload } };
+    case "TRANSLATION/SET_CHAPTER_TRANSLATING_STATES":
+      return { ...state, translation: { ...state.translation, chapterTranslatingStates: action.payload } };
+    case "TRANSLATION/SET_CHAPTER_STATUS":
+      return { ...state, translation: { ...state.translation, chapterStatus: action.payload } };
+    case "TRANSLATION/SET_SINGLE_TRANSLATE_COOLDOWN":
+      return { ...state, translation: { ...state.translation, singleTranslateCooldown: action.payload } };
+    case "TRANSLATION/SET_QUEUE_TIMING":
+      return { ...state, translation: { ...state.translation, queueTiming: action.payload } };
+
+    // PAGINATION ACTIONS
+    case "PAGINATION/SET_JUMP_TO_PAGE":
+      return { ...state, pagination: { ...state.pagination, jumpToPage: action.payload } };
+    case "PAGINATION/SET_JUMP_TO_CHAPTER":
+      return { ...state, pagination: { ...state.pagination, jumpToChapter: action.payload } };
+
+    default:
+      return state;
+  }
+}
 
 const ChapterList = ({
   chapters,
@@ -37,19 +99,14 @@ const ChapterList = ({
   // Ưu tiên prop model nếu là object, nếu không thì lấy từ context
   const modelObject = (modelProp && typeof modelProp === 'object' && modelProp.rpm) ? modelProp : modelFromContext;
   
-  const [results, setResults] = useState({});
-  const [errorMessages, setErrorMessages] = useState({});
-  const [translatedCount, setTranslatedCount] = useState(0);
-  const [isTranslateAllDisabled, setIsTranslateAllDisabled] = useState(false);
-  const [isTranslatingAll, setIsTranslatingAll] = useState(false);
-  const [hasTranslatedAll, setHasTranslatedAll] = useState(false);
-  const isStoppedRef = useRef(false);
-  const [translationDurations, setTranslationDurations] = useState({});
-  const [chapterProgresses, setChapterProgresses] = useState({});
-  const [chapterTranslatingStates, setChapterTranslatingStates] = useState({});
+  const [state, dispatch] = useReducer(reducer, initialState);
 
-  // 🚀 Thêm state để lưu thông tin timing từ BE
-  const [queueTiming, setQueueTiming] = useState(null);
+  const {
+    translation: { results, errorMessages, translatedCount, isTranslateAllDisabled, isTranslatingAll, hasTranslatedAll, translationDurations, chapterProgresses, chapterTranslatingStates, chapterStatus, singleTranslateCooldown, queueTiming },
+    pagination: { jumpToPage, jumpToChapter },
+  } = state;
+
+  const isStoppedRef = useRef(false);
 
   // Sử dụng hook cho tiến độ tổng
   const {
@@ -60,7 +117,7 @@ const ChapterList = ({
   const chapterProgressHooks = useRef({});
 
   // Quản lý trạng thái từng chương
-  const [chapterStatus, setChapterStatus] = useState({}); // { [index]: 'PENDING' | 'PROCESSING' | 'COMPLETE' | 'CANCELLED' | 'FAILED' }
+  // const [chapterStatus, setChapterStatus] = useState({}); // { [index]: 'PENDING' | 'PROCESSING' | 'COMPLETE' | 'CANCELLED' | 'FAILED' }
 
   // Ref để lưu trạng thái hủy dịch của từng chương
   const cancelMapRef = useRef({});
@@ -204,8 +261,8 @@ const ChapterList = ({
   // });
 
   // Tách riêng state cho nhảy trang và nhảy chương
-  const [jumpToPage, setJumpToPage] = useState("");
-  const [jumpToChapter, setJumpToChapter] = useState("");
+  // const [jumpToPage, setJumpToPage] = useState("");
+  // const [jumpToChapter, setJumpToChapter] = useState("");
 
   // Hàm tính số chương dựa trên trang và vị trí
   const calculateChapterNumber = (index) => {
@@ -239,27 +296,27 @@ const ChapterList = ({
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
 
     if (hasApiKey) {
-      setIsTranslateAllDisabled(false); // ✅ Đã có key thì luôn bật nút
+      dispatch({ type: "TRANSLATION/SET_IS_TRANSLATE_ALL_DISABLED", payload: false }); // ✅ Đã có key thì luôn bật nút
     } else {
-      setIsTranslateAllDisabled(translatedCount >= 2); // ✅ Chưa có key thì giới hạn 2 chương
+      dispatch({ type: "TRANSLATION/SET_IS_TRANSLATE_ALL_DISABLED", payload: translatedCount >= 2 }); // ✅ Chưa có key thì giới hạn 2 chương
     }
   }, [translatedCount, chapters.length, apiKey]);
 
   // Reset trạng thái dịch all khi chuyển trang
   useEffect(() => {
-    setHasTranslatedAll(false);
+    dispatch({ type: "TRANSLATION/SET_HAS_TRANSLATED_ALL", payload: false });
   }, [currentPage]);
 
   // Reset translation-related states when currentPage or storyId changes
   useEffect(() => {
     console.log('[ChapterList] 🔄 Resetting translation states due to page/story change.');
-    setResults({});
-    setErrorMessages({});
-    setTranslatedCount(0);
-    setChapterProgresses({});
-    setChapterTranslatingStates({});
-    setChapterStatus({});
-    setHasTranslatedAll(false);
+    dispatch({ type: "TRANSLATION/SET_RESULTS", payload: {} });
+    dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: {} });
+    dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: 0 });
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_PROGRESSES", payload: {} });
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_TRANSLATING_STATES", payload: {} });
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: {} });
+    dispatch({ type: "TRANSLATION/SET_HAS_TRANSLATED_ALL", payload: false });
     isStoppedRef.current = false;
     cancelMapRef.current = {};
   }, [currentPage, storyId]);
@@ -298,9 +355,9 @@ const ChapterList = ({
       // Đếm số chương đã dịch (results)
       const count = Object.keys(results).length;
       if (count > 2) {
-        setTranslatedCount(2);
+        dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: 2 });
       } else {
-        setTranslatedCount(count);
+        dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: count });
       }
     }
   }, [apiKey, results]);
@@ -346,12 +403,12 @@ const ChapterList = ({
 
   // Hàm dịch tất cả các chương
   const translateAll = async () => {
-    setIsTranslateAllDisabled(true);
+    dispatch({ type: "TRANSLATION/SET_IS_TRANSLATE_ALL_DISABLED", payload: true });
     console.time("⏱️ Thời gian dịch toàn bộ");
 
-    setIsTranslatingAll(true);
+    dispatch({ type: "TRANSLATION/SET_IS_TRANSLATING_ALL", payload: true });
     // 🚀 Reset queue timing khi bắt đầu dịch mới
-    setQueueTiming(null);
+    dispatch({ type: "TRANSLATION/SET_QUEUE_TIMING", payload: null });
 
     // Kiểm tra có key khả dụng không
     const hasApiKey = Array.isArray(apiKey) ? apiKey.length > 0 : !!apiKey;
@@ -363,8 +420,8 @@ const ChapterList = ({
         toast.error(
           "🔒 Chỉ được dịch 2 chương đầu miễn phí. Hãy nhập API key để tiếp tục."
         );
-        setIsTranslateAllDisabled(true);
-        setIsTranslatingAll(false);
+        dispatch({ type: "TRANSLATION/SET_IS_TRANSLATE_ALL_DISABLED", payload: true });
+        dispatch({ type: "TRANSLATION/SET_IS_TRANSLATING_ALL", payload: false });
         return;
       }
     }
@@ -402,8 +459,8 @@ const ChapterList = ({
 
     if (chaptersToTranslate.length === 0) {
       toast.success("Tất cả các chương trong trang này đã được dịch.");
-      setIsTranslatingAll(false);
-      setHasTranslatedAll(true);
+      dispatch({ type: "TRANSLATION/SET_IS_TRANSLATING_ALL", payload: false });
+      dispatch({ type: "TRANSLATION/SET_HAS_TRANSLATED_ALL", payload: true });
       return;
     }
 
@@ -411,10 +468,7 @@ const ChapterList = ({
     chaptersToTranslate.forEach(ch => {
       cancelMapRef.current[ch.originalIndex] = false;
       // Chỉ đặt trạng thái PENDING, không khởi động thanh tiến độ ngay
-      setChapterStatus(prev => ({
-        ...prev,
-        [ch.originalIndex]: "PENDING"
-      }));
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [ch.originalIndex]: "PENDING" } });
     });
 
     try {
@@ -428,7 +482,7 @@ const ChapterList = ({
         setResults: (updater) => {
           // Bọc lại để kiểm tra cancelMapRef trước khi cập nhật
           if (typeof updater === 'function') {
-            setResults((prev) => {
+            dispatch({ type: "TRANSLATION/SET_RESULTS", payload: (prev) => {
               const next = updater(prev);
               // Log từng index trước khi lọc
               Object.keys(next).forEach(idx => {
@@ -443,7 +497,7 @@ const ChapterList = ({
                 }
               });
               return filtered;
-            });
+            } });
           } else {
             // updater là object
             Object.keys(updater).forEach(idx => {
@@ -456,11 +510,11 @@ const ChapterList = ({
                 delete filtered[idx];
               }
             });
-            setResults(filtered);
+            dispatch({ type: "TRANSLATION/SET_RESULTS", payload: filtered });
           }
         },
-        setTranslatedCount,
-        setErrorMessages,
+        setTranslatedCount: (count) => dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: count }),
+        setErrorMessages: (messages) => dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: messages }),
         onTranslationResult: (index, translated, translatedTitle, duration) => {
           // Log lại giá trị mới nhất
           console.log(`[CHECK][onTranslationResult] index=${index}, cancelFlag hiện tại=${cancelMapRef.current[index]}`);
@@ -477,15 +531,15 @@ const ChapterList = ({
         getChapterStatus: (idx) => {
           // Sử dụng callback để lấy trạng thái hiện tại
           return new Promise((resolve) => {
-            setChapterStatus((prev) => {
+            dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: (prev) => {
               resolve(prev[idx]);
               return prev; // Không thay đổi state
-            });
+            } });
           });
         },
         onBatchCancel: (batchIndex) => {
           // Đánh dấu trạng thái CANCELLED cho các chương trong batch bị huỷ
-          setChapterStatus(prev => {
+          dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: (prev) => {
             const newStatus = { ...prev };
             const start = batchIndex * 3;
             const end = start + 3;
@@ -497,27 +551,27 @@ const ChapterList = ({
               }
             }
             return newStatus;
-          });
+          } });
         },
         setChapterStatus: (originalIndex, status) => {
-          setChapterStatus((prev) => {
+          dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: (prev) => {
             const newStatus = { ...prev, [originalIndex]: status };
             console.log(`[SET][${status.toUpperCase()}] idx=${originalIndex}, status mới=${newStatus[originalIndex]}, cancelFlag=${cancelMapRef.current[originalIndex]}`);
             return newStatus;
-          });
+          } });
         },
         setChapterStatusProcessing: (originalIndex) => {
-          setChapterStatus((prev) => {
+          dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: (prev) => {
             const newStatus = { ...prev, [originalIndex]: "PROCESSING" };
             console.log(`[SET][PROCESSING][BATCH] idx=${originalIndex}, status mới=${newStatus[originalIndex]}, cancelFlag=${cancelMapRef.current[originalIndex]}`);
             return newStatus;
-          });
+          } });
         },
       });
       
       // 🚀 Xử lý thông tin timing từ BE
       if (result && result.timing) {
-        setQueueTiming(result.timing);
+        dispatch({ type: "TRANSLATION/SET_QUEUE_TIMING", payload: result.timing });
         console.log(`[ChapterList] 📊 Nhận thông tin timing từ BE:`, result.timing);
         
         // Hiển thị toast thông báo thông tin timing
@@ -532,21 +586,18 @@ const ChapterList = ({
       
     } catch (error) {
       console.error("Lỗi khi dịch chương:", error);
-      setErrorMessages((prev) => ({
-        ...prev,
-        general: "❌ Lỗi khi dịch tất cả các chương.",
-      }));
+      dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: { ...errorMessages, general: "❌ Lỗi khi dịch tất cả các chương." } });
       toast.error("❌ Lỗi khi dịch tất cả các chương.");
-      setIsTranslateAllDisabled(false);
+      dispatch({ type: "TRANSLATION/SET_IS_TRANSLATE_ALL_DISABLED", payload: false });
     } finally {
       console.timeEnd("⏱️ Thời gian dịch toàn bộ");
-      setIsTranslatingAll(false);
-      setHasTranslatedAll(true);
+      dispatch({ type: "TRANSLATION/SET_IS_TRANSLATING_ALL", payload: false });
+      dispatch({ type: "TRANSLATION/SET_HAS_TRANSLATED_ALL", payload: true });
     }
   };
 
   // Thêm state cho countdown dịch lẻ
-  const [singleTranslateCooldown, setSingleTranslateCooldown] = useState(0);
+  // const [singleTranslateCooldown, setSingleTranslateCooldown] = useState(0);
   const singleTranslateTimerRef = useRef(null);
 
   // Thay đổi hàm startSingleTranslateCooldown để luôn set cooldown = 30s để test
@@ -558,16 +609,16 @@ const ChapterList = ({
       return;
     }
     const cooldown = Math.ceil(60 / modelObject.rpm);
-    setSingleTranslateCooldown(cooldown);
+    dispatch({ type: "TRANSLATION/SET_SINGLE_TRANSLATE_COOLDOWN", payload: cooldown });
     if (singleTranslateTimerRef.current) clearInterval(singleTranslateTimerRef.current);
     singleTranslateTimerRef.current = setInterval(() => {
-      setSingleTranslateCooldown(prev => {
+      dispatch({ type: "TRANSLATION/SET_SINGLE_TRANSLATE_COOLDOWN", payload: (prev) => {
         if (prev <= 1) {
           clearInterval(singleTranslateTimerRef.current);
           return 0;
         }
         return prev - 1;
-      });
+      } });
     }, 1000);
   };
 
@@ -616,18 +667,14 @@ const ChapterList = ({
     console.log(`[ChapterList] Bấm dịch chương ${index}, Cooldown: ${cooldownTime}s (RPM: ${modelObject?.rpm})`);
 
     // Đặt trạng thái PENDING
-    setChapterStatus((prev) => {
-      const newStatus = { ...prev, [index]: "PENDING" };
-      console.log(`[SET][PENDING] idx=${index}, status mới=${newStatus[index]}, cancelFlag=${cancelMapRef.current[index]}`);
-      return newStatus;
-    });
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [index]: "PENDING" } });
 
     // Reset error message
-    setErrorMessages((prev) => {
+    dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: (prev) => {
       const newErrors = { ...prev };
       delete newErrors[index];
       return newErrors;
-    });
+    } });
 
     // Delay nhỏ để user có thể bấm hủy ngay sau khi bấm dịch
     setTimeout(async () => {
@@ -640,11 +687,7 @@ const ChapterList = ({
       }
 
       // Chuyển sang PROCESSING
-      setChapterStatus((prev) => {
-        const newStatus = { ...prev, [index]: "PROCESSING" };
-        console.log(`[SET][PROCESSING] idx=${index}, status mới=${newStatus[index]}, cancelFlag=${cancelMapRef.current[index]}`);
-        return newStatus;
-      });
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [index]: "PROCESSING" } });
 
       // Lấy progress hook cho chương này
       const chapterHook = getChapterProgressHook(index);
@@ -667,11 +710,11 @@ const ChapterList = ({
         storyId,
         setProgress: (progress) => {
             // Cập nhật progress từ translateSingleChapter
-          setChapterProgresses((prev) => ({ ...prev, [index]: progress }));
+          dispatch({ type: "TRANSLATION/SET_CHAPTER_PROGRESSES", payload: { ...chapterProgresses, [index]: progress } });
         },
-          setResults,
-        setErrorMessages,
-        setTranslatedCount,
+          setResults: (data) => dispatch({ type: "TRANSLATION/SET_RESULTS", payload: data }),
+        setErrorMessages: (data) => dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: data }),
+        setTranslatedCount: (count) => dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: count }),
           setTotalProgress: () => {}, // Không cần total progress cho single chapter
           onTranslationResult,
         onSelectChapter,
@@ -679,14 +722,14 @@ const ChapterList = ({
             // Khi hoàn thành, dừng progress và cập nhật trạng thái
             if (error) {
               console.error(`[CHAPTER ${index}] ❌ Lỗi dịch:`, error.message);
-              setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
-              setErrorMessages((prev) => ({ ...prev, [index]: error.message }));
+              dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [index]: "FAILED" } });
+              dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: { ...errorMessages, [index]: error.message } });
               toast.error(`Lỗi dịch chương ${index + 1}: ${error.message}`);
             } else {
               console.log(`[CHAPTER ${index}] ✅ Hoàn thành dịch trong ${duration}s`);
               console.log(`[CHAPTER ${index}] 📊 estimatedDuration đã sử dụng:`, estimatedDuration);
-              setChapterStatus((prev) => ({ ...prev, [index]: "COMPLETE" }));
-              setTranslatedCount((prev) => prev + 1);
+              dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [index]: "COMPLETE" } });
+              dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: translatedCount + 1 });
               toast.success(`Đã dịch xong chương ${index + 1}`);
 
               // 🚀 Lưu chương đã dịch vào IndexedDB
@@ -707,8 +750,8 @@ const ChapterList = ({
         
       } catch (error) {
         console.error(`[CHAPTER ${index}] Lỗi khi dịch:`, error);
-        setChapterStatus((prev) => ({ ...prev, [index]: "FAILED" }));
-        setErrorMessages((prev) => ({ ...prev, [index]: error.message }));
+        dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [index]: "FAILED" } });
+        dispatch({ type: "TRANSLATION/SET_ERROR_MESSAGES", payload: { ...errorMessages, [index]: error.message } });
           chapterHook.stopProgress();
         toast.error(`Lỗi khi dịch chương: ${error.message}`);
       }
@@ -722,11 +765,7 @@ const ChapterList = ({
       chapterStatus[index] === "PENDING" ||
       chapterStatus[index] === "PROCESSING"
     ) {
-      setChapterStatus((prev) => {
-        const newStatus = { ...prev, [index]: "CANCELLED" };
-        console.log(`[SET][CANCELLED] idx=${index}, status mới=${newStatus[index]}`);
-        return newStatus;
-      });
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [index]: "CANCELLED" } });
       cancelMapRef.current[index] = true;
       console.log(`[SET][cancelFlag] idx=${index}, cancelFlag mới=${cancelMapRef.current[index]}`);
       toast("Đã huỷ dịch chương thành công!", { icon: "🛑" });
@@ -747,7 +786,7 @@ const ChapterList = ({
     }
 
     onPageChange(num); // Gọi onPageChange prop
-    setJumpToPage(""); // Reset input sau khi nhảy
+    dispatch({ type: "PAGINATION/SET_JUMP_TO_PAGE", payload: "" }); // Reset input sau khi nhảy
   };
 
   // Hàm nhảy tới chương
@@ -767,7 +806,7 @@ const ChapterList = ({
     const newPage = Math.ceil(num / chaptersPerPage);
     onPageChange(newPage); // Gọi onPageChange prop
     onSelectChapter?.(targetIndex); // Vẫn gọi onSelectChapter để cuộn
-    setJumpToChapter(""); // Reset input sau khi nhảy
+    dispatch({ type: "PAGINATION/SET_JUMP_TO_CHAPTER", payload: "" }); // Reset input sau khi nhảy
   };
 
   // Hàm xử lý khi nhập giá trị vào input nhảy trang
@@ -776,7 +815,7 @@ const ChapterList = ({
     const num = parseInt(value);
 
     if (value === "") {
-      setJumpToPage("");
+      dispatch({ type: "PAGINATION/SET_JUMP_TO_PAGE", payload: "" });
       return;
     }
 
@@ -785,7 +824,7 @@ const ChapterList = ({
     }
 
     if (num >= 1 && num <= totalPages) {
-      setJumpToPage(value);
+      dispatch({ type: "PAGINATION/SET_JUMP_TO_PAGE", payload: value });
     }
   };
 
@@ -795,7 +834,7 @@ const ChapterList = ({
     const num = parseInt(value);
 
     if (value === "") {
-      setJumpToChapter("");
+      dispatch({ type: "PAGINATION/SET_JUMP_TO_CHAPTER", payload: "" });
       return;
     }
 
@@ -804,7 +843,7 @@ const ChapterList = ({
     }
 
     if (num >= 1 && num <= chapters.length) {
-      setJumpToChapter(value);
+      dispatch({ type: "PAGINATION/SET_JUMP_TO_CHAPTER", payload: value });
     }
   };
 
@@ -879,7 +918,7 @@ const ChapterList = ({
         (chapter) => chapter.chapterNumber === ch.chapterNumber
       );
       // Sử dụng callback để kiểm tra trạng thái hiện tại
-      setChapterStatus((prev) => {
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: (prev) => {
         const currentStatus = prev[idx];
         if (currentStatus === "PENDING" || currentStatus === "PROCESSING") {
           const newStatus = { ...prev, [idx]: "CANCELLED" };
@@ -890,10 +929,10 @@ const ChapterList = ({
           return newStatus;
         }
         return prev;
-      });
+      } });
     });
     toast.success("Đã dừng dịch toàn bộ chương trong trang!");
-    setHasTranslatedAll(false);
+    dispatch({ type: "TRANSLATION/SET_HAS_TRANSLATED_ALL", payload: false });
     toast(
       `Ước tính thời gian dịch 1 trang: ${estimatedTimeStr} (Dựa trên lịch sử dịch: ${estimatedDuration?.toFixed(1) || 30}s)`
     );
@@ -902,11 +941,11 @@ const ChapterList = ({
   // Expose setChapterStatus ra window để dịch batch gọi được
   useEffect(() => {
     window.setChapterStatusGlobal = (originalIndex, status) => {
-      setChapterStatus((prev) => {
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: (prev) => {
         const newStatus = { ...prev, [originalIndex]: status };
         console.log(`[SET][${status.toUpperCase()}][BATCH] idx=${originalIndex}, status mới=${newStatus[originalIndex]}, cancelFlag=${cancelMapRef.current[originalIndex]}`);
         return newStatus;
-      });
+      } });
     };
     return () => {
       window.setChapterStatusGlobal = undefined;
@@ -970,7 +1009,7 @@ const ChapterList = ({
       console.log(`              • Tiêu đề: "${titlePreview}"`);
       console.log(`              • Nội dung[0..250]: "${contentPreview}"`);
       
-      setResults((prev) => {
+      dispatch({ type: "TRANSLATION/SET_RESULTS", payload: (prev) => {
         const newResults = {
         ...prev,
         [chapterIndex]: {
@@ -983,7 +1022,7 @@ const ChapterList = ({
         };
         console.log('[ChapterList] 📊 Results mới:', newResults);
         return newResults;
-      });
+      } });
 
 
       // 🚀 Lưu chương đã dịch vào IndexedDB khi nhận từ Socket
@@ -1019,24 +1058,20 @@ const ChapterList = ({
     
     // Cập nhật trạng thái và dừng progress
     console.log('[ChapterList] 🔄 Cập nhật trạng thái chapter:', chapterIndex);
-    setChapterStatus((prev) => {
-      const newStatus = { ...prev, [chapterIndex]: "COMPLETE" };
-      console.log('[ChapterList] 📊 Chapter status mới:', newStatus);
-      return newStatus;
-    });
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [chapterIndex]: "COMPLETE" } });
     
-    setChapterTranslatingStates((prev) => {
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_TRANSLATING_STATES", payload: (prev) => {
       const newStates = { ...prev, [chapterIndex]: false };
       console.log('[ChapterList] 📊 Chapter translating states mới:', newStates);
       return newStates;
-    });
+    } });
     
     // ✅ Tăng progress lên 100% khi hoàn thành
-    setChapterProgresses((prev) => {
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_PROGRESSES", payload: (prev) => {
       const newProgresses = { ...prev, [chapterIndex]: 100 };
       console.log(`[ChapterList] ✅ Progress hoàn thành: ${prev[chapterIndex] || 0}% → 100%`);
       return newProgresses;
-    });
+    } });
     
     // Dừng progress hook
     const chapterHook = getChapterProgressHook(chapterIndex);
@@ -1044,11 +1079,11 @@ const ChapterList = ({
     chapterHook.stopProgress();
     
     // Tăng số chương đã dịch
-    setTranslatedCount((prev) => {
+    dispatch({ type: "TRANSLATION/SET_TRANSLATED_COUNT", payload: (prev) => {
       const newCount = prev + 1;
       console.log('[ChapterList] 📈 Tăng translated count:', prev, '->', newCount);
       return newCount;
-    });
+    } });
     
     console.log(`[ChapterList] ✅ Đã xử lý kết quả dịch chương ${data.chapterNumber} (index: ${chapterIndex})`);
     console.log('🎯 [ChapterList] ===== CALLBACK HOÀN THÀNH ====');
@@ -1083,28 +1118,20 @@ const ChapterList = ({
     // Chỉ cập nhật trạng thái nếu cần
     if (data.status === 'PROCESSING') {
       console.log('[ChapterList] 🔄 Cập nhật status thành PROCESSING cho chapter:', chapterIndex);
-      setChapterStatus((prev) => {
-        const newStatus = { ...prev, [chapterIndex]: "PROCESSING" };
-        console.log('[ChapterList] 📊 Status mới:', newStatus);
-        return newStatus;
-      });
-      setChapterTranslatingStates((prev) => {
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [chapterIndex]: "PROCESSING" } });
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_TRANSLATING_STATES", payload: (prev) => {
         const newStates = { ...prev, [chapterIndex]: true };
         console.log('[ChapterList] 📊 Translating states mới:', newStates);
         return newStates;
-      });
+      } });
     } else if (data.status === 'COMPLETE') {
       console.log('[ChapterList] ✅ Cập nhật status thành COMPLETE cho chapter:', chapterIndex);
-      setChapterStatus((prev) => {
-        const newStatus = { ...prev, [chapterIndex]: "COMPLETE" };
-        console.log('[ChapterList] 📊 Status mới:', newStatus);
-        return newStatus;
-      });
-      setChapterTranslatingStates((prev) => {
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [chapterIndex]: "COMPLETE" } });
+      dispatch({ type: "TRANSLATION/SET_CHAPTER_TRANSLATING_STATES", payload: (prev) => {
         const newStates = { ...prev, [chapterIndex]: false };
         console.log('[ChapterList] 📊 Translating states mới:', newStates);
         return newStates;
-      });
+      } });
     }
     
     console.log('📊 [ChapterList] ===== PROGRESS CALLBACK HOÀN THÀNH ====');
@@ -1135,23 +1162,19 @@ const ChapterList = ({
     
     // Bắt đầu progress bar ngay khi nhận được sự kiện từ BE
     console.log('[ChapterList] 🔄 Bắt đầu progress cho chapter:', chapterIndex);
-    setChapterStatus((prev) => {
-      const newStatus = { ...prev, [chapterIndex]: "PROCESSING" };
-      console.log('[ChapterList] 📊 Status mới:', newStatus);
-      return newStatus;
-    });
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_STATUS", payload: { ...chapterStatus, [chapterIndex]: "PROCESSING" } });
     
-    setChapterTranslatingStates((prev) => {
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_TRANSLATING_STATES", payload: (prev) => {
       const newStates = { ...prev, [chapterIndex]: true };
       console.log('[ChapterList] 📊 Translating states mới:', newStates);
       return newStates;
-    });
+    } });
     
-    setChapterProgresses((prev) => {
+    dispatch({ type: "TRANSLATION/SET_CHAPTER_PROGRESSES", payload: (prev) => {
       const newProgresses = { ...prev, [chapterIndex]: 0 };
       //console.log('[ChapterList] 📊 Progress mới:', newProgresses);
       return newProgresses;
-    });
+    } });
     
     // Bắt đầu progress hook với thông tin từ BE
     const chapterHook = getChapterProgressHook(chapterIndex);

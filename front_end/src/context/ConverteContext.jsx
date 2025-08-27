@@ -104,14 +104,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   // User Profile Management
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data) {
-        setUserData({
+        setUserData((prev) => ({
+          ...prev,
           id: response.data.id,
           username: response.data.username,
           email: response.data.email,
@@ -122,7 +123,7 @@ export const AuthProvider = ({ children }) => {
           userApiKeys: response.data.UserApiKey || [],
           createdAt: response.data.createdAt,
           updatedAt: response.data.updatedAt,
-        });
+        }));
       }
     } catch (err) {
       console.error("Lỗi khi lấy thông tin user:", err);
@@ -130,7 +131,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   const updateUserProfile = async (updateData) => {
     try {
@@ -335,7 +336,7 @@ export const AuthProvider = ({ children }) => {
   const [stories, setStories] = useState([]);
  
 
-  const fetchStories = async () => {
+  const fetchStories = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/user/library`, {
@@ -343,7 +344,10 @@ export const AuthProvider = ({ children }) => {
           Authorization: `Bearer ${token}`,
         },
       });
+      // Chỉ cập nhật state nếu dữ liệu thực sự thay đổi
+      if (JSON.stringify(response.data) !== JSON.stringify(stories)) {
       setStories(response.data);
+      }
       setError(null);
     } catch (err) {
       console.error("Lỗi khi tải danh sách truyện:", err);
@@ -354,7 +358,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   const createStory = async (file, storyInfo) => {
     try {

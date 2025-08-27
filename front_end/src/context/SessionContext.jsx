@@ -3,6 +3,19 @@ import { modelService } from '../services/modelService';
 
 const SessionContext = createContext();
 
+// Helper function for deep comparison of model objects
+const areModelsEqual = (model1, model2) => {
+  if (!model1 || !model2) return model1 === model2; // Handle null/undefined cases
+  return (
+    model1.id === model2.id &&
+    model1.value === model2.value &&
+    model1.label === model2.label &&
+    model1.rpm === model2.rpm &&
+    model1.tpm === model2.tpm &&
+    model1.rpd === model2.rpd
+  );
+};
+
 export const useSession = () => {
   const context = useContext(SessionContext);
   if (!context) {
@@ -42,8 +55,11 @@ export const SessionProvider = ({ children }) => {
       modelService.getProviders().then(providers => {
         if (Array.isArray(providers) && providers.length > 0 && Array.isArray(providers[0].models) && providers[0].models.length > 0) {
           const defaultModel = providers[0].models[0];
-          setSelectedModel(defaultModel);
-          sessionStorage.setItem('selectedModel', JSON.stringify(defaultModel));
+          // Chỉ cập nhật nếu model mặc định khác với model hiện tại
+          if (!areModelsEqual(selectedModel, defaultModel)) {
+            setSelectedModel(defaultModel);
+            sessionStorage.setItem('selectedModel', JSON.stringify(defaultModel));
+          }
         }
       }).catch(err => {
         console.error('[SessionContext] Không lấy được model mặc định từ BE:', err);
@@ -93,8 +109,11 @@ export const SessionProvider = ({ children }) => {
   };
 
   const updateSelectedModel = (model) => {
-    setSelectedModel(model);
     console.log('[SessionContext] updateSelectedModel', model);
+    // Chỉ cập nhật nếu model mới khác với model hiện tại
+    if (!areModelsEqual(selectedModel, model)) {
+      setSelectedModel(model);
+    }
   };
 
   const clearSession = () => {
