@@ -12,6 +12,7 @@ export const getAuthToken = () => localStorage.getItem("auth-token");
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  console.count('AuthContext Render');
   // ===== STATE MANAGEMENT =====
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [menu, setMenu] = useState("home");

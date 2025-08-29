@@ -7,7 +7,7 @@ db.version(1).stores({
 
 // Add a method to add chapters to the database
 export async function addChapters(chapters) {
-  console.log(`[IndexedDB] ➕ Đang thêm ${chapters.length} chương vào IndexedDB.`);
+  console.log(`[IndexedDB] ➕ Đang thêm ${chapters.length} chương vào IndexedDB. Dữ liệu:`, chapters);
   try {
     await db.chapters.bulkPut(chapters);
     console.log(`[IndexedDB] ✅ Thêm ${chapters.length} chương thành công.`);
@@ -37,11 +37,11 @@ export async function getChapters(storyId, chapterNumber) {
 
 // Add a method to get chapters by storyId and a range of chapterNumbers (for pagination)
 export async function getChaptersByStoryIdAndRange(storyId, startChapterNumber, endChapterNumber) {
-  console.log(`[IndexedDB] 🔍 Đang tìm các chương theo phạm vi: storyId=${storyId}, từ ${startChapterNumber} đến ${endChapterNumber}`);
+  console.log(`[IndexedDB] 🔍 Đang tìm các chương theo phạm vi: storyId=${storyId}, từ ${startChapterNumber} đến ${endChapterNumber}.`);
   try {
     const chapters = await db.chapters
       .where('storyId').equals(storyId)
-      .and(chapter => chapter.chapterNumber >= startChapterNumber && chapter.chapterNumber <= endChapterNumber)
+      .and(chapter => Number( chapter.chapterNumber) >= Number(startChapterNumber) && Number(chapter.chapterNumber) <= Number(endChapterNumber))
       .sortBy('chapterNumber');
     console.log(`[IndexedDB] ✅ Tìm thấy ${chapters.length} chương trong phạm vi đã yêu cầu.`);
     return chapters;

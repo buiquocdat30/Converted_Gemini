@@ -115,6 +115,7 @@ const ChapterList = ({
   totalStoryChapters, // Nhận totalStoryChapters từ props
   ...rest
 }) => {
+  console.count('ChapterList Render');
   const { selectedModel: modelFromContext } = useSession();
   const { userData } = useContext(AuthContext); // Lấy userData từ context
   // Ưu tiên prop model nếu là object, nếu không thì lấy từ context

@@ -18,6 +18,7 @@ import TranslateViewer from "../components/TranslateViewer/TranslateViewer";
 import ConverteKeyInput from "../components/ConverteKeyInput/ConverteKeyInput";
 import ModelSelector from "../components/ModelSelector/ModelSelector";
 import UserStoryCard from "../components/UserStoryCard/UserStoryCard";
+import { TranslationBot } from "../bot";
 
 const chaptersPerPage = 10; // Giữ nguyên 10 chương mỗi trang như ChapterList
 
@@ -196,6 +197,7 @@ function addChapterModalReducer(state, action) {
 }
 
 const Translate = () => {
+  console.count('Translate Render');
   const {
     isLoggedIn,
     stories,
@@ -240,8 +242,58 @@ const Translate = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  
+  // Chặn useEffect chạy chồng (đề phòng trigger nhiều lần do state phụ thay đổi)
+  const loadChaptersInFlightRef = useRef(false);
 
+  // ===== Debug counters: đếm số lần các state quan trọng thay đổi =====
+  const prevValuesRef = useRef({
+    storyId: undefined,
+    totalStoryChapters: 0,
+    chaptersLen: 0,
+    currentPage: 1,
+  });
+
+  useEffect(() => {
+    const prev = prevValuesRef.current;
+    const nextStoryId = currentStory?.id;
+    if (prev.storyId !== nextStoryId) {
+      console.count('state:storyId changed');
+      console.log('[STATE] storyId changed:', { old: prev.storyId, new: nextStoryId });
+      prev.storyId = nextStoryId;
+    }
+  }, [currentStory?.id]);
+
+  useEffect(() => {
+    const prev = prevValuesRef.current;
+    if (prev.totalStoryChapters !== totalStoryChapters) {
+      console.count('state:totalStoryChapters changed');
+      console.log('[STATE] totalStoryChapters changed:', { old: prev.totalStoryChapters, new: totalStoryChapters });
+      prev.totalStoryChapters = totalStoryChapters;
+    }
+  }, [totalStoryChapters]);
+
+  useEffect(() => {
+    const prev = prevValuesRef.current;
+    const len = chapters.length;
+    if (prev.chaptersLen !== len) {
+      console.count('state:chapters.length changed');
+      console.log('[STATE] chapters.length changed:', { old: prev.chaptersLen, new: len });
+      prev.chaptersLen = len;
+    }
+  }, [chapters.length]);
+
+  useEffect(() => {
+    const prev = prevValuesRef.current;
+    if (prev.currentPage !== currentPage) {
+      console.count('state:currentPage changed');
+      console.log('[STATE] currentPage changed:', { old: prev.currentPage, new: currentPage });
+      prev.currentPage = currentPage;
+    }
+  }, [currentPage]);
+
+  //const navigate = useNavigate();
+  
+  
   const handleSelectJumbChapter = useCallback((index) => {
     dispatch({ type: "CHAPTERS/SET_SELECTED_INDEX", payload: index });
   }, []);
@@ -254,8 +306,11 @@ useEffect(() => {
   const loadChapters = async () => {
     const tab = searchParams.get("tab");
 
-    if (!currentStoryId) return; // Sử dụng currentStoryId từ context
-    
+    if (!currentStoryId) {
+      console.log("[Translate.jsx] ℹ️ currentStoryId chưa được set, bỏ qua tải chương.");
+      return;
+    }
+
     // Nếu có tab trong URL, set active tab
     if (tab === "translating") {
       dispatch({ type: "UI/SET_ACTIVE_TAB", payload: "translating" });
@@ -267,7 +322,12 @@ useEffect(() => {
       return;
     }
 
-    dispatch({ type: "UI/LOADING", payload: true });
+    // Chặn chạy chồng
+    if (loadChaptersInFlightRef.current) {
+      console.log("[Translate.jsx] ⏳ loadChapters đang chạy, bỏ qua lần gọi trùng.");
+      return;
+    }
+    loadChaptersInFlightRef.current = true;
 
     const startChapterNumber = (currentPage - 1) * chaptersPerPage + 1;
     const endChapterNumber = currentPage * chaptersPerPage;
@@ -281,7 +341,7 @@ useEffect(() => {
       );
 
       if (cachedChapters && cachedChapters.length > 0) {
-        console.log(`[Translate.jsx] ✅ Tìm thấy ${cachedChapters.length} chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Hiển thị từ cache.`);
+        //console.log(`[Translate.jsx] ✅ Tìm thấy ${cachedChapters.length} chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Hiển thị từ cache.`);
         const formattedCachedChapters = cachedChapters.map((chapter) => ({
           id: chapter.id,
           chapterName: chapter.chapterName,
@@ -298,7 +358,8 @@ useEffect(() => {
         if (!areChaptersEqual(chapters, formattedCachedChapters)) {
           dispatch({ type: "CHAPTERS/SET_ITEMS", payload: formattedCachedChapters });
         }
-        dispatch({ type: "UI/LOADING", payload: false });
+        // Hiển thị từ cache rất nhanh, không cần loading overlay chính
+        // dispatch({ type: "UI/LOADING", payload: false }); // Không cần tắt loading nếu chưa bật
 
         // Tiếp tục gọi Backend để lấy dữ liệu mới nhất trong nền (không await)
         fetchChaptersInBackground(currentStoryId, currentPage, chaptersPerPage, token).then(
@@ -308,7 +369,6 @@ useEffect(() => {
             }
             dispatch({ type: "STORY/SET_TOTAL", payload: result.total });
 
-            // Update IndexedDB and UI directly
             const fetchedChapters = result.formattedChapters;
             if (fetchedChapters && fetchedChapters.length > 0) {
               const needsUpdate = !cachedChapters || cachedChapters.length !== fetchedChapters.length || 
@@ -324,7 +384,9 @@ useEffect(() => {
               if (needsUpdate) {
                 console.log(`[Translate.jsx] 🔄 Dữ liệu từ Backend khác hoặc không có cache. Cập nhật IndexedDB và UI (nền).`);
                 await db.transaction('rw', db.chapters, async () => {
-                  await db.chapters.bulkPut(fetchedChapters);
+                  // Đảm bảo mỗi chương có storyId trước khi lưu
+                  const chaptersToStore = fetchedChapters.map(ch => ({ ...ch, storyId: currentStoryId }));
+                  await db.chapters.bulkPut(chaptersToStore);
                 });
                 if (!areChaptersEqual(chapters, fetchedChapters)) {
                   dispatch({ type: "CHAPTERS/SET_ITEMS", payload: fetchedChapters });
@@ -338,33 +400,32 @@ useEffect(() => {
         ).catch(error => console.error("❌ Lỗi khi tải chương từ Backend trong nền (useEffect):", error));
 
       } else {
-        // console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Đang tải từ Backend.`);
-        // fetch from backend (await) and update DB using the new functions
+        // Nếu không tìm thấy trong IndexedDB, hiển thị loading và fetch từ Backend (await)
+        console.log(`[Translate.jsx] ⏳ Không tìm thấy chương trong IndexedDB cho trang ${currentPage}, story ${currentStoryId}. Đang tải từ Backend.`);
+        dispatch({ type: "UI/LOADING", payload: true }); // Bật loading
+        
         const { storyInfo, formattedChapters: fetchedChapters, total } = await fetchChaptersInBackground(currentStoryId, currentPage, chaptersPerPage, token);
 
         if (!storyInfo) {
           console.error("❌ Không nhận được dữ liệu truyện");
           alert("Không thể tải thông tin truyện. Vui lòng thử lại sau.");
-          dispatch({ type: "UI/LOADING", payload: false });
-          return;
+          return; // Không tắt loading ở đây để nó được xử lý trong finally
         }
         dispatch({ type: "STORY/SET_CURRENT", payload: storyInfo });
         dispatch({ type: "STORY/SET_TOTAL", payload: total });
-        // console.log(`[Translate.jsx] 📊 totalStoryChapters đã cập nhật thành: ${total}`);
 
         if (fetchedChapters.length === 0) {
           console.warn("⚠️ Truyện không có chương nào hoặc dữ liệu chương trống.", currentStoryId);
         }
 
-        // Update IndexedDB and UI directly
         await db.transaction('rw', db.chapters, async () => {
-          await db.chapters.bulkPut(fetchedChapters);
+          // Đảm bảo mỗi chương có storyId trước khi lưu
+          const chaptersToStore = fetchedChapters.map(ch => ({ ...ch, storyId: currentStoryId }));
+          await db.chapters.bulkPut(chaptersToStore);
         });
         if (!areChaptersEqual(chapters, fetchedChapters)) {
           dispatch({ type: "CHAPTERS/SET_ITEMS", payload: fetchedChapters });
         }
-
-        dispatch({ type: "UI/LOADING", payload: false });
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
@@ -378,14 +439,16 @@ useEffect(() => {
         errorMessage += "Lỗi server. Vui lòng thử lại sau.";
       }
       alert(errorMessage);
-      dispatch({ type: "UI/LOADING", payload: false });
       dispatch({ type: "UI/ERROR", payload: error });
+    } finally {
+      loadChaptersInFlightRef.current = false;
+      dispatch({ type: "UI/LOADING", payload: false }); // Luôn tắt loading ở cuối
     }
   };
 
   loadChapters();
 
-}, [searchParams, currentPage, chaptersPerPage, dispatch, db, chapters, areChaptersEqual, fetchChaptersInBackground, getChaptersByStoryIdAndRange, currentStoryId, axios]);
+}, [searchParams, currentPage, currentStoryId]);
 
   
   // Đồng bộ session state với local state
@@ -1015,6 +1078,7 @@ useEffect(() => {
 
   // Tối ưu mergedChapters bằng useMemo
   const mergedChapters = useMemo(() => {
+    console.count('mergedChapters recalculated');
     return chapters.map((ch, i) => ({
       ...ch,
       // ...translatedChapters[i], // Xóa dòng này
@@ -1140,6 +1204,11 @@ useEffect(() => {
       storyId: currentStory?.id,
       totalStoryChapters,
     };
+
+    // Bỏ qua debug so sánh khi chưa có storyId để tránh log và re-render không hữu ích
+    if (!currentDebugProps.storyId) {
+      return;
+    }
 
     const changedProps = Object.keys(currentDebugProps).filter(key => {
       // So sánh sâu cho objects/arrays như mergedChapters
@@ -1719,6 +1788,9 @@ useEffect(() => {
           </div>
         )}
       </div>
+      
+      {/* Translation Bot */}
+      <TranslationBot />
     </div>
   );
 };
