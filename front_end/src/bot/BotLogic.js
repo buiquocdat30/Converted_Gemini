@@ -47,6 +47,11 @@ export function parseCommand(input) {
     return { type: 'clear', payload: null };
   }
 
+  // Lệnh kiểm tra trạng thái đăng nhập
+  if (text.includes('trạng thái') || text.includes('status')) {
+    return { type: 'status', payload: null };
+  }
+
   // Lệnh không hiểu
   return { 
     type: 'unknown', 

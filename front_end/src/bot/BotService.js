@@ -1,11 +1,20 @@
 // BotService.js - Xử lý các hành động của bot
 import { toast } from 'react-hot-toast';
 
-export async function handleBotAction(command) {
+export async function handleBotAction(command, context) {
   // Xử lý lỗi từ parser
   if (command.error) {
     return command.error;
   }
+
+  const {
+    createStory,
+    addChapter,
+    isLoggedIn,
+    getAuthToken,
+    updateCurrentKey,
+    updateSelectedKeys,
+  } = context;
 
   switch (command.type) {
     case 'translate':
@@ -18,36 +27,98 @@ export async function handleBotAction(command) {
       if (!command.payload) {
         return '❌ Vui lòng nhập tên truyện';
       }
-      return `📚 Đang xử lý lệnh thêm truyện: "${command.payload}"\n\nTính năng này sẽ được tích hợp với hệ thống quản lý truyện.`;
+      
+      if (!isLoggedIn) {
+        return '❌ Bạn cần đăng nhập để thêm truyện mới';
+      }
+
+      try {
+        const storyInfo = {
+          name: command.payload,
+          description: `Truyện được tạo qua bot: ${command.payload}`,
+          author: 'Bot',
+          chapters: []
+        };
+
+        const response = await createStory(storyInfo);
+        showBotNotification(`✅ Đã tạo truyện "${command.payload}" thành công!`, 'success');
+        return `📚 <strong>Thành công!</strong> Đã tạo truyện "${command.payload}" với ID: ${response.id}`;
+      } catch (error) {
+        console.error('Lỗi khi tạo truyện:', error);
+        showBotNotification('❌ Lỗi khi tạo truyện', 'error');
+        return `❌ Lỗi khi tạo truyện: ${error.message}`;
+      }
 
     case 'addChapter':
       if (!command.payload) {
         return '❌ Vui lòng nhập tên chương';
       }
-      return `📖 Đang xử lý lệnh thêm chương: "${command.payload}"\n\nTính năng này sẽ được tích hợp với hệ thống quản lý chương.`;
+      
+      if (!isLoggedIn) {
+        return '❌ Bạn cần đăng nhập để thêm chương mới';
+      }
+
+      try {
+        // Tạo chương mẫu
+        const chapterData = {
+          storyId: null, // Sẽ cần storyId thực tế
+          chapterNumber: 1,
+          chapterName: command.payload,
+          rawText: `Nội dung chương "${command.payload}" sẽ được thêm vào đây.`
+        };
+
+        // Lưu ý: Cần storyId thực tế để thêm chương
+        showBotNotification('⚠️ Cần chọn truyện trước khi thêm chương', 'warning');
+        return `📖 <strong>Lưu ý:</strong> Để thêm chương "${command.payload}", bạn cần:\n1. Chọn truyện trong tab "Truyện đang dịch"\n2. Sau đó sử dụng lệnh này lại`;
+      } catch (error) {
+        console.error('Lỗi khi thêm chương:', error);
+        showBotNotification('❌ Lỗi khi thêm chương', 'error');
+        return `❌ Lỗi khi thêm chương: ${error.message}`;
+      }
 
     case 'addKey':
       if (!command.payload) {
         return '❌ Vui lòng nhập API key';
       }
-      return `🔑 Đang xử lý lệnh thêm API key: "${command.payload}"\n\nTính năng này sẽ được tích hợp với hệ thống quản lý key.`;
+
+      try {
+        // Cập nhật API key trong session
+        updateCurrentKey(command.payload);
+        updateSelectedKeys([command.payload]);
+        
+        showBotNotification('✅ Đã lưu API key thành công!', 'success');
+        return `🔑 <strong>Thành công!</strong> Đã lưu API key: ${command.payload.substring(0, 20)}...`;
+      } catch (error) {
+        console.error('Lỗi khi lưu API key:', error);
+        showBotNotification('❌ Lỗi khi lưu API key', 'error');
+        return `❌ Lỗi khi lưu API key: ${error.message}`;
+      }
 
     case 'help':
-      return `🤖 <strong>Translation Bot - Hướng dẫn sử dụng</strong>\n\n` +
-             `📝 <strong>Các lệnh hỗ trợ:</strong>\n` +
-             `• <code>dịch [nội dung]</code> - Dịch nội dung\n` +
-             `• <code>thêm truyện [tên truyện]</code> - Thêm truyện mới\n` +
-             `• <code>thêm chương [tên chương]</code> - Thêm chương mới\n` +
-             `• <code>thêm key [api_key]</code> - Thêm API key\n` +
-             `• <code>giúp</code> hoặc <code>help</code> - Hiển thị hướng dẫn này\n` +
-             `• <code>xóa</code> hoặc <code>clear</code> - Xóa lịch sử chat\n\n` +
-             `💡 <strong>Ví dụ:</strong>\n` +
-             `• <code>dịch Hello world</code>\n` +
-             `• <code>thêm truyện Truyện kiếm hiệp</code>\n` +
-             `• <code>thêm chương Chương 1: Khởi đầu</code>`;
+      return `🤖 <strong>Translation Bot - Hướng dẫn sử dụng</strong> <br/>\n\n` +
+             `📝 <strong>Các lệnh hỗ trợ:</strong><br/>` +
+             `• <code>dịch [nội dung]</code> - Dịch nội dung<br/>` +
+             `• <code>thêm truyện [tên truyện]</code> - Thêm truyện mới<br/>` +
+             `• <code>thêm chương [tên chương]</code> - Thêm chương mới<br/>` +
+             `• <code>thêm key [api_key]</code> - Thêm API key<br/>` +
+             `• <code>trạng thái</code> hoặc <code>status</code> - Kiểm tra trạng thái đăng nhập<br/>` +
+             `• <code>giúp</code> hoặc <code>help</code> - Hiển thị hướng dẫn này<br/>` +
+             `• <code>xóa</code> hoặc <code>clear</code> - Xóa lịch sử chat<br/>` +
+             `💡 <strong>Ví dụ:</strong><br/>` +
+             `• <code>dịch Hello world</code><br/>` +
+             `• <code>thêm truyện Truyện kiếm hiệp</code><br/>` +
+             `• <code>thêm chương Chương 1: Khởi đầu</code><br/>` +
+             `• <code>thêm key AIzaSyC...</code><br/>`;
 
     case 'clear':
       return '🧹 Lịch sử chat đã được xóa!';
+
+    case 'status':
+      if (isLoggedIn) {
+        return `✅ <strong>Trạng thái:</strong> Đã đăng nhập\n🔑 <strong>API Key:</strong> ${getAuthToken() ? 'Đã có' : 'Chưa có'}`;
+      } else {
+        return `❌ <strong>Trạng thái:</strong> Chưa đăng nhập\n💡 <strong>Gợi ý:</strong> Vui lòng đăng nhập để sử dụng đầy đủ tính năng`;
+      }
 
     case 'unknown':
       return command.error || `❓ Tôi không hiểu lệnh "${command.payload}". Hãy gõ "giúp" để xem các lệnh hỗ trợ.`;

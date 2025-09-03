@@ -165,25 +165,28 @@ const ConverteKeyInput = ({
   return (
     <div className="converte-key">
       <div className="converte-key-wrapper">
-        <div className="api-input-wrapper">
-          <label className="label">🔑 Nhập Google Gemini API Key </label>
-          <input
-            type={showKey ? "text" : "password"}
-            value={apiKey || ""}
-            onChange={(e) => {
-              const newKey = e.target.value;
-              setApiKey(newKey);
-              updateCurrentKey(newKey);
-            }}
-            placeholder="API Key..."
-            className="api-input"
-          />
-          <FontAwesomeIcon
-            icon={showKey ? faEyeSlash : faEye}
-            className="show-icon"
-            onClick={() => setShowKey((prev) => !prev)}
-          />
-        </div>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="api-input-wrapper">
+            <label className="label">🔑 Nhập Google Gemini API Key </label>
+                         <input
+               type={showKey ? "text" : "password"}
+               value={apiKey || ""}
+               onChange={(e) => {
+                 const newKey = e.target.value;
+                 setApiKey(newKey);
+                 updateCurrentKey(newKey);
+               }}
+               placeholder="API Key..."
+               className="api-input"
+               autoComplete="new-password"
+             />
+            <FontAwesomeIcon
+              icon={showKey ? faEyeSlash : faEye}
+              className="show-icon"
+              onClick={() => setShowKey((prev) => !prev)}
+            />
+          </div>
+        </form>
 
         {/* Upload file */}
         <div className="upload-section">
