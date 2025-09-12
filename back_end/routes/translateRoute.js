@@ -16,8 +16,8 @@ router.post('/queue', authMiddleware, translateController.translateTextQueue);
 // Route mới: Dịch các trang cụ thể
 router.post('/range-pages', authMiddleware, translateController.translateRangePages);
 
-// Route mới: Dịch tất cả các trang chưa dịch
-router.post('/all-pages', authMiddleware, translateController.translateAllPages);
+// Route mới: Dịch 50 trang liên tiếp từ trang đầu tiên
+router.post('/50-pages', authMiddleware, translateController.translate50Pages);
 
 // Thêm job vào hàng đợi BullMQ
 router.post('/add-job', translateController.addJobToQueue);

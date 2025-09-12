@@ -1,15 +1,16 @@
-// Hàm dịch các trang cụ thể (mỗi trang chứa 10 chương)
+// Hàm dịch 50 trang liên tiếp từ trang đầu tiên (mỗi trang chứa 10 chương)
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { API_URL } from '../config/config';
 
 // Constants
 const CHAPTERS_PER_PAGE = 10;
+const MAX_PAGES_PER_BATCH = 50; // Dịch tối đa 50 trang
 
 /**
- * Dịch các trang cụ thể
+ * Dịch 50 trang liên tiếp từ trang đầu tiên
  * @param {Object} params - Tham số dịch
- * @param {Array} params.pageNumbers - Mảng số trang cần dịch (VD: [12, 16, 18] hoặc [14, 15, 16, 17, 18, 19])
+ * @param {number} params.startPage - Trang bắt đầu (VD: 1, 51, 101)
  * @param {Array} params.chapters - Toàn bộ danh sách chương
  * @param {string|Array} params.apiKey - API key hoặc mảng API keys
  * @param {Object} params.model - Model object
@@ -29,8 +30,8 @@ const CHAPTERS_PER_PAGE = 10;
  * @param {Function} params.setPageStatus - Callback để set trạng thái trang
  * @returns {Promise<Object>} Kết quả dịch
  */
-export const translateRangePages = async ({
-  pageNumbers,
+export const translate50Pages = async ({
+  startPage,
   chapters,
   apiKey,
   model,
@@ -49,41 +50,68 @@ export const translateRangePages = async ({
   setPageTranslatingStates,
   setPageStatus,
 }) => {
-  console.log("📖 [RANGE-PAGE] ===== BẮT ĐẦU DỊCH CÁC TRANG =====");
-  console.log(`[RANGE-PAGE] 📝 Dịch các trang:`, pageNumbers);
-  console.log(`[RANGE-PAGE] 📊 Tổng số trang: ${pageNumbers.length}`);
-  console.log(`[RANGE-PAGE] 📚 Tổng số chương: ${chapters.length}`);
-  console.log(`[RANGE-PAGE] 🔑 Có API key: ${!!apiKey}`);
-  console.log(`[RANGE-PAGE] 🤖 Model:`, model?.name || model);
+  console.log("📖 [50-PAGES] ===== BẮT ĐẦU DỊCH 50 TRANG =====");
+  console.log(`[50-PAGES] 📝 Bắt đầu từ trang: ${startPage}`);
+  console.log(`[50-PAGES] 📚 Tổng số chương: ${chapters.length}`);
+  console.log(`[50-PAGES] 🔑 Có API key: ${!!apiKey}`);
+  console.log(`[50-PAGES] 🤖 Model:`, model?.name || model);
 
   // Validation checks
-  if (!pageNumbers || pageNumbers.length === 0) {
-    const errorMsg = "❌ Không có trang nào được chọn để dịch";
-    console.error("[RANGE-PAGE]", errorMsg);
+  if (!startPage || startPage < 1) {
+    const errorMsg = "❌ Trang bắt đầu phải lớn hơn 0";
+    console.error("[50-PAGES]", errorMsg);
     toast.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 
   if (!chapters || chapters.length === 0) {
     const errorMsg = "❌ Không có chương nào để dịch";
-    console.error("[RANGE-PAGE]", errorMsg);
+    console.error("[50-PAGES]", errorMsg);
     toast.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 
   if (!model) {
     const errorMsg = "❌ Không có model được chọn";
-    console.error("[RANGE-PAGE]", errorMsg);
+    console.error("[50-PAGES]", errorMsg);
     toast.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 
   if (!userData || !userData.id) {
     const errorMsg = "❌ Không có thông tin user";
-    console.error("[RANGE-PAGE]", errorMsg);
+    console.error("[50-PAGES]", errorMsg);
     toast.error(errorMsg);
     return { success: false, error: errorMsg };
   }
+
+  // Tính toán tổng số trang có thể dịch
+  const totalPages = Math.ceil(chapters.length / CHAPTERS_PER_PAGE);
+  const endPage = Math.min(startPage + MAX_PAGES_PER_BATCH - 1, totalPages);
+  const actualPagesToTranslate = endPage - startPage + 1;
+
+  console.log(`[50-PAGES] 📊 Thông tin trang:`, {
+    startPage: startPage,
+    endPage: endPage,
+    actualPagesToTranslate: actualPagesToTranslate,
+    totalPages: totalPages
+  });
+
+  // Kiểm tra nếu trang bắt đầu vượt quá tổng số trang
+  if (startPage > totalPages) {
+    const errorMsg = `❌ Trang bắt đầu (${startPage}) vượt quá tổng số trang (${totalPages})`;
+    console.error("[50-PAGES]", errorMsg);
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
+  }
+
+  // Tạo mảng pageNumbers từ startPage đến endPage
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+
+  console.log(`[50-PAGES] 📄 Các trang sẽ dịch:`, pageNumbers);
 
   // Tính toán tổng số chương cần dịch
   const totalChaptersToTranslate = pageNumbers.reduce((total, pageNum) => {
@@ -93,22 +121,34 @@ export const translateRangePages = async ({
     return total + chaptersInPage;
   }, 0);
 
-  console.log(`[RANGE-PAGE] 📊 Tổng số chương cần dịch: ${totalChaptersToTranslate}`);
+  console.log(`[50-PAGES] 📊 Tổng số chương cần dịch: ${totalChaptersToTranslate}`);
 
   // Kiểm tra API key cho các trang sau trang 2
   const pagesNeedingApiKey = pageNumbers.filter(pageNum => pageNum > 2);
   if (pagesNeedingApiKey.length > 0 && (!apiKey || (Array.isArray(apiKey) && apiKey.length === 0) || apiKey === "")) {
     const errorMsg = `❌ Các trang ${pagesNeedingApiKey.join(', ')} cần API key để dịch`;
-    console.error("[RANGE-PAGE]", errorMsg);
+    console.error("[50-PAGES]", errorMsg);
     toast.error(errorMsg);
     return { success: false, error: errorMsg };
+  }
+
+  // Hiển thị cảnh báo nếu số lượng lớn
+  if (actualPagesToTranslate > 20) {
+    const estimatedCost = totalChaptersToTranslate * 0.0001; // Ước tính chi phí
+    const estimatedTime = Math.round(totalChaptersToTranslate * 10 / 60); // Ước tính thời gian (phút)
+    
+    console.warn(`[50-PAGES] ⚠️ Cảnh báo: Sẽ dịch ${actualPagesToTranslate} trang (${totalChaptersToTranslate} chương)`);
+    console.warn(`[50-PAGES] 💰 Ước tính chi phí: $${estimatedCost.toFixed(4)}`);
+    console.warn(`[50-PAGES] ⏱️ Ước tính thời gian: ${estimatedTime} phút`);
+    
+    toast.warning(`⚠️ Sẽ dịch ${actualPagesToTranslate} trang (${totalChaptersToTranslate} chương). Kiểm tra API key và chi phí!`);
   }
 
   try {
     const results = {
       success: true,
-      totalPages: pageNumbers.length,
-      totalChapters: 0,
+      totalPages: actualPagesToTranslate,
+      totalChapters: totalChaptersToTranslate,
       pageResults: {},
       timing: null,
       errors: []
@@ -116,7 +156,7 @@ export const translateRangePages = async ({
 
     // Chuẩn bị dữ liệu cho tất cả các trang
     const modelToSend = model;
-    console.log('[RANGE-PAGE] 📤 Gửi model object lên backend:', modelToSend);
+    console.log('[50-PAGES] 📤 Gửi model object lên backend:', modelToSend);
     
     const requestData = {
       pageNumbers: pageNumbers,
@@ -130,12 +170,12 @@ export const translateRangePages = async ({
     // Thêm userKeys nếu có
     if (apiKey && !(Array.isArray(apiKey) && apiKey.length === 0) && apiKey !== "") {
       requestData.userKeys = Array.isArray(apiKey) ? apiKey : [apiKey];
-      console.log(`[RANGE-PAGE] 🔑 Thêm ${requestData.userKeys.length} API keys vào request`);
+      console.log(`[50-PAGES] 🔑 Thêm ${requestData.userKeys.length} API keys vào request`);
     } else {
-      console.log("[RANGE-PAGE] 🔑 Không có API key, sẽ dùng default key");
+      console.log("[50-PAGES] 🔑 Không có API key, sẽ dùng default key");
     }
 
-    console.log("[RANGE-PAGE] 📤 Request data:", {
+    console.log("[50-PAGES] 📤 Request data:", {
       pageNumbers: requestData.pageNumbers,
       chaptersCount: requestData.chapters.length,
       model: requestData.model,
@@ -144,13 +184,13 @@ export const translateRangePages = async ({
       userKeysCount: requestData.userKeys?.length || 0
     });
 
-    console.log("[RANGE-PAGE] 🌐 Gửi request đến backend...");
+    console.log("[50-PAGES] 🌐 Gửi request đến backend...");
     const token = localStorage.getItem("auth-token");
-    const res = await axios.post(API_URL + "/translate/range-pages", requestData, {
+    const res = await axios.post(API_URL + "/translate/50-pages", requestData, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    console.log("[RANGE-PAGE] 📥 Response từ Range Pages API:", {
+    console.log("[50-PAGES] 📥 Response từ 50 Pages API:", {
       success: res.data.success,
       totalPages: res.data.totalPages,
       successfulPages: res.data.successfulPages,
@@ -161,7 +201,7 @@ export const translateRangePages = async ({
     });
 
     if (res.data.success) {
-      console.log(`[RANGE-PAGE] ✅ Đã thêm ${res.data.successfulPages} trang (${res.data.totalJobs} chương) vào queue thành công`);
+      console.log(`[50-PAGES] ✅ Đã thêm ${res.data.successfulPages} trang (${res.data.totalJobs} chương) vào queue thành công`);
       
       // Cập nhật kết quả từ response
       results.success = res.data.success;
@@ -174,7 +214,7 @@ export const translateRangePages = async ({
 
       // Log thông tin timing nếu có
       if (res.data.timing) {
-        console.log(`[RANGE-PAGE] 📊 Thông tin timing:`, {
+        console.log(`[50-PAGES] 📊 Thông tin timing:`, {
           totalJobs: res.data.timing.totalJobs,
           strategy: res.data.timing.strategy,
           concurrency: res.data.timing.concurrency,
@@ -191,7 +231,7 @@ export const translateRangePages = async ({
     const successfulPages = results.successfulPages || 0;
     const totalJobs = results.totalJobs || 0;
 
-    console.log(`[RANGE-PAGE] 📊 Kết quả tổng thể:`, {
+    console.log(`[50-PAGES] 📊 Kết quả tổng thể:`, {
       totalPages: results.totalPages,
       successfulPages: successfulPages,
       failedPages: results.totalPages - successfulPages,
@@ -200,7 +240,7 @@ export const translateRangePages = async ({
     });
 
     if (results.errors.length > 0) {
-      console.warn(`[RANGE-PAGE] ⚠️ Có ${results.errors.length} trang bị lỗi:`, results.errors);
+      console.warn(`[50-PAGES] ⚠️ Có ${results.errors.length} trang bị lỗi:`, results.errors);
     }
 
     // Hiển thị thông báo kết quả
@@ -213,11 +253,11 @@ export const translateRangePages = async ({
       results.success = false;
     }
 
-    console.log("📖 [RANGE-PAGE] ===== HOÀN THÀNH DỊCH CÁC TRANG =====");
+    console.log("📖 [50-PAGES] ===== HOÀN THÀNH DỊCH 50 TRANG =====");
     return results;
 
   } catch (error) {
-    console.error(`[RANGE-PAGE] ❌ Lỗi tổng thể khi dịch các trang:`, error);
+    console.error(`[50-PAGES] ❌ Lỗi tổng thể khi dịch 50 trang:`, error);
     
     // Cập nhật trạng thái lỗi cho tất cả trang
     pageNumbers.forEach(pageNumber => {
@@ -234,70 +274,12 @@ export const translateRangePages = async ({
       onPageStopProgress?.(pageNumber);
     });
 
-    const errorMsg = `Lỗi khi dịch các trang: ${error.message}`;
+    const errorMsg = `Lỗi khi dịch 50 trang: ${error.message}`;
     setErrorMessages((prev) => ({ ...prev, general: `❌ ${errorMsg}` }));
     toast.error(`❌ ${errorMsg}`);
     
     return { success: false, error: errorMsg };
   }
-};
-
-/**
- * Helper function để tính toán các trang từ range
- * @param {number} startPage - Trang bắt đầu
- * @param {number} endPage - Trang kết thúc
- * @returns {Array<number>} Mảng số trang
- */
-export const calculatePageRange = (startPage, endPage) => {
-  if (startPage > endPage) {
-    throw new Error("Trang bắt đầu không thể lớn hơn trang kết thúc");
-  }
-  
-  const pages = [];
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(i);
-  }
-  
-  return pages;
-};
-
-/**
- * Helper function để tính toán các trang từ danh sách số trang
- * @param {string} pageInput - Input string (VD: "12,16,18" hoặc "14-19")
- * @returns {Array<number>} Mảng số trang
- */
-export const parsePageInput = (pageInput) => {
-  if (!pageInput || pageInput.trim() === "") {
-    return [];
-  }
-
-  const pages = new Set();
-  const parts = pageInput.split(',').map(part => part.trim());
-
-  for (const part of parts) {
-    if (part.includes('-')) {
-      // Range format: "14-19"
-      const [start, end] = part.split('-').map(num => parseInt(num.trim()));
-      if (isNaN(start) || isNaN(end)) {
-        throw new Error(`Range không hợp lệ: ${part}`);
-      }
-      if (start > end) {
-        throw new Error(`Range không hợp lệ: ${part} (trang bắt đầu > trang kết thúc)`);
-      }
-      for (let i = start; i <= end; i++) {
-        pages.add(i);
-      }
-    } else {
-      // Single page format: "12"
-      const pageNum = parseInt(part);
-      if (isNaN(pageNum)) {
-        throw new Error(`Số trang không hợp lệ: ${part}`);
-      }
-      pages.add(pageNum);
-    }
-  }
-
-  return Array.from(pages).sort((a, b) => a - b);
 };
 
 /**
@@ -318,5 +300,64 @@ export const getPageInfo = (pageNumber, totalChapters) => {
     chaptersCount: chaptersInPage,
     startChapterNumber: startIndex + 1,
     endChapterNumber: endIndex
+  };
+};
+
+/**
+ * Helper function để tính toán các trang từ startPage với giới hạn 50 trang
+ * @param {number} startPage - Trang bắt đầu
+ * @param {number} totalPages - Tổng số trang có sẵn
+ * @returns {Object} Thông tin về các trang sẽ dịch
+ */
+export const calculate50PageRange = (startPage, totalPages) => {
+  if (startPage < 1) {
+    throw new Error("Trang bắt đầu phải lớn hơn 0");
+  }
+  
+  if (startPage > totalPages) {
+    throw new Error(`Trang bắt đầu (${startPage}) vượt quá tổng số trang (${totalPages})`);
+  }
+  
+  const endPage = Math.min(startPage + MAX_PAGES_PER_BATCH - 1, totalPages);
+  const actualPages = endPage - startPage + 1;
+  
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+  
+  return {
+    startPage,
+    endPage,
+    actualPages,
+    pageNumbers,
+    isFullBatch: actualPages === MAX_PAGES_PER_BATCH
+  };
+};
+
+/**
+ * Helper function để tính toán chi phí ước tính cho 50 trang
+ * @param {Array} chapters - Danh sách chương
+ * @param {number} startPage - Trang bắt đầu
+ * @returns {Object} Thông tin chi phí
+ */
+export const calculateEstimatedCost = (chapters, startPage) => {
+  const totalPages = Math.ceil(chapters.length / CHAPTERS_PER_PAGE);
+  const endPage = Math.min(startPage + MAX_PAGES_PER_BATCH - 1, totalPages);
+  const actualPages = endPage - startPage + 1;
+  
+  const avgCharsPerChapter = chapters.reduce((sum, ch) => sum + (ch.rawText?.length || ch.content?.length || 0), 0) / chapters.length;
+  const estimatedCharsPerPage = avgCharsPerChapter * CHAPTERS_PER_PAGE;
+  const estimatedCostPerPage = estimatedCharsPerPage * 0.0001; // Ước tính chi phí
+  const estimatedTimePerPage = Math.max(30, estimatedCharsPerPage / 1000); // Ước tính thời gian (giây)
+
+  return {
+    actualPages: actualPages,
+    estimatedCharsPerPage: Math.round(estimatedCharsPerPage),
+    estimatedCostPerPage: estimatedCostPerPage,
+    estimatedTimePerPage: estimatedTimePerPage,
+    totalEstimatedCost: estimatedCostPerPage * actualPages,
+    totalEstimatedTime: estimatedTimePerPage * actualPages,
+    totalEstimatedTimeMinutes: Math.round(estimatedTimePerPage * actualPages / 60)
   };
 };

@@ -644,22 +644,22 @@ exports.translateRangePages = async (req, res) => {
   }
 };
 
-// Endpoint mới: Dịch tất cả các trang chưa dịch
-exports.translateAllPages = async (req, res) => {
-  console.log("🚀 [ALL-PAGES-API] ===== BẮT ĐẦU DỊCH TẤT CẢ CÁC TRANG =====");
+// Endpoint mới: Dịch 50 trang liên tiếp từ trang đầu tiên
+exports.translate50Pages = async (req, res) => {
+  console.log("🚀 [50-PAGES-API] ===== BẮT ĐẦU DỊCH 50 TRANG =====");
   
   const { 
+    startPage,
     chapters, 
     userKeys, 
     model, 
     storyId, 
     userId, 
-    isBatchTranslation,
-    forceTranslate = false,
-    maxPagesPerBatch = 5
+    isBatchTranslation
   } = req.body;
   
-  console.log("[ALL-PAGES-API] 📋 Thông tin request:", {
+  console.log("[50-PAGES-API] 📋 Thông tin request:", {
+    startPage: startPage,
     chaptersCount: chapters?.length || 0,
     hasUserKeys: !!userKeys,
     userKeysCount: userKeys?.length || 0,
@@ -670,12 +670,14 @@ exports.translateAllPages = async (req, res) => {
     modelRpd: model?.rpd,
     storyId: storyId,
     userId: userId,
-    isBatchTranslation: isBatchTranslation,
-    forceTranslate: forceTranslate,
-    maxPagesPerBatch: maxPagesPerBatch
+    isBatchTranslation: isBatchTranslation
   });
 
-  // Validation nghiêm ngặt
+  // Validation
+  if (!startPage || startPage < 1) {
+    return res.status(400).json({ error: "Trang bắt đầu phải lớn hơn 0." });
+  }
+
   if (!chapters || chapters.length === 0) {
     return res.status(400).json({ error: "Không có chương nào để dịch." });
   }
@@ -684,101 +686,52 @@ exports.translateAllPages = async (req, res) => {
     return res.status(400).json({ error: "Không có model được chọn." });
   }
 
-  if (!userKeys || (Array.isArray(userKeys) && userKeys.length === 0) || userKeys === "") {
-    return res.status(400).json({ error: "Dịch tất cả trang cần API key. Vui lòng nhập API key để tiếp tục." });
-  }
-
   try {
-    // Tính toán tổng số trang
+    // Tính toán tổng số trang và các trang sẽ dịch
     const CHAPTERS_PER_PAGE = 10;
+    const MAX_PAGES_PER_BATCH = 50;
     const totalPages = Math.ceil(chapters.length / CHAPTERS_PER_PAGE);
-    console.log(`[ALL-PAGES-API] 📊 Tổng số trang: ${totalPages}`);
+    const endPage = Math.min(startPage + MAX_PAGES_PER_BATCH - 1, totalPages);
+    const actualPagesToTranslate = endPage - startPage + 1;
 
-    // Phân tích các trang cần dịch (giả lập logic từ frontend)
-    const pagesToTranslate = [];
-    const pageAnalysis = {
-      totalPages: totalPages,
-      pagesNeedingTranslation: 0,
-      pagesAlreadyTranslated: 0,
-      pagesWithErrors: 0,
-      totalChaptersToTranslate: 0
-    };
+    console.log(`[50-PAGES-API] 📊 Thông tin trang:`, {
+      startPage: startPage,
+      endPage: endPage,
+      actualPagesToTranslate: actualPagesToTranslate,
+      totalPages: totalPages
+    });
 
-    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      const startIndex = (pageNum - 1) * CHAPTERS_PER_PAGE;
-      const endIndex = Math.min(startIndex + CHAPTERS_PER_PAGE, chapters.length);
-      const chaptersInPage = chapters.slice(startIndex, endIndex);
-      
-      // Kiểm tra trạng thái của các chương trong trang
-      let needsTranslation = false;
-      let hasErrors = false;
-      let translatedCount = 0;
-
-      for (let i = startIndex; i < endIndex; i++) {
-        const chapter = chapters[i];
-        
-        if (chapter?.translatedContent && !forceTranslate) {
-          translatedCount++;
-        } else if (chapter?.hasError) {
-          hasErrors = true;
-        }
-        
-        if (!chapter?.translatedContent || forceTranslate) {
-          needsTranslation = true;
-        }
-      }
-
-      if (needsTranslation) {
-        pagesToTranslate.push({
-          pageNumber: pageNum,
-          startIndex: startIndex,
-          endIndex: endIndex,
-          chaptersCount: chaptersInPage.length,
-          translatedCount: translatedCount,
-          hasErrors: hasErrors
-        });
-        pageAnalysis.pagesNeedingTranslation++;
-        pageAnalysis.totalChaptersToTranslate += chaptersInPage.length;
-      } else {
-        pageAnalysis.pagesAlreadyTranslated++;
-      }
-
-      if (hasErrors) {
-        pageAnalysis.pagesWithErrors++;
-      }
-    }
-
-    console.log(`[ALL-PAGES-API] 📊 Phân tích trang:`, pageAnalysis);
-    console.log(`[ALL-PAGES-API] 📄 Các trang cần dịch:`, pagesToTranslate.map(p => p.pageNumber));
-
-    // Kiểm tra nếu không có trang nào cần dịch
-    if (pagesToTranslate.length === 0) {
-      const message = forceTranslate ? "Tất cả các trang đã được dịch!" : "Tất cả các trang đã được dịch hoàn chỉnh!";
-      console.log(`[ALL-PAGES-API] ✅ ${message}`);
-      return res.json({ 
-        success: true, 
-        message: message,
-        pageAnalysis: pageAnalysis,
-        pagesToTranslate: []
+    // Kiểm tra nếu trang bắt đầu vượt quá tổng số trang
+    if (startPage > totalPages) {
+      return res.status(400).json({ 
+        error: `Trang bắt đầu (${startPage}) vượt quá tổng số trang (${totalPages})` 
       });
     }
+
+    // Tạo mảng pageNumbers từ startPage đến endPage
+    const pageNumbers = [];
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    console.log(`[50-PAGES-API] 📄 Các trang sẽ dịch:`, pageNumbers);
 
     // Lấy key khả dụng
     const keyManager = new ApiKeyManager();
     const keysToUse = userKeys || [];
     const userIdFromToken = req.user?.id || userId || 'anonymous';
     
-    console.log("[ALL-PAGES-API] 🔑 Tìm key khả dụng...");
+    console.log("[50-PAGES-API] 🔑 Tìm key khả dụng...");
     const modelValueForKey = model?.value || model;
     const keyResult = await keyManager.getKeyToUse(userIdFromToken, keysToUse, modelValueForKey);
     const keyToUse = keyResult.key;
     
-    console.log(`[ALL-PAGES-API] ✅ Đã tìm thấy key: ${typeof keyToUse === 'string' ? keyToUse.substring(0, 8) + '...' : 'unknown'}`);
+    console.log(`[50-PAGES-API] ✅ Đã tìm thấy key: ${typeof keyToUse === 'string' ? keyToUse.substring(0, 8) + '...' : 'unknown'}`);
 
     // Lấy thông tin model đầy đủ từ database nếu cần
     let fullModelInfo = model;
     if (model && model.value && (!model.rpm || !model.tpm || !model.rpd)) {
-      console.log("[ALL-PAGES-API] 🔍 Tìm thông tin model đầy đủ từ database...");
+      console.log("[50-PAGES-API] 🔍 Tìm thông tin model đầy đủ từ database...");
       try {
         const { prisma } = require("../config/prismaConfig");
         const dbModel = await prisma.model.findFirst({
@@ -787,115 +740,123 @@ exports.translateAllPages = async (req, res) => {
         });
         if (dbModel) {
           fullModelInfo = { ...model, ...dbModel };
+          console.log(`[50-PAGES-API] ✅ Đã lấy thông tin model từ DB:`, {
+            value: fullModelInfo.value,
+            label: fullModelInfo.label,
+            rpm: fullModelInfo.rpm,
+            tpm: fullModelInfo.tpm,
+            rpd: fullModelInfo.rpd
+          });
         }
       } catch (error) {
-        console.error("[ALL-PAGES-API] ⚠️ Không thể lấy thông tin model từ DB:", error.message);
+        console.error("[50-PAGES-API] ⚠️ Không thể lấy thông tin model từ DB:", error.message);
       }
     }
 
     const results = {
       success: true,
-      totalPages: pagesToTranslate.length,
-      totalChapters: pageAnalysis.totalChaptersToTranslate,
+      totalPages: actualPagesToTranslate,
+      totalChapters: 0,
       pageResults: {},
       timing: null,
-      errors: [],
-      pageAnalysis: pageAnalysis
+      errors: []
     };
 
-    // Chia thành các batch để tránh quá tải
-    const batches = [];
-    for (let i = 0; i < pagesToTranslate.length; i += maxPagesPerBatch) {
-      batches.push(pagesToTranslate.slice(i, i + maxPagesPerBatch));
-    }
-
-    console.log(`[ALL-PAGES-API] 📦 Chia thành ${batches.length} batch, mỗi batch tối đa ${maxPagesPerBatch} trang`);
-
-    // Xử lý từng batch
-    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-      const batch = batches[batchIndex];
-      console.log(`[ALL-PAGES-API] 📦 Xử lý batch ${batchIndex + 1}/${batches.length} với ${batch.length} trang`);
-
-      // Dịch từng trang trong batch
-      for (let pageIndex = 0; pageIndex < batch.length; pageIndex++) {
-        const pageInfo = batch[pageIndex];
-        const pageNumber = pageInfo.pageNumber;
+    // Xử lý từng trang
+    for (let i = 0; i < pageNumbers.length; i++) {
+      const pageNumber = pageNumbers[i];
+      
+      console.log(`[50-PAGES-API] 📄 Xử lý trang ${pageNumber} (${i + 1}/${pageNumbers.length})`);
+      
+      try {
+        // Tính toán các chương trong trang này
+        const startIndex = (pageNumber - 1) * CHAPTERS_PER_PAGE;
+        const endIndex = Math.min(startIndex + CHAPTERS_PER_PAGE, chapters.length);
+        const chaptersInPage = chapters.slice(startIndex, endIndex);
         
-        console.log(`[ALL-PAGES-API] 📄 Bắt đầu dịch trang ${pageNumber} (batch ${batchIndex + 1}, trang ${pageIndex + 1}/${batch.length})`);
-        
-        try {
-          const chaptersInPage = chapters.slice(pageInfo.startIndex, pageInfo.endIndex);
+        console.log(`[50-PAGES-API] 📚 Trang ${pageNumber} có ${chaptersInPage.length} chương (từ chương ${startIndex + 1} đến ${endIndex})`);
+
+        // Thêm từng chương trong trang vào queue
+        const jobs = [];
+        for (let j = 0; j < chaptersInPage.length; j++) {
+          const chapter = chaptersInPage[j];
           
-          // Thêm từng chương trong trang vào queue
-          const jobs = [];
-          for (let j = 0; j < chaptersInPage.length; j++) {
-            const chapter = chaptersInPage[j];
-            
-            const jobData = {
-              chapter: {
-                title: chapter.title,
-                content: chapter.content,
-                chapterNumber: chapter.chapterNumber,
-                originalIndex: pageInfo.startIndex + j
-              },
-              model: fullModelInfo,
-              apiKey: keyToUse,
-              storyId: storyId,
-              userId: userIdFromToken,
-              jobIndex: pageInfo.startIndex + j,
-              totalJobs: chapters.length,
+          const jobData = {
+            chapter: {
+              title: chapter.title,
+              content: chapter.content,
+              chapterNumber: chapter.chapterNumber,
+              originalIndex: startIndex + j
+            },
+            model: fullModelInfo,
+            apiKey: keyToUse,
+            storyId: storyId,
+            userId: userIdFromToken,
+            jobIndex: startIndex + j,
+            totalJobs: chapters.length,
+            pageNumber: pageNumber,
+            pageInfo: {
               pageNumber: pageNumber,
-              pageInfo: {
-                pageNumber: pageNumber,
-                startIndex: pageInfo.startIndex,
-                endIndex: pageInfo.endIndex,
-                chaptersCount: chaptersInPage.length,
-                batchIndex: batchIndex,
-                pageInBatch: pageIndex
-              },
-              timestamp: Date.now(),
-              serverId: process.pid,
-              isAllPagesTranslation: true // Flag đặc biệt
-            };
+              startIndex: startIndex,
+              endIndex: endIndex,
+              chaptersCount: chaptersInPage.length,
+              chapterInPage: j
+            },
+            timestamp: Date.now(),
+            serverId: process.pid,
+            is50PagesTranslation: true
+          };
 
-            const job = await myQueue.add('translate-chapter', jobData, {
-              delay: 0,
-              attempts: 2,
-              backoff: {
-                type: 'exponential',
-                delay: 5000
-              },
-              removeOnComplete: true,
-              removeOnFail: true,
-              timeout: 300000
-            });
+          console.log(`[50-PAGES-API] 📝 Thêm job chương ${chapter.chapterNumber} của trang ${pageNumber}:`, {
+            chapterNumber: chapter.chapterNumber,
+            titleLength: chapter.title?.length || 0,
+            contentLength: chapter.content?.length || 0,
+            pageNumber: pageNumber
+          });
 
-            jobs.push(job);
+          // Tính delay dựa trên RPM của model
+          let delayPerJob = 2000;
+          if (fullModelInfo && fullModelInfo.rpm) {
+            delayPerJob = Math.max((60 / fullModelInfo.rpm) * 1000, 1000);
           }
 
-          // Lưu kết quả trang
-          results.pageResults[pageNumber] = {
-            success: true,
-            jobCount: jobs.length,
-            chaptersCount: chaptersInPage.length,
-            startIndex: pageInfo.startIndex,
-            endIndex: pageInfo.endIndex,
-            batchIndex: batchIndex,
-            jobIds: jobs.map(job => job.id)
-          };
+          const job = await myQueue.add('translate-chapter', jobData, {
+            delay: 0,
+            attempts: 2,
+            backoff: {
+              type: 'exponential',
+              delay: 5000
+            },
+            removeOnComplete: true,
+            removeOnFail: true,
+            timeout: 300000
+          });
 
-          console.log(`[ALL-PAGES-API] ✅ Đã thêm ${jobs.length} jobs của trang ${pageNumber} vào queue`);
-
-        } catch (error) {
-          console.error(`[ALL-PAGES-API] ❌ Lỗi xử lý trang ${pageNumber}:`, error);
-          
-          const errorMsg = `Lỗi xử lý trang ${pageNumber}: ${error.message}`;
-          results.errors.push(errorMsg);
-          results.pageResults[pageNumber] = {
-            success: false,
-            error: errorMsg
-          };
+          jobs.push(job);
+          console.log(`[50-PAGES-API] ✅ Đã thêm job ${job.id} vào queue`);
         }
+
+        // Lưu kết quả trang
+        results.pageResults[pageNumber] = {
+          success: true,
+          jobCount: jobs.length,
+          chaptersCount: chaptersInPage.length,
+          startIndex: startIndex,
+          endIndex: endIndex,
+          jobIds: jobs.map(job => job.id)
+        };
+
+        console.log(`[50-PAGES-API] ✅ Đã thêm ${jobs.length} jobs của trang ${pageNumber} vào queue`);
+
+      } catch (error) {
+        console.error(`[50-PAGES-API] ❌ Lỗi xử lý trang ${pageNumber}:`, error);
+        
+        const errorMsg = `Lỗi xử lý trang ${pageNumber}: ${error.message}`;
+        results.errors.push(errorMsg);
+        results.pageResults[pageNumber] = {
+          success: false,
+          error: errorMsg
+        };
       }
     }
 
@@ -903,29 +864,25 @@ exports.translateAllPages = async (req, res) => {
     const successfulPages = Object.values(results.pageResults).filter(page => page.success).length;
     const totalJobs = Object.values(results.pageResults).reduce((total, page) => total + (page.jobCount || 0), 0);
 
-    console.log(`[ALL-PAGES-API] 📊 Kết quả tổng thể:`, {
+    console.log(`[50-PAGES-API] 📊 Kết quả tổng thể:`, {
       totalPages: results.totalPages,
       successfulPages: successfulPages,
       failedPages: results.totalPages - successfulPages,
       totalJobs: totalJobs,
-      totalChapters: results.totalChapters,
-      errors: results.errors.length,
-      batches: batches.length
+      errors: results.errors.length
     });
 
     // Cập nhật timing
     const estimatedTotalTime = totalJobs * 10;
     results.timing = {
       totalJobs: totalJobs,
-      strategy: 'All Pages Translation',
+      strategy: '50 Pages Translation',
       concurrency: 3,
       estimatedTotalTime: Math.floor(estimatedTotalTime / 1000),
-      efficiency: 'Tối ưu cho dịch tất cả trang',
-      batches: batches.length,
-      maxPagesPerBatch: maxPagesPerBatch
+      efficiency: 'Tối ưu cho dịch 50 trang liên tiếp'
     };
 
-    console.log("🚀 [ALL-PAGES-API] ===== HOÀN THÀNH DỊCH TẤT CẢ CÁC TRANG =====");
+    console.log("🚀 [50-PAGES-API] ===== HOÀN THÀNH DỊCH 50 TRANG =====");
 
     res.json({
       success: results.errors.length === 0,
@@ -937,15 +894,14 @@ exports.translateAllPages = async (req, res) => {
       totalJobs: totalJobs,
       pageResults: results.pageResults,
       timing: results.timing,
-      errors: results.errors,
-      pageAnalysis: results.pageAnalysis
+      errors: results.errors
     });
 
   } catch (error) {
-    console.error("[ALL-PAGES-API] ❌ Lỗi khi dịch tất cả trang:", error);
+    console.error("[50-PAGES-API] ❌ Lỗi khi dịch 50 trang:", error);
     res.status(500).json({
       success: false,
-      message: "Lỗi khi dịch tất cả trang",
+      message: "Lỗi khi dịch 50 trang",
       error: error.message
     });
   }
